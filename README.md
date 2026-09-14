@@ -29,7 +29,7 @@ reservation API, and a React frontend ("Courtly") that talks to it — see
 | Member | Adam Mikoláš |
 
 - **Repository:** https://github.com/tylmarek1/C01
-- **Working branch:** `c01-spike`
+- **Main branch:** `main` (work via feature branches + reviewed PRs)
 
 ## Domain at a glance
 
@@ -170,9 +170,15 @@ Beyond the C01 spike, the project now has a runnable product slice:
 
 ## Review cycle (C01)
 
-Tracked in issue [#1 — "C01 engineering spike"](https://github.com/tylmarek1/C01/issues/1)
-and integrated via reviewed pull request
-[#2](https://github.com/tylmarek1/C01/pull/2).
+The reviewed change is the whole C01 engineering spike (models, persistence
+tests, evidence, ADR-001), integrated from `c01-spike` into `main`:
+
+| Step | Who | Where |
+|---|---|---|
+| Task | team | issue [#4 — "C01 engineering spike — review a integrace do main"](https://github.com/tylmarek1/C01/issues/4) (original task: [#1](https://github.com/tylmarek1/C01/issues/1)) |
+| Change | Marek Tyl (spike code + docs), Adam Vrána (README/team info, PRs [#2](https://github.com/tylmarek1/C01/pull/2), [#3](https://github.com/tylmarek1/C01/pull/3) into `c01-spike`) | branch `c01-spike` |
+| Review before integration | **Josef Glogar** (not an author of the change) | pull request [#5](https://github.com/tylmarek1/C01/pull/5) `c01-spike → main` — **approved** 2026-09-14 10:18 |
+| Integration | Josef Glogar, after approval | PR #5 **merged** into `main` 2026-09-14 10:19, issue #4 closed |
 
 ## Definition of Done — status
 
@@ -187,7 +193,7 @@ and integrated via reviewed pull request
 - [x] 1 external/system boundary (Notification Service)
 - [x] Complete Project Frame
 - [x] 1 selected future pressure (Q) with rationale
-- [ ] 1 reviewed and integrated change — PR [#2](https://github.com/tylmarek1/C01/pull/2) open, awaiting teammate review/merge
+- [x] 1 reviewed and integrated change — PR [#5](https://github.com/tylmarek1/C01/pull/5) `c01-spike → main` approved by Josef Glogar, then merged
 - [x] 1 executed engineering spike (A — Persistence)
 - [x] Spike evidence + decision recorded
 - [x] CP1 walking skeleton defined

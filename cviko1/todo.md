@@ -1,7 +1,7 @@
 # C01 — stav a co zbývá (checklist proti Definition of Done)
 
 Tým: **VTG Courts** (Adam Vrána, Marek Tyl, Josef Glogar)
-Repo: https://github.com/tylmarek1/C01 (branch `c01-spike`)
+Repo: https://github.com/tylmarek1/C01 (branch `main`; `c01-spike` po merge PR #5 smazána)
 Kontrolováno: 2026-09-14
 
 ## Hotovo ✅
@@ -20,14 +20,14 @@ Kontrolováno: 2026-09-14
 - [x] CP1 walking skeleton konkrétně definován v `README.md` (POST /reservations → validate → persist → return id → automated check)
 - [x] **Tým a repo (bod 1)** — `README.md` doplněno: team name **VTG Courts**, členové Adam Vrána / Marek Tyl / Josef Glogar, URL repa
 
-## Rozpracováno — čeká se na tým ⏳
+- [x] **Review smyčka (bod 6)** — splněno:
+  - PR #2 a #3 (Adam) byly mergnuty do `c01-spike` bez review druhého člena → nepočítají se.
+  - Issue https://github.com/tylmarek1/C01/issues/4 — zavřeno
+  - PR `c01-spike → main` https://github.com/tylmarek1/C01/pull/5 — **Approve od Josefa (`Pepanoss`)** 10:18, merge 10:19
+  - Default branch repa přepnut na `main`.
+- [x] Přístup do repa: `adam-vrana`, `tylmarek1`, `Pepanoss` jsou collaborators (ověřeno 2026-09-14).
 
-- [ ] **Review smyčka (bod 6)** — připraveno, čeká se na review:
-  - Issue **„C01 engineering spike"** založeno: https://github.com/tylmarek1/C01/issues/1
-  - Změna (doplnění týmu v README) je na branchi `c01-spike-review`
-  - PR otevřen proti `c01-spike`, review vyžádáno od `tylmarek1` (Marek): **https://github.com/tylmarek1/C01/pull/2**
-  - **Co ještě zbývá udělat vy (lidsky):** Marek (nebo Josef) musí PR **reálně zkontrolovat a schválit/okomentovat na GitHubu** — to musí udělat člověk, ne AI. Až se to stane, PR se mergne do `c01-spike` a poslední bod Definition of Done je hotový.
-- [ ] Ověřit, že Marek (`tylmarek1`) i Josef (`Pepanoss`) mají v repu odpovídající přístup — oba jsou aktuálně v seznamu collaborators, takže by mělo být OK, ale stojí za rychlou kontrolu v Settings → Collaborators.
+**Všech 15 bodů Definition of Done je splněno.**
 
 ## Poznámka
 - ~~Operace create/confirm/cancel/availability jsou zatím jen navržené...~~ — **od 2026-09-14 už implementované** (viz níže), nad rámec toho, co C01 vyžaduje.
