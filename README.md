@@ -4,9 +4,9 @@ Reservation system for a sports venue: players book tennis, volleyball and badmi
 
 ## Team
 
-- **Team name:** TODO
-- **Members:** TODO (3–4 students)
-- **Repository:** TODO (GitHub URL)
+- **Team name:** VTG Courts
+- **Members:** Adam Vrána, Marek Tyl, Josef Glogar
+- **Repository:** https://github.com/tylmarek1/C01
 
 ## Stack
 
