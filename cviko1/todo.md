@@ -22,13 +22,14 @@ Kontrolováno: 2026-09-14
 
 ## Rozpracováno — čeká se na tým ⏳
 
-- [ ] **Review smyčka (bod 6)** — připraveno, čeká se na review:
-  - Issue **„C01 engineering spike"** založeno: https://github.com/tylmarek1/C01/issues/1
-  - Změna (doplnění týmu v README) je na branchi `c01-spike-review`
-  - PR otevřen proti `c01-spike`, review vyžádáno od `tylmarek1` (Marek): **https://github.com/tylmarek1/C01/pull/2**
-  - **Co ještě zbývá udělat vy (lidsky):** Marek (nebo Josef) musí PR **reálně zkontrolovat a schválit/okomentovat na GitHubu** — to musí udělat člověk, ne AI. Až se to stane, PR se mergne do `c01-spike` a poslední bod Definition of Done je hotový.
-- [ ] Ověřit, že Marek (`tylmarek1`) i Josef (`Pepanoss`) mají v repu odpovídající přístup — oba jsou aktuálně v seznamu collaborators, takže by mělo být OK, ale stojí za rychlou kontrolu v Settings → Collaborators.
+- [ ] **Review smyčka (bod 6)** — čeká na Josefa:
+  - PR #2 a #3 (Adam) byly mergnuty do `c01-spike` **bez review** druhého člena → nepočítají se.
+  - Nové issue: https://github.com/tylmarek1/C01/issues/4 (přiřazeno Josefovi)
+  - PR `c01-spike → main`: **https://github.com/tylmarek1/C01/pull/5**, review vyžádáno od Josefa (`Pepanoss`)
+  - **Josef:** Files changed → projít kód/docs → *Review changes* → komentář + **Approve** → teprve pak **Merge**. Nikdo jiný PR před schválením nemerguje.
+  - Po merge: v Settings → General přepnout default branch na `main`.
+- [x] Přístup do repa: `adam-vrana`, `tylmarek1`, `Pepanoss` jsou collaborators (ověřeno 2026-09-14).
 
 ## Poznámka
 - Operace create/confirm/cancel/availability jsou zatím jen **navržené** v Project Frame, ne implementované jako API endpointy (aktuálně běží jen `/health`). To ale C01 nevyžaduje — plná implementace přijde s CP1 walking skeleton (C03/C04).
-- V rootu repa je nesouvisející neverzovaný soubor `{status:ok}` (vypadá jako omylem uložený výstup curlu) — stálo by za to ho smazat nebo `.gitignore`nout.
+- Omylem commitnutý prázdný soubor `{status:ok}` (výstup curlu) byl z repa odstraněn.

@@ -107,9 +107,15 @@ Full question / method / result / decision write-up:
 
 ## Review cycle (C01)
 
-Tracked in issue [#1 — "C01 engineering spike"](https://github.com/tylmarek1/C01/issues/1)
-and integrated via reviewed pull request
-[#2](https://github.com/tylmarek1/C01/pull/2).
+The reviewed change is the whole C01 engineering spike (models, persistence
+tests, evidence, ADR-001), integrated from `c01-spike` into `main`:
+
+| Step | Who | Where |
+|---|---|---|
+| Task | team | issue [#4 — "C01 engineering spike — review a integrace do main"](https://github.com/tylmarek1/C01/issues/4) (original task: [#1](https://github.com/tylmarek1/C01/issues/1)) |
+| Change | Marek Tyl (spike code + docs), Adam Vrána (README/team info, PRs [#2](https://github.com/tylmarek1/C01/pull/2), [#3](https://github.com/tylmarek1/C01/pull/3) into `c01-spike`) | branch `c01-spike` |
+| Review before integration | **Josef Glogar** (not an author of the change) | pull request [#5](https://github.com/tylmarek1/C01/pull/5) `c01-spike → main` — approve on GitHub |
+| Integration | after Josef's approval | merge PR #5 into `main` |
 
 ## Definition of Done — status
 
@@ -124,7 +130,7 @@ and integrated via reviewed pull request
 - [x] 1 external/system boundary (Notification Service)
 - [x] Complete Project Frame
 - [x] 1 selected future pressure (Q) with rationale
-- [ ] 1 reviewed and integrated change — PR [#2](https://github.com/tylmarek1/C01/pull/2) open, awaiting teammate review/merge
+- [ ] 1 reviewed and integrated change — PR [#5](https://github.com/tylmarek1/C01/pull/5) `c01-spike → main` awaiting approval by Josef Glogar, then merge
 - [x] 1 executed engineering spike (A — Persistence)
 - [x] Spike evidence + decision recorded
 - [x] CP1 walking skeleton defined
