@@ -1,0 +1,41 @@
+import uuid
+
+from pydantic import BaseModel, Field
+
+from reservations.models import Amenity, SportType
+
+
+class CourtOut(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    name: str
+    sport_type: SportType
+    indoor: bool
+    active: bool
+    description: str | None = None
+    image_url: str | None = None
+    amenities: list[str] = []
+    # Populated only by endpoints that bother computing it (list/detail) —
+    # left as None/0 wherever a court is just nested inside another response.
+    average_rating: float | None = None
+    review_count: int = 0
+
+
+class CourtCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    sport_type: SportType
+    indoor: bool = False
+    description: str | None = Field(default=None, max_length=500)
+    image_url: str | None = Field(default=None, max_length=500)
+    amenities: list[Amenity] = []
+
+
+class CourtUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    sport_type: SportType | None = None
+    indoor: bool | None = None
+    active: bool | None = None
+    description: str | None = Field(default=None, max_length=500)
+    image_url: str | None = Field(default=None, max_length=500)
+    amenities: list[Amenity] | None = None
