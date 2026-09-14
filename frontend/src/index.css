@@ -1,0 +1,120 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --radius: 0.5rem;
+
+  /* Calendly-inspired palette — navy ink on cool marble */
+  --ink-navy: #0b3558;
+  --signal-blue: #006bff;
+  --slate-gray: #476788;
+  --mist-gray: #a6bbd1;
+  --cloud: #f8f9fb;
+  --paper: #ffffff;
+  --pebble: #f0f3f8;
+  --hairline: #d4e0ed;
+  --coral-magenta: #e55cff;
+  --sky-cyan: #0099ff;
+  --deep-cobalt: #004eba;
+
+  /* shadcn semantic tokens, mapped onto the palette above */
+  --background: var(--cloud);
+  --foreground: var(--ink-navy);
+  --card: var(--paper);
+  --card-foreground: var(--ink-navy);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink-navy);
+  --primary: var(--signal-blue);
+  --primary-foreground: var(--paper);
+  --secondary: var(--pebble);
+  --secondary-foreground: var(--ink-navy);
+  --muted: var(--pebble);
+  --muted-foreground: var(--slate-gray);
+  --accent: var(--pebble);
+  --accent-foreground: var(--ink-navy);
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: var(--hairline);
+  --input: var(--hairline);
+  --ring: var(--signal-blue);
+
+  /* three-layer, blue-tinted elevation (never neutral black) */
+  --shadow-card: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px,
+    rgba(71, 103, 136, 0.08) 0px 30px 50px 0px;
+  --shadow-link: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 4px 10px 0px,
+    rgba(71, 103, 136, 0.05) 0px 10px 20px 0px;
+  --shadow-button: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px,
+    rgba(71, 103, 136, 0.06) 0px 15px 30px 0px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink-navy: var(--ink-navy);
+  --color-signal-blue: var(--signal-blue);
+  --color-slate-gray: var(--slate-gray);
+  --color-mist-gray: var(--mist-gray);
+  --color-cloud: var(--cloud);
+  --color-paper: var(--paper);
+  --color-pebble: var(--pebble);
+  --color-hairline: var(--hairline);
+  --color-coral-magenta: var(--coral-magenta);
+  --color-sky-cyan: var(--sky-cyan);
+  --color-deep-cobalt: var(--deep-cobalt);
+
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    background: var(--background);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-link {
+    box-shadow: var(--shadow-link);
+  }
+
+  .shadow-button {
+    box-shadow: var(--shadow-button);
+  }
+}

@@ -1,0 +1,150 @@
+import { useQuery } from "@tanstack/react-query"
+import { CalendarCheck2, Clock3, ShieldCheck } from "lucide-react"
+import { Link } from "react-router-dom"
+
+import { Badge } from "@/components/shared/badge"
+import { Button } from "@/components/shared/button"
+import { Card } from "@/components/shared/card"
+import { CourtCard } from "@/components/shared/court-card"
+import { DecorativeBlob } from "@/components/shared/decorative-blob"
+import { FeatureItem } from "@/components/shared/feature-item"
+import { SectionHeader } from "@/components/shared/section-header"
+import { SportIcon } from "@/components/shared/sport-icon"
+import { Skeleton } from "@/components/shared/skeleton"
+import { StatTile } from "@/components/shared/stat-tile"
+import { api } from "@/lib/api"
+import { useAuth } from "@/lib/auth-context"
+import { useTranslation, type TranslationKey } from "@/lib/i18n"
+
+function LandingPage() {
+  const { user } = useAuth()
+  const { t } = useTranslation()
+  const { data: courts, isLoading } = useQuery({ queryKey: ["courts"], queryFn: () => api.listCourts() })
+
+  const steps: { icon: typeof Clock3; titleKey: TranslationKey; descriptionKey: TranslationKey }[] = [
+    { icon: Clock3, titleKey: "howItWorks.step1.title", descriptionKey: "howItWorks.step1.description" },
+    { icon: ShieldCheck, titleKey: "howItWorks.step2.title", descriptionKey: "howItWorks.step2.description" },
+    { icon: CalendarCheck2, titleKey: "howItWorks.step3.title", descriptionKey: "howItWorks.step3.description" },
+  ]
+
+  return (
+    <div>
+      {/* Hero */}
+      <section className="mx-auto max-w-6xl px-6 pt-16 pb-20 sm:pt-24">
+        <div className="grid items-center gap-16 lg:grid-cols-2">
+          <div className="flex flex-col gap-6">
+            <Badge className="w-fit">{t("hero.badge")}</Badge>
+            <h1 className="text-5xl leading-[1.1] font-bold text-balance text-ink-navy sm:text-6xl lg:text-[4.5rem]">
+              {t("hero.title")}
+            </h1>
+            <p className="max-w-md text-lg text-slate-gray">{t("hero.description")}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button size="lg" asChild>
+                <Link to={user ? "/app/book" : "/register"}>{t("hero.cta.signup")}</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/courts">{t("hero.cta.browse")}</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="relative flex items-center justify-center">
+            <DecorativeBlob color="cyan" className="-top-12 -right-8 size-72" />
+            <DecorativeBlob color="magenta" className="-bottom-12 -left-8 size-64" />
+            <Card className="relative w-full max-w-sm gap-5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-ink-navy">{t("hero.card.title")}</span>
+                <Badge>{t("hero.card.live")}</Badge>
+              </div>
+              <div className="flex flex-col gap-3">
+                {isLoading &&
+                  Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}
+                {courts?.slice(0, 3).map((court) => (
+                  <Link
+                    key={court.id}
+                    to={`/courts/${court.id}`}
+                    className="flex items-center gap-3 rounded-xl border border-hairline p-3 transition-colors hover:border-signal-blue/40 hover:bg-[#eaf3ff]"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-pebble text-ink-navy">
+                      <SportIcon sport={court.sport_type} className="size-4" />
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-ink-navy">{court.name}</span>
+                      <span className="text-xs text-slate-gray">{court.indoor ? "Indoor" : "Outdoor"}</span>
+                    </div>
+                    <span className="ml-auto text-xs font-medium text-signal-blue">{t("hero.card.hours")}</span>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatTile icon={CalendarCheck2} label={t("stats.courts")} value={courts?.length ?? "–"} />
+          <StatTile icon={ShieldCheck} label={t("stats.sports")} value="3" />
+          <StatTile icon={Clock3} label={t("stats.hours")} value="07:00–22:00" />
+        </div>
+      </section>
+
+      {/* How it works + court list */}
+      <section id="courts" className="mx-auto max-w-6xl px-6 pb-24">
+        <SectionHeader
+          eyebrow={t("howItWorks.eyebrow")}
+          title={t("howItWorks.title")}
+          description={t("howItWorks.description")}
+          className="mb-14"
+        />
+        <div className="grid gap-12 lg:grid-cols-2">
+          <div className="flex flex-col">
+            {steps.map((step) => (
+              <FeatureItem key={step.titleKey} icon={step.icon} title={t(step.titleKey)} description={t(step.descriptionKey)} />
+            ))}
+          </div>
+          <div className="flex flex-col gap-3">
+            {isLoading && Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-20 w-full" />)}
+            {courts?.slice(0, 4).map((court) => (
+              <CourtCard key={court.id} court={court} href={`/courts/${court.id}`} compact />
+            ))}
+            <Button variant="link" asChild className="mt-1 w-fit">
+              <Link to="/courts">{t("howItWorks.viewAll")}</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="mx-auto max-w-4xl px-6 pb-24 text-center">
+        <SectionHeader
+          eyebrow={t("pricing.eyebrow")}
+          title={t("pricing.title")}
+          description={t("pricing.description")}
+          className="mb-10"
+        />
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-4 rounded-3xl border border-hairline bg-card p-10 shadow-card">
+          <span className="text-5xl font-bold text-ink-navy">$0</span>
+          <p className="text-slate-gray">Unlimited bookings, all sports, no card required.</p>
+          <Button size="lg" className="mt-2 w-full" asChild>
+            <Link to={user ? "/app/book" : "/register"}>{t("pricing.cta")}</Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* CTA banner */}
+      <section className="mx-auto max-w-6xl px-6 pb-24">
+        <div className="flex flex-col items-center gap-6 rounded-3xl bg-ink-navy px-8 py-16 text-center">
+          <h2 className="text-3xl font-bold text-paper sm:text-4xl">{t("cta.title")}</h2>
+          <p className="max-w-md text-mist-gray">{t("cta.description")}</p>
+          <Button size="lg" asChild>
+            <Link to={user ? "/app/book" : "/register"}>{t("cta.button")}</Link>
+          </Button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export { LandingPage }

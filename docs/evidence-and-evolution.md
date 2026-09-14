@@ -7,9 +7,9 @@ Can we save a Reservation to a real PostgreSQL database and load it back unchang
 And can the database itself enforce the common rule, "CONFIRMED reservations of the same court must not overlap", even when many players confirm the same slot at the same time (our Q future pressure)? Or do we need application-level locking?
 
 What we did:
-- Modelled `Court`, `User` and `Reservation` in SQLAlchemy 2 (`src/reservations/models.py`), with states `DRAFT / CONFIRMED / CANCELLED` stored as a PostgreSQL enum and `start_time`/`end_time` as `timestamptz`.
+- Modelled `Court`, `User` and `Reservation` in SQLAlchemy 2 (`backend/src/reservations/models/`), with states `DRAFT / CONFIRMED / CANCELLED` stored as a PostgreSQL enum and `start_time`/`end_time` as `timestamptz`.
 - Added a PostgreSQL exclusion constraint (needs the `btree_gist` extension). It rejects two CONFIRMED rows for the same court whose half-open ranges `[start, end)` overlap.
-- Started a real PostgreSQL 16 with `docker compose up -d --wait db` and ran `uv run pytest -v -s`. The tests are in `tests/test_persistence_spike.py`:
+- Started a real PostgreSQL 16 with `docker compose up -d --wait db` and ran `uv run pytest -v -s`. The tests are in `backend/tests/test_persistence_spike.py`:
   1. `test_reservation_roundtrip`: saves a CONFIRMED reservation for 18:00–19:30 Europe/Prague and reads it back in a new session. It checks id, court/user FK, status, and that the times are tz-aware and the same instant.
   2. `test_db_rejects_overlapping_confirmed`: 18:00–19:30 CONFIRMED, then 19:00–20:00 CONFIRMED on the same court must fail. An overlapping DRAFT and a back-to-back CONFIRMED (19:30–21:00) must be accepted.
   3. `test_concurrent_confirmations_only_one_wins`: 10 threads, each with its own DB connection, commit a CONFIRMED 18:00–19:00 on the same court at the same moment (synchronised with a `threading.Barrier`).
