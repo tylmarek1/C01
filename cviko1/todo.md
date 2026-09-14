@@ -1,7 +1,7 @@
 # C01 — stav a co zbývá (checklist proti Definition of Done)
 
 Tým: **VTG Courts** (Adam Vrána, Marek Tyl, Josef Glogar)
-Repo: https://github.com/tylmarek1/C01 (branch `c01-spike`)
+Repo: https://github.com/tylmarek1/C01 (branch `main`; `c01-spike` po merge PR #5 smazána)
 Kontrolováno: 2026-09-14
 
 ## Hotovo ✅

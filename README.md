@@ -18,7 +18,7 @@ for the executed spike.
 | Member | Josef Glogar |
 
 - **Repository:** https://github.com/tylmarek1/C01
-- **Working branch:** `c01-spike`
+- **Main branch:** `main` (work via feature branches + reviewed PRs)
 
 ## Domain at a glance
 
