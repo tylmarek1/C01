@@ -114,8 +114,8 @@ tests, evidence, ADR-001), integrated from `c01-spike` into `main`:
 |---|---|---|
 | Task | team | issue [#4 — "C01 engineering spike — review a integrace do main"](https://github.com/tylmarek1/C01/issues/4) (original task: [#1](https://github.com/tylmarek1/C01/issues/1)) |
 | Change | Marek Tyl (spike code + docs), Adam Vrána (README/team info, PRs [#2](https://github.com/tylmarek1/C01/pull/2), [#3](https://github.com/tylmarek1/C01/pull/3) into `c01-spike`) | branch `c01-spike` |
-| Review before integration | **Josef Glogar** (not an author of the change) | pull request [#5](https://github.com/tylmarek1/C01/pull/5) `c01-spike → main` — approve on GitHub |
-| Integration | after Josef's approval | merge PR #5 into `main` |
+| Review before integration | **Josef Glogar** (not an author of the change) | pull request [#5](https://github.com/tylmarek1/C01/pull/5) `c01-spike → main` — **approved** 2026-09-14 10:18 |
+| Integration | Josef Glogar, after approval | PR #5 **merged** into `main` 2026-09-14 10:19, issue #4 closed |
 
 ## Definition of Done — status
 
@@ -130,7 +130,7 @@ tests, evidence, ADR-001), integrated from `c01-spike` into `main`:
 - [x] 1 external/system boundary (Notification Service)
 - [x] Complete Project Frame
 - [x] 1 selected future pressure (Q) with rationale
-- [ ] 1 reviewed and integrated change — PR [#5](https://github.com/tylmarek1/C01/pull/5) `c01-spike → main` awaiting approval by Josef Glogar, then merge
+- [x] 1 reviewed and integrated change — PR [#5](https://github.com/tylmarek1/C01/pull/5) `c01-spike → main` approved by Josef Glogar, then merged
 - [x] 1 executed engineering spike (A — Persistence)
 - [x] Spike evidence + decision recorded
 - [x] CP1 walking skeleton defined
