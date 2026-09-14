@@ -1,0 +1,27 @@
+[project]
+name = "reservations"
+version = "0.1.0"
+description = "Sports court reservation system (SWI project)"
+readme = "README.md"
+authors = [
+    { name = "tmac", email = "tylmarek@outlook.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "psycopg[binary]>=3.3.5",
+    "sqlalchemy>=2.0.52",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.17,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
