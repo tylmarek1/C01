@@ -1,8 +1,9 @@
 import type { ReactElement } from "react"
 
 import { DecorativeBlob } from "@/components/shared/decorative-blob"
-import { SPORT_LABELS, SportIcon } from "@/components/shared/sport-icon"
+import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
 import { assetUrl } from "@/lib/api"
+import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import type { SportType } from "@/types"
 
@@ -74,6 +75,8 @@ interface CourtArtProps {
 }
 
 function CourtArt({ sport, indoor, className, compact = false, imageUrl }: CourtArtProps) {
+  const { t } = useTranslation()
+  const sportLabels = useSportLabels()
   const Lines = LINES_BY_SPORT[sport]
   const photo = assetUrl(imageUrl)
 
@@ -85,7 +88,7 @@ function CourtArt({ sport, indoor, className, compact = false, imageUrl }: Court
       )}
     >
       {photo ? (
-        <img src={photo} alt={`${SPORT_LABELS[sport]} court`} className="absolute inset-0 size-full object-cover" />
+        <img src={photo} alt={`${sportLabels[sport]} court`} className="absolute inset-0 size-full object-cover" />
       ) : (
         <>
           <DecorativeBlob color={BLOB_BY_SPORT[sport]} className="-top-8 -right-6 size-32 opacity-40" />
@@ -108,10 +111,10 @@ function CourtArt({ sport, indoor, className, compact = false, imageUrl }: Court
       </span>
       {indoor !== undefined && !compact && (
         <span className="absolute top-3 right-3 rounded-full bg-paper/90 px-2.5 py-1 text-xs font-medium text-ink-navy shadow-sm backdrop-blur-sm">
-          {indoor ? "Indoor" : "Outdoor"}
+          {indoor ? t("courts.indoor") : t("courts.outdoor")}
         </span>
       )}
-      <span className="sr-only">{SPORT_LABELS[sport]} court illustration</span>
+      <span className="sr-only">{sportLabels[sport]} court illustration</span>
     </div>
   )
 }

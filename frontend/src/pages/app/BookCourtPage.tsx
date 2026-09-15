@@ -19,11 +19,7 @@ import { todayDateString } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
 import type { BusySlot, Court } from "@/types"
 
-const DURATIONS = [
-  { value: "60", label: "60 minutes" },
-  { value: "90", label: "90 minutes" },
-  { value: "120", label: "120 minutes" },
-]
+const DURATIONS = ["60", "90", "120"]
 
 const SERIES_WEEK_OPTIONS = [2, 4, 6, 8, 10, 12]
 // Mirrors the backend's MIN_LEAD_MINUTES (reservations/rules.py) so the UI
@@ -92,8 +88,8 @@ function BookCourtPage() {
       const end = new Date(start.getTime() + Number(duration) * 60_000)
       return api.joinWaitlist(token!, selectedCourt.id, start.toISOString(), end.toISOString())
     },
-    onSuccess: () => toast.success("Added to the waitlist — check your dashboard for updates"),
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Could not join the waitlist"),
+    onSuccess: () => toast.success(t("book.toast.waitlistJoined")),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("book.error.waitlistJoin")),
   })
 
   const bookMutation = useMutation({
@@ -117,18 +113,21 @@ function BookCourtPage() {
         const { booked, failed_weeks: failedWeeks, requested_occurrences: requested } = result
         toast.success(
           failedWeeks.length === 0
-            ? `Held ${booked.length} of ${requested} weeks — confirm them from your dashboard`
-            : `Held ${booked.length} of ${requested} weeks (week ${failedWeeks.join(", ")} conflicted)`,
+            ? t("book.toast.seriesBookedAll", { booked: booked.length, requested })
+            : t("book.toast.seriesBookedPartial", { booked: booked.length, requested, weeks: failedWeeks.join(", ") }),
         )
       } else {
-        toast.success("Court held for 5 minutes — confirm it from your dashboard")
+        toast.success(t("book.toast.booked"))
       }
       navigate("/app")
     },
     onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "Could not create the reservation"
+      const message = error instanceof ApiError ? error.message : t("book.error.create")
       const canWaitlist = error instanceof ApiError && error.status === 409 && message.toLowerCase().includes("waitlist")
-      toast.error(message, canWaitlist ? { action: { label: "Join waitlist", onClick: () => joinWaitlistMutation.mutate() } } : undefined)
+      toast.error(
+        message,
+        canWaitlist ? { action: { label: t("book.waitlistAction"), onClick: () => joinWaitlistMutation.mutate() } } : undefined,
+      )
     },
   })
 
@@ -176,7 +175,7 @@ function BookCourtPage() {
 
             {selectedCourt && availability && (
               <div className="flex flex-col gap-2">
-                <Label>{selectedCourt.name} occupancy</Label>
+                <Label>{t("book.occupancyTitle", { court: selectedCourt.name })}</Label>
                 <OccupancyTimeline
                   opensAt={availability.opens_at}
                   closesAt={availability.closes_at}
@@ -199,8 +198,8 @@ function BookCourtPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {DURATIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                    <SelectItem key={option} value={option}>
+                      {t("book.duration.option", { count: option })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -211,7 +210,7 @@ function BookCourtPage() {
               <Label>{t("book.startTime")}</Label>
               <Select value={startTime} onValueChange={setStartTime}>
                 <SelectTrigger>
-                  <SelectValue placeholder="07:00–22:00, on the hour or half hour" />
+                  <SelectValue placeholder={t("book.startTimePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {startTimeOptions.map((option) => {
@@ -222,7 +221,7 @@ function BookCourtPage() {
                     return (
                       <SelectItem key={option} value={option} disabled={taken || tooSoon}>
                         {option}
-                        {taken ? " · Booked" : tooSoon ? " · Too soon" : ""}
+                        {taken ? ` · ${t("book.slot.booked")}` : tooSoon ? ` · ${t("book.slot.tooSoon")}` : ""}
                       </SelectItem>
                     )
                   })}
@@ -232,15 +231,15 @@ function BookCourtPage() {
 
             <div className="flex items-center justify-between rounded-lg border border-hairline p-3">
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-ink-navy">Repeat weekly</span>
-                <span className="text-xs text-slate-gray">Book the same slot every week for a few weeks</span>
+                <span className="text-sm font-medium text-ink-navy">{t("book.repeatWeekly.label")}</span>
+                <span className="text-xs text-slate-gray">{t("book.repeatWeekly.description")}</span>
               </div>
               <Switch checked={repeatWeekly} onCheckedChange={setRepeatWeekly} />
             </div>
 
             {repeatWeekly && (
               <div className="flex flex-col gap-2">
-                <Label>Number of weeks</Label>
+                <Label>{t("book.repeatWeekly.weeksLabel")}</Label>
                 <Select value={weeks} onValueChange={setWeeks}>
                   <SelectTrigger>
                     <SelectValue />
@@ -248,7 +247,7 @@ function BookCourtPage() {
                   <SelectContent>
                     {SERIES_WEEK_OPTIONS.map((option) => (
                       <SelectItem key={option} value={String(option)}>
-                        {option} weeks
+                        {t("book.repeatWeekly.weeksOption", { count: option })}
                       </SelectItem>
                     ))}
                   </SelectContent>

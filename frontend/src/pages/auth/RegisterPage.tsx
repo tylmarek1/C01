@@ -26,17 +26,17 @@ function RegisterPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (password !== confirmPassword) {
-      toast.error("Passwords don't match")
+      toast.error(t("auth.error.passwordMismatch"))
       return
     }
 
     setIsSubmitting(true)
     try {
       await register(name, email, password)
-      toast.success("Welcome to Courtly!")
+      toast.success(t("auth.toast.registered"))
       navigate("/app", { replace: true })
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Could not create your account.")
+      toast.error(error instanceof ApiError ? error.message : t("auth.error.register"))
     } finally {
       setIsSubmitting(false)
     }
@@ -88,7 +88,7 @@ function RegisterPage() {
             minLength={8}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="At least 8 characters"
+            placeholder={t("auth.field.passwordPlaceholder")}
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -100,11 +100,11 @@ function RegisterPage() {
             minLength={8}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder="Type it again"
+            placeholder={t("auth.field.confirmPasswordPlaceholder")}
             aria-invalid={passwordsMismatch}
             className={passwordsMismatch ? "border-destructive focus-visible:border-destructive" : undefined}
           />
-          {passwordsMismatch && <p className="text-sm text-destructive">Passwords don't match</p>}
+          {passwordsMismatch && <p className="text-sm text-destructive">{t("auth.error.passwordMismatch")}</p>}
         </div>
         <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitting || passwordsMismatch}>
           {isSubmitting ? t("auth.register.submitting") : t("auth.register.submit")}

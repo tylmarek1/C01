@@ -3,7 +3,8 @@ import type { ReactNode } from "react"
 import { Card } from "@/components/shared/card"
 import { DecorativeBlob } from "@/components/shared/decorative-blob"
 import { Logo } from "@/components/shared/logo"
-import { SPORT_LABELS, SportIcon } from "@/components/shared/sport-icon"
+import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
+import { useTranslation } from "@/lib/i18n"
 import type { SportType } from "@/types"
 
 const PREVIEW_SLOTS: { sport: SportType; label: string; time: string }[] = [
@@ -20,6 +21,8 @@ interface AuthLayoutProps {
 }
 
 function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
+  const { t } = useTranslation()
+  const sportLabels = useSportLabels()
   return (
     <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
       <div className="flex items-center justify-center px-6 py-16">
@@ -39,8 +42,8 @@ function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
         <DecorativeBlob color="magenta" className="-bottom-20 -left-16 size-72" />
         <Card className="relative w-full max-w-sm gap-5">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-ink-navy">Today's availability</span>
-            <span className="rounded-full bg-[#e6f0ff] px-2.5 py-1 text-xs font-medium text-deep-cobalt">Live</span>
+            <span className="text-sm font-semibold text-ink-navy">{t("authLayout.availabilityTitle")}</span>
+            <span className="rounded-full bg-[#e6f0ff] px-2.5 py-1 text-xs font-medium text-deep-cobalt">{t("hero.card.live")}</span>
           </div>
           <div className="flex flex-col gap-3">
             {PREVIEW_SLOTS.map((slot) => (
@@ -50,7 +53,7 @@ function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
                 </span>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-ink-navy">{slot.label}</span>
-                  <span className="text-xs text-slate-gray">{SPORT_LABELS[slot.sport]}</span>
+                  <span className="text-xs text-slate-gray">{sportLabels[slot.sport]}</span>
                 </div>
                 <span className="ml-auto text-xs font-medium text-signal-blue">{slot.time}</span>
               </div>

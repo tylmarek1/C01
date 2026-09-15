@@ -3,8 +3,9 @@ import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/shared/badge"
 import { CourtArt } from "@/components/shared/court-art"
-import { SPORT_LABELS, SportIcon } from "@/components/shared/sport-icon"
+import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"
+import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import type { Court } from "@/types"
 
@@ -29,6 +30,10 @@ function CourtCard({
   isFavorite,
   onToggleFavorite,
 }: CourtCardProps) {
+  const { t } = useTranslation()
+  const sportLabels = useSportLabels()
+  const indoorOutdoor = court.indoor ? t("courts.indoor") : t("courts.outdoor")
+
   if (href && !compact) {
     return (
       <Link
@@ -45,7 +50,7 @@ function CourtCard({
                 onToggleFavorite(court)
               }}
               className="absolute top-3 left-3 flex size-8 items-center justify-center rounded-full bg-paper/90 text-ink-navy shadow-sm backdrop-blur-sm transition-transform hover:scale-105"
-              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              aria-label={isFavorite ? t("courts.favorite.remove") : t("courts.favorite.add")}
             >
               <Heart className={cn("size-4", isFavorite && "fill-red-500 text-red-500")} />
             </button>
@@ -54,7 +59,7 @@ function CourtCard({
         <div className="flex flex-1 flex-col gap-2 p-5">
           <div className="flex items-center justify-between gap-2">
             <span className="font-semibold text-ink-navy">{court.name}</span>
-            <Badge variant="secondary">{SPORT_LABELS[court.sport_type]}</Badge>
+            <Badge variant="secondary">{sportLabels[court.sport_type]}</Badge>
           </div>
           {court.review_count > 0 && (
             <div className="flex items-center gap-1.5">
@@ -66,7 +71,7 @@ function CourtCard({
           )}
           {court.description && <p className="line-clamp-2 text-sm text-slate-gray">{court.description}</p>}
           <span className="mt-auto flex items-center gap-1 pt-2 text-sm font-semibold text-signal-blue">
-            View court
+            {t("courts.viewCourt")}
             <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
           </span>
         </div>
@@ -86,8 +91,8 @@ function CourtCard({
         <span className="flex flex-col gap-1">
           <span className="font-semibold text-ink-navy">{court.name}</span>
           <span className="flex items-center gap-2 text-sm text-slate-gray">
-            {SPORT_LABELS[court.sport_type]}
-            <Badge variant="secondary">{court.indoor ? "Indoor" : "Outdoor"}</Badge>
+            {sportLabels[court.sport_type]}
+            <Badge variant="secondary">{indoorOutdoor}</Badge>
           </span>
         </span>
         <ArrowRight className="ml-auto size-4 shrink-0 text-slate-gray transition-transform group-hover:translate-x-0.5" />
@@ -120,8 +125,8 @@ function CourtCard({
       <span className="flex flex-col gap-1">
         <span className="font-semibold text-ink-navy">{court.name}</span>
         <span className="flex items-center gap-2 text-sm text-slate-gray">
-          {SPORT_LABELS[court.sport_type]}
-          <Badge variant="secondary">{court.indoor ? "Indoor" : "Outdoor"}</Badge>
+          {sportLabels[court.sport_type]}
+          <Badge variant="secondary">{indoorOutdoor}</Badge>
         </span>
       </span>
     </button>

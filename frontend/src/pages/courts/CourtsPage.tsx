@@ -8,11 +8,12 @@ import { CourtCard } from "@/components/shared/court-card"
 import { Input } from "@/components/shared/input"
 import { SectionHeader } from "@/components/shared/section-header"
 import { Skeleton } from "@/components/shared/skeleton"
-import { SPORT_LABELS } from "@/components/shared/sport-icon"
+import { useSportLabels } from "@/components/shared/sport-icon"
 import { Tabs, TabsList, TabsTrigger } from "@/components/shared/tabs"
 import { ApiError, api } from "@/lib/api"
-import { ALL_AMENITIES, AMENITY_LABELS } from "@/lib/amenities"
+import { ALL_AMENITIES, useAmenityLabels } from "@/lib/amenities"
 import { useAuth } from "@/lib/auth-context"
+import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import type { Amenity, Court, SportType } from "@/types"
 
@@ -20,6 +21,9 @@ const SPORTS: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
 
 function CourtsPage() {
   const { user, token } = useAuth()
+  const { t } = useTranslation()
+  const sportLabels = useSportLabels()
+  const amenityLabels = useAmenityLabels()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const sportParam = searchParams.get("sport")
@@ -59,7 +63,7 @@ function CourtsPage() {
     mutationFn: (court: Court) =>
       favoriteIds.has(court.id) ? api.removeFavorite(token!, court.id) : api.addFavorite(token!, court.id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["favorites-mine"] }),
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Could not update favorites"),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.favoritesFailed")),
   })
 
   function handleTabChange(value: string) {
@@ -84,9 +88,9 @@ function CourtsPage() {
     <div className="mx-auto max-w-6xl px-6 py-16">
       <SectionHeader
         align="left"
-        eyebrow="Courts"
-        title="Browse every court"
-        description="Search, filter by amenity, and jump straight to booking."
+        eyebrow={t("nav.courts")}
+        title={t("courts.pageTitle")}
+        description={t("courts.pageDescription")}
       />
 
       <div className="mt-8 flex flex-col gap-5">
@@ -95,7 +99,7 @@ function CourtsPage() {
           <Input
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search courts by name…"
+            placeholder={t("courts.search.placeholder")}
             className="pl-10"
           />
           {searchInput && (
@@ -103,7 +107,7 @@ function CourtsPage() {
               type="button"
               onClick={() => setSearchInput("")}
               className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-gray hover:text-ink-navy"
-              aria-label="Clear search"
+              aria-label={t("courts.search.clear")}
             >
               <X className="size-4" />
             </button>
@@ -112,10 +116,10 @@ function CourtsPage() {
 
         <Tabs value={sport ?? "all"} onValueChange={handleTabChange}>
           <TabsList>
-            <TabsTrigger value="all">All sports</TabsTrigger>
+            <TabsTrigger value="all">{t("courts.allSports")}</TabsTrigger>
             {SPORTS.map((option) => (
               <TabsTrigger key={option} value={option}>
-                {SPORT_LABELS[option]}
+                {sportLabels[option]}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -134,7 +138,7 @@ function CourtsPage() {
                   : "border-hairline bg-card text-slate-gray hover:text-ink-navy",
               )}
             >
-              {AMENITY_LABELS[option]}
+              {amenityLabels[option]}
             </button>
           ))}
         </div>
@@ -145,8 +149,8 @@ function CourtsPage() {
 
         {!isLoading && courts?.length === 0 && (
           <div className="col-span-full flex flex-col items-center gap-2 rounded-2xl border border-dashed border-hairline py-16 text-center">
-            <p className="font-medium text-ink-navy">No courts match this filter</p>
-            <p className="text-sm text-slate-gray">Try another sport, amenity, or search term.</p>
+            <p className="font-medium text-ink-navy">{t("courts.empty.title")}</p>
+            <p className="text-sm text-slate-gray">{t("courts.empty.description")}</p>
           </div>
         )}
 

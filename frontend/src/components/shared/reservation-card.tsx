@@ -1,7 +1,7 @@
-import { CalendarClock, Clock3, History, Star, UserPlus } from "lucide-react"
+import { CalendarClock, Clock3, Star, UserPlus } from "lucide-react"
 import { useState } from "react"
 
-import { Badge, type BadgeProps } from "@/components/shared/badge"
+import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
 import {
   Dialog,
@@ -18,27 +18,9 @@ import { SportIcon } from "@/components/shared/sport-icon"
 import { StarRatingInput } from "@/components/shared/star-rating"
 import { Textarea } from "@/components/shared/textarea"
 import { formatDateRange } from "@/lib/format"
+import { useTranslation } from "@/lib/i18n"
+import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import type { Reservation } from "@/types"
-
-const STATUS_VARIANT: Record<Reservation["status"], BadgeProps["variant"]> = {
-  PENDING: "warning",
-  CONFIRMED: "success",
-  CHECKED_IN: "default",
-  COMPLETED: "secondary",
-  CANCELLED: "destructive",
-  EXPIRED: "secondary",
-  NO_SHOW: "destructive",
-}
-
-const STATUS_LABEL: Record<Reservation["status"], string> = {
-  PENDING: "Held",
-  CONFIRMED: "Confirmed",
-  CHECKED_IN: "Checked in",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No-show",
-  EXPIRED: "Expired",
-}
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" })
 
@@ -48,7 +30,7 @@ interface ReservationCardProps {
   onCancel?: (reservation: Reservation) => void
   onCheckIn?: (reservation: Reservation) => void
   onReschedule?: (reservation: Reservation, startTime: string, endTime: string) => void
-  onViewHistory?: (reservation: Reservation) => void
+  onOpenDetail?: (reservation: Reservation) => void
   onInviteGuest?: (reservation: Reservation, email: string) => void
   hasReview?: boolean
   onSubmitReview?: (reservation: Reservation, rating: number, comment: string) => void
@@ -61,12 +43,14 @@ function ReservationCard({
   onCancel,
   onCheckIn,
   onReschedule,
-  onViewHistory,
+  onOpenDetail,
   onInviteGuest,
   hasReview = false,
   onSubmitReview,
   isBusy = false,
 }: ReservationCardProps) {
+  const { t } = useTranslation()
+  const statusLabels = useStatusLabels()
   const { court, status } = reservation
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [guestOpen, setGuestOpen] = useState(false)
@@ -107,12 +91,19 @@ function ReservationCard({
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-hairline bg-card p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-4">
+      <button
+        type="button"
+        disabled={!onOpenDetail}
+        onClick={() => onOpenDetail?.(reservation)}
+        className={onOpenDetail ? "flex items-center gap-4 text-left" : "flex cursor-default items-center gap-4 text-left"}
+      >
         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-pebble text-ink-navy">
           <SportIcon sport={court.sport_type} className="size-5" />
         </span>
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-ink-navy">{court.name}</span>
+          <span className={onOpenDetail ? "font-semibold text-ink-navy hover:underline" : "font-semibold text-ink-navy"}>
+            {court.name}
+          </span>
           <span className="flex items-center gap-1.5 text-sm text-slate-gray">
             <CalendarClock className="size-3.5" />
             {formatDateRange(reservation.start_time, reservation.end_time)}
@@ -120,30 +111,24 @@ function ReservationCard({
           {status === "PENDING" && reservation.hold_expires_at && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600">
               <Clock3 className="size-3.5" />
-              Hold expires {timeFormatter.format(new Date(reservation.hold_expires_at))}
+              {t("reservationCard.holdExpires", { time: timeFormatter.format(new Date(reservation.hold_expires_at)) })}
             </span>
           )}
         </div>
-      </div>
+      </button>
 
       <div className="flex flex-wrap items-center gap-2.5">
-        <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
-
-        {onViewHistory && (
-          <Button size="sm" variant="ghost" disabled={isBusy} onClick={() => onViewHistory(reservation)}>
-            <History className="size-3.5" /> History
-          </Button>
-        )}
+        <Badge variant={STATUS_VARIANT[status]}>{statusLabels[status]}</Badge>
 
         {status === "PENDING" && onConfirm && (
           <Button size="sm" disabled={isBusy} onClick={() => onConfirm(reservation)}>
-            Confirm
+            {t("reservationCard.confirm")}
           </Button>
         )}
 
         {status === "CONFIRMED" && onCheckIn && (
           <Button size="sm" variant="dark" disabled={isBusy} onClick={() => onCheckIn(reservation)}>
-            Check in
+            {t("reservationCard.checkIn")}
           </Button>
         )}
 
@@ -151,18 +136,16 @@ function ReservationCard({
           <Dialog open={guestOpen} onOpenChange={setGuestOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" disabled={isBusy}>
-                <UserPlus className="size-3.5" /> Invite
+                <UserPlus className="size-3.5" /> {t("reservationCard.invite")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Invite a player</DialogTitle>
-                <DialogDescription>
-                  They need a Courtly account already — invite them to {court.name} by email.
-                </DialogDescription>
+                <DialogTitle>{t("reservationCard.guest.title")}</DialogTitle>
+                <DialogDescription>{t("reservationCard.guest.description", { court: court.name })}</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`guest-email-${reservation.id}`}>Email</Label>
+                <Label htmlFor={`guest-email-${reservation.id}`}>{t("reservationCard.guest.email")}</Label>
                 <Input
                   id={`guest-email-${reservation.id}`}
                   type="email"
@@ -173,10 +156,10 @@ function ReservationCard({
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setGuestOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button onClick={submitGuest} disabled={!guestEmail.trim()}>
-                  Send invite
+                  {t("reservationCard.guest.send")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -187,28 +170,28 @@ function ReservationCard({
           <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" disabled={isBusy}>
-                <Star className="size-3.5" /> Rate it
+                <Star className="size-3.5" /> {t("reservationCard.rateIt")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Rate {court.name}</DialogTitle>
-                <DialogDescription>How was your game? Other players will see this.</DialogDescription>
+                <DialogTitle>{t("reservationCard.review.title", { court: court.name })}</DialogTitle>
+                <DialogDescription>{t("reservationCard.review.description")}</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-4">
                 <StarRatingInput value={rating} onChange={setRating} />
                 <Textarea
                   value={comment}
                   onChange={(event) => setComment(event.target.value)}
-                  placeholder="Anything worth mentioning? (optional)"
+                  placeholder={t("reservationCard.review.commentPlaceholder")}
                   maxLength={1000}
                 />
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setReviewOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
-                <Button onClick={submitReview}>Submit review</Button>
+                <Button onClick={submitReview}>{t("reservationCard.review.submit")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -218,17 +201,17 @@ function ReservationCard({
           <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" disabled={isBusy}>
-                Reschedule
+                {t("reservationCard.reschedule")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Reschedule reservation</DialogTitle>
-                <DialogDescription>Move {court.name} to a new date and time — the duration stays the same.</DialogDescription>
+                <DialogTitle>{t("reservationCard.reschedule.title")}</DialogTitle>
+                <DialogDescription>{t("reservationCard.reschedule.description", { court: court.name })}</DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor={`reschedule-date-${reservation.id}`}>Date</Label>
+                  <Label htmlFor={`reschedule-date-${reservation.id}`}>{t("reservationCard.reschedule.date")}</Label>
                   <Input
                     id={`reschedule-date-${reservation.id}`}
                     type="date"
@@ -237,7 +220,7 @@ function ReservationCard({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor={`reschedule-time-${reservation.id}`}>Start time</Label>
+                  <Label htmlFor={`reschedule-time-${reservation.id}`}>{t("reservationCard.reschedule.startTime")}</Label>
                   <Input
                     id={`reschedule-time-${reservation.id}`}
                     type="time"
@@ -249,9 +232,9 @@ function ReservationCard({
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setRescheduleOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
-                <Button onClick={submitReschedule}>Save new time</Button>
+                <Button onClick={submitReschedule}>{t("reservationCard.reschedule.save")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -259,7 +242,7 @@ function ReservationCard({
 
         {canCancel && (
           <Button size="sm" variant="outline" disabled={isBusy} onClick={() => onCancel?.(reservation)}>
-            Cancel
+            {t("reservationCard.cancel")}
           </Button>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { CircleDot, Feather, Volleyball } from "lucide-react"
 
+import { useTranslation } from "@/lib/i18n"
 import type { SportType } from "@/types"
 
 const SPORT_ICONS: Record<SportType, typeof CircleDot> = {
@@ -8,15 +9,19 @@ const SPORT_ICONS: Record<SportType, typeof CircleDot> = {
   BADMINTON: Feather,
 }
 
-const SPORT_LABELS: Record<SportType, string> = {
-  TENNIS: "Tennis",
-  VOLLEYBALL: "Volleyball",
-  BADMINTON: "Badminton",
-}
-
 function SportIcon({ sport, className }: { sport: SportType; className?: string }) {
   const Icon = SPORT_ICONS[sport]
   return <Icon className={className} />
 }
 
-export { SportIcon, SPORT_LABELS }
+/** Localized sport display names — read live from the current language. */
+function useSportLabels(): Record<SportType, string> {
+  const { t } = useTranslation()
+  return {
+    TENNIS: t("sport.TENNIS"),
+    VOLLEYBALL: t("sport.VOLLEYBALL"),
+    BADMINTON: t("sport.BADMINTON"),
+  }
+}
+
+export { SportIcon, useSportLabels }

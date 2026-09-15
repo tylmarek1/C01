@@ -13,12 +13,13 @@ import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
 import { OccupancyTimeline } from "@/components/shared/occupancy-timeline"
 import { Skeleton } from "@/components/shared/skeleton"
-import { SPORT_LABELS } from "@/components/shared/sport-icon"
+import { useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"
 import { ApiError, api } from "@/lib/api"
-import { AMENITY_LABELS } from "@/lib/amenities"
+import { useAmenityLabels } from "@/lib/amenities"
 import { useAuth } from "@/lib/auth-context"
 import { todayDateString } from "@/lib/format"
+import { useTranslation } from "@/lib/i18n"
 
 function initials(name: string) {
   return name
@@ -34,6 +35,9 @@ function CourtDetailPage() {
   const { user, token } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
+  const sportLabels = useSportLabels()
+  const amenityLabels = useAmenityLabels()
   const [date, setDate] = useState(todayDateString())
 
   const { data: court, isLoading: isLoadingCourt, isError } = useQuery({
@@ -65,7 +69,7 @@ function CourtDetailPage() {
   const favoriteMutation = useMutation({
     mutationFn: () => (isFavorite ? api.removeFavorite(token!, id!) : api.addFavorite(token!, id!)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["favorites-mine"] }),
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Could not update favorites"),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.favoritesFailed")),
   })
 
   function handleBook() {
@@ -76,10 +80,10 @@ function CourtDetailPage() {
     return (
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
         <span className="text-sm font-semibold text-signal-blue">404</span>
-        <h1 className="text-3xl font-bold text-ink-navy">Court not found</h1>
-        <p className="text-slate-gray">It may have been removed or is no longer active.</p>
+        <h1 className="text-3xl font-bold text-ink-navy">{t("courtDetail.notFound.title")}</h1>
+        <p className="text-slate-gray">{t("courtDetail.notFound.description")}</p>
         <Button asChild className="mt-2">
-          <Link to="/courts">Browse other courts</Link>
+          <Link to="/courts">{t("courtDetail.notFound.browse")}</Link>
         </Button>
       </div>
     )
@@ -102,7 +106,7 @@ function CourtDetailPage() {
                   type="button"
                   onClick={() => favoriteMutation.mutate()}
                   className="absolute top-4 left-4 flex size-10 items-center justify-center rounded-full bg-paper/90 text-ink-navy shadow-sm backdrop-blur-sm transition-transform hover:scale-105"
-                  aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  aria-label={isFavorite ? t("courts.favorite.remove") : t("courts.favorite.add")}
                 >
                   <Heart className={isFavorite ? "size-5 fill-red-500 text-red-500" : "size-5"} />
                 </button>
@@ -111,27 +115,27 @@ function CourtDetailPage() {
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-3xl font-bold text-ink-navy">{court.name}</h1>
-                <Badge>{SPORT_LABELS[court.sport_type]}</Badge>
-                <Badge variant="secondary">{court.indoor ? "Indoor" : "Outdoor"}</Badge>
+                <Badge>{sportLabels[court.sport_type]}</Badge>
+                <Badge variant="secondary">{court.indoor ? t("courts.indoor") : t("courts.outdoor")}</Badge>
               </div>
               {court.review_count > 0 && (
                 <div className="flex items-center gap-2">
                   <StarRating value={court.average_rating ?? 0} size="md" />
                   <span className="text-sm font-medium text-ink-navy">{court.average_rating?.toFixed(1)}</span>
-                  <span className="text-sm text-slate-gray">({court.review_count} review{court.review_count === 1 ? "" : "s"})</span>
+                  <span className="text-sm text-slate-gray">
+                    ({t("courtDetail.reviews.count", { count: court.review_count })})
+                  </span>
                 </div>
               )}
               <p className="flex items-center gap-1.5 text-sm text-slate-gray">
-                <MapPin className="size-4" /> Courtly Sports Venue
+                <MapPin className="size-4" /> {t("courtDetail.venueName")}
               </p>
-              <p className="max-w-lg text-base text-slate-gray">
-                {court.description ?? "No description yet — but it's ready to book."}
-              </p>
+              <p className="max-w-lg text-base text-slate-gray">{court.description ?? t("courtDetail.noDescription")}</p>
               {court.amenities.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {court.amenities.map((amenity) => (
                     <Badge key={amenity} variant="secondary">
-                      {AMENITY_LABELS[amenity]}
+                      {amenityLabels[amenity]}
                     </Badge>
                   ))}
                 </div>
@@ -139,10 +143,10 @@ function CourtDetailPage() {
             </div>
 
             <div className="flex flex-col gap-4 border-t border-hairline pt-6">
-              <span className="text-sm font-semibold text-ink-navy">Reviews</span>
+              <span className="text-sm font-semibold text-ink-navy">{t("courtDetail.reviews.title")}</span>
               {isLoadingReviews && <Skeleton className="h-16 w-full" />}
               {!isLoadingReviews && reviews?.length === 0 && (
-                <p className="text-sm text-slate-gray">No reviews yet — be the first to play and rate it.</p>
+                <p className="text-sm text-slate-gray">{t("courtDetail.reviews.empty")}</p>
               )}
               {reviews?.map((review) => (
                 <div key={review.id} className="flex gap-3 border-b border-hairline pb-4 last:border-b-0">
@@ -165,12 +169,12 @@ function CourtDetailPage() {
           <Card className="h-fit gap-5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CalendarClock className="size-5 text-signal-blue" /> Today's occupancy
+                <CalendarClock className="size-5 text-signal-blue" /> {t("courtDetail.occupancy.title")}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="availability-date">Check a date</Label>
+                <Label htmlFor="availability-date">{t("courtDetail.occupancy.checkDate")}</Label>
                 <Input
                   id="availability-date"
                   type="date"
@@ -186,7 +190,7 @@ function CourtDetailPage() {
               )}
 
               <Button size="lg" className="w-full" onClick={handleBook}>
-                Book this court
+                {t("courtDetail.bookButton")}
               </Button>
             </CardContent>
           </Card>

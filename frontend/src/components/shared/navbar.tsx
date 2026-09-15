@@ -88,7 +88,7 @@ function Navbar() {
                 <button
                   type="button"
                   className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-signal-blue/40"
-                  aria-label="Account menu"
+                  aria-label={t("nav.accountMenu")}
                 >
                   <Avatar className="size-9">
                     <AvatarImage src={assetUrl(user.avatar_url)} alt={user.name} className="object-cover" />

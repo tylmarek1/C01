@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Bell, CheckCheck } from "lucide-react"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/shared/button"
 import {
@@ -12,8 +13,9 @@ import {
 } from "@/components/shared/dropdown-menu"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
+import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
-import type { Notification } from "@/types"
+import type { Notification, NotificationType } from "@/types"
 
 const relativeTimeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
 
@@ -26,12 +28,33 @@ function relativeTime(iso: string): string {
   return relativeTimeFormatter.format(Math.round(diffHours / 24), "day")
 }
 
-function NotificationRow({ notification, onRead }: { notification: Notification; onRead: (id: string) => void }) {
+// Notifications don't carry a specific reservation id (backend intentionally
+// keeps them lightweight), so clicking one routes by *type* to the screen
+// where that kind of update actually lives, rather than a dead end.
+const NOTIFICATION_DESTINATION: Record<NotificationType, string> = {
+  RESERVATION_CREATED: "/app",
+  RESERVATION_CONFIRMED: "/app",
+  RESERVATION_CANCELLED: "/app",
+  RESERVATION_CHANGED: "/app",
+  RESERVATION_REMINDER: "/app",
+  RESERVATION_EXPIRED: "/app",
+  FACILITY_UNAVAILABLE: "/app",
+  WAITLIST_JOINED: "/app",
+  WAITLIST_SLOT_OFFERED: "/app",
+}
+
+function NotificationRow({
+  notification,
+  onOpen,
+}: {
+  notification: Notification
+  onOpen: (notification: Notification) => void
+}) {
   const isUnread = notification.read_at === null
   return (
     <button
       type="button"
-      onClick={() => isUnread && onRead(notification.id)}
+      onClick={() => onOpen(notification)}
       className={cn(
         "flex w-full flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-pebble",
         isUnread && "bg-[#eaf3ff]",
@@ -49,6 +72,8 @@ function NotificationRow({ notification, onRead }: { notification: Notification;
 
 function NotificationsBell() {
   const { token } = useAuth()
+  const { t } = useTranslation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
 
@@ -82,13 +107,19 @@ function NotificationsBell() {
 
   const unreadCount = unread?.count ?? 0
 
+  function handleOpen(notification: Notification) {
+    if (notification.read_at === null) markReadMutation.mutate(notification.id)
+    setOpen(false)
+    navigate(NOTIFICATION_DESTINATION[notification.type] ?? "/app")
+  }
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
           className="relative flex size-9 items-center justify-center rounded-full text-slate-gray transition-colors hover:bg-pebble hover:text-ink-navy"
-          aria-label="Notifications"
+          aria-label={t("notifications.title")}
         >
           <Bell className="size-5" />
           {unreadCount > 0 && (
@@ -100,24 +131,28 @@ function NotificationsBell() {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-80">
         <div className="flex items-center justify-between px-1">
-          <DropdownMenuLabel className="px-2">Notifications</DropdownMenuLabel>
+          <DropdownMenuLabel className="px-2">{t("notifications.title")}</DropdownMenuLabel>
           {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => markAllMutation.mutate()}>
-              <CheckCheck className="size-3.5" /> Mark all read
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={(event) => {
+                event.stopPropagation()
+                markAllMutation.mutate()
+              }}
+            >
+              <CheckCheck className="size-3.5" /> {t("notifications.markAllRead")}
             </Button>
           )}
         </div>
         <DropdownMenuSeparator />
         <div className="flex max-h-96 flex-col gap-1 overflow-y-auto">
           {notifications?.length === 0 && (
-            <p className="px-3 py-6 text-center text-sm text-slate-gray">You're all caught up.</p>
+            <p className="px-3 py-6 text-center text-sm text-slate-gray">{t("notifications.empty")}</p>
           )}
           {notifications?.map((notification) => (
-            <NotificationRow
-              key={notification.id}
-              notification={notification}
-              onRead={(id) => markReadMutation.mutate(id)}
-            />
+            <NotificationRow key={notification.id} notification={notification} onOpen={handleOpen} />
           ))}
         </div>
       </DropdownMenuContent>

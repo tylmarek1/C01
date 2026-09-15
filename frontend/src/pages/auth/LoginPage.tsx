@@ -28,7 +28,7 @@ function LoginPage() {
       const from = (location.state as { from?: { pathname: string } } | null)?.from
       navigate(from?.pathname ?? "/app", { replace: true })
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Could not log in. Try again.")
+      toast.error(error instanceof ApiError ? error.message : t("auth.error.login"))
     } finally {
       setIsSubmitting(false)
     }
