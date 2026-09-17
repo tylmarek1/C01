@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CalendarClock, Heart, MapPin } from "lucide-react"
+import { AlertTriangle, CalendarClock, Heart, MapPin, ThumbsUp } from "lucide-react"
 import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -18,8 +18,9 @@ import { StarRating } from "@/components/shared/star-rating"
 import { ApiError, api } from "@/lib/api"
 import { useAmenityLabels } from "@/lib/amenities"
 import { useAuth } from "@/lib/auth-context"
-import { todayDateString } from "@/lib/format"
+import { formatCurrency, formatDateRange, todayDateString } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 
 function initials(name: string) {
   return name
@@ -59,6 +60,13 @@ function CourtDetailPage() {
     enabled: Boolean(id),
   })
 
+  const { data: blocks } = useQuery({
+    queryKey: ["facility-blocks", id],
+    queryFn: () => api.listFacilityBlocks(id),
+    enabled: Boolean(id),
+  })
+  const upcomingBlock = blocks?.find((block) => new Date(block.end_time).getTime() > Date.now())
+
   const { data: favorites } = useQuery({
     queryKey: ["favorites-mine"],
     queryFn: () => api.listMyFavorites(token!),
@@ -70,6 +78,12 @@ function CourtDetailPage() {
     mutationFn: () => (isFavorite ? api.removeFavorite(token!, id!) : api.addFavorite(token!, id!)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["favorites-mine"] }),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.favoritesFailed")),
+  })
+
+  const helpfulMutation = useMutation({
+    mutationFn: (reviewId: string) => api.toggleReviewHelpful(token!, reviewId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["court-reviews", id] }),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("courtDetail.reviews.helpfulError")),
   })
 
   function handleBook() {
@@ -118,15 +132,22 @@ function CourtDetailPage() {
                 <Badge>{sportLabels[court.sport_type]}</Badge>
                 <Badge variant="secondary">{court.indoor ? t("courts.indoor") : t("courts.outdoor")}</Badge>
               </div>
-              {court.review_count > 0 && (
-                <div className="flex items-center gap-2">
-                  <StarRating value={court.average_rating ?? 0} size="md" />
-                  <span className="text-sm font-medium text-ink-navy">{court.average_rating?.toFixed(1)}</span>
-                  <span className="text-sm text-slate-gray">
-                    ({t("courtDetail.reviews.count", { count: court.review_count })})
+              <div className="flex flex-wrap items-center gap-3">
+                {court.review_count > 0 && (
+                  <div className="flex items-center gap-2">
+                    <StarRating value={court.average_rating ?? 0} size="md" />
+                    <span className="text-sm font-medium text-ink-navy">{court.average_rating?.toFixed(1)}</span>
+                    <span className="text-sm text-slate-gray">
+                      ({t("courtDetail.reviews.count", { count: court.review_count })})
+                    </span>
+                  </div>
+                )}
+                {court.price_per_hour !== null && (
+                  <span className="text-sm font-semibold text-signal-blue">
+                    {t("courts.pricePerHour", { price: formatCurrency(court.price_per_hour) })}
                   </span>
-                </div>
-              )}
+                )}
+              </div>
               <p className="flex items-center gap-1.5 text-sm text-slate-gray">
                 <MapPin className="size-4" /> {t("courtDetail.venueName")}
               </p>
@@ -138,6 +159,17 @@ function CourtDetailPage() {
                       {amenityLabels[amenity]}
                     </Badge>
                   ))}
+                </div>
+              )}
+              {upcomingBlock && (
+                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                  <span>
+                    {t("courtDetail.facilityBlock", {
+                      range: formatDateRange(upcomingBlock.start_time, upcomingBlock.end_time),
+                      reason: upcomingBlock.reason,
+                    })}
+                  </span>
                 </div>
               )}
             </div>
@@ -153,13 +185,31 @@ function CourtDetailPage() {
                   <Avatar className="size-9">
                     <AvatarFallback>{initials(review.user.name)}</AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-1 flex-col gap-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-ink-navy">{review.user.name}</span>
                       <StarRating value={review.rating} />
                     </div>
                     {review.comment && <p className="text-sm text-slate-gray">{review.comment}</p>}
-                    <span className="text-xs text-mist-gray">{new Date(review.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-mist-gray">{new Date(review.created_at).toLocaleDateString()}</span>
+                      {user && (
+                        <button
+                          type="button"
+                          disabled={helpfulMutation.isPending}
+                          onClick={() => helpfulMutation.mutate(review.id)}
+                          className={cn(
+                            "flex items-center gap-1 text-xs font-medium transition-colors",
+                            review.voted_helpful_by_me ? "text-signal-blue" : "text-slate-gray hover:text-ink-navy",
+                          )}
+                        >
+                          <ThumbsUp className={cn("size-3.5", review.voted_helpful_by_me && "fill-signal-blue")} />
+                          {review.helpful_count > 0
+                            ? t("courtDetail.reviews.helpfulCount", { count: review.helpful_count })
+                            : t("courtDetail.reviews.helpful")}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

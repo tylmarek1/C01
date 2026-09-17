@@ -2,51 +2,56 @@ import { ExternalLink, LifeBuoy, MessageCircle } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/card"
 import { SectionHeader } from "@/components/shared/section-header"
-
-const CHANNELS = [
-  {
-    icon: ExternalLink,
-    title: "Report a bug or request a feature",
-    description: "This project is open on GitHub — open an issue and the team will pick it up.",
-    href: "https://github.com/tylmarek1/C01/issues",
-    label: "Open an issue",
-  },
-  {
-    icon: MessageCircle,
-    title: "Talk to the team",
-    description: "Courtly is a student project for course SWI, engineering spike C01 — reach the team via the repository.",
-    href: "https://github.com/tylmarek1/C01",
-    label: "View the repository",
-  },
-]
+import { useTranslation, type TranslationKey } from "@/lib/i18n"
 
 function ContactPage() {
+  const { t } = useTranslation()
+
+  const channels: {
+    icon: typeof ExternalLink
+    titleKey: TranslationKey
+    descriptionKey: TranslationKey
+    href: string
+    labelKey: TranslationKey
+  }[] = [
+    {
+      icon: ExternalLink,
+      titleKey: "contact.channels.bug.title",
+      descriptionKey: "contact.channels.bug.description",
+      href: "https://github.com/tylmarek1/C01/issues",
+      labelKey: "contact.channels.bug.label",
+    },
+    {
+      icon: MessageCircle,
+      titleKey: "contact.channels.team.title",
+      descriptionKey: "contact.channels.team.description",
+      href: "https://github.com/tylmarek1/C01",
+      labelKey: "contact.channels.team.label",
+    },
+  ]
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
-      <SectionHeader
-        eyebrow="Contact"
-        title="We'd like to hear from you"
-        description="Courtly doesn't run a support inbox yet — the fastest way to reach the team is through the project repository."
-      />
+      <SectionHeader eyebrow={t("contact.eyebrow")} title={t("contact.title")} description={t("contact.description")} />
 
       <div className="mt-12 flex flex-col gap-4">
-        {CHANNELS.map((channel) => (
-          <Card key={channel.title}>
+        {channels.map((channel) => (
+          <Card key={channel.titleKey}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2.5">
                 <channel.icon className="size-5 text-signal-blue" />
-                {channel.title}
+                {t(channel.titleKey)}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <p className="text-slate-gray">{channel.description}</p>
+              <p className="text-slate-gray">{t(channel.descriptionKey)}</p>
               <a
                 href={channel.href}
                 target="_blank"
                 rel="noreferrer"
                 className="w-fit text-sm font-semibold text-ink-navy hover:underline"
               >
-                {channel.label} →
+                {t(channel.labelKey)} →
               </a>
             </CardContent>
           </Card>
@@ -56,14 +61,11 @@ function ContactPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2.5">
               <LifeBuoy className="size-5 text-signal-blue" />
-              Need help with a reservation?
+              {t("contact.help.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-gray">
-              Log in and head to your dashboard — you can confirm or cancel any of your reservations there at any
-              time.
-            </p>
+            <p className="text-slate-gray">{t("contact.help.description")}</p>
           </CardContent>
         </Card>
       </div>

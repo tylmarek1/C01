@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, func, literal_column, text
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, String, func, literal_column, text
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -59,6 +59,10 @@ class Reservation(Base):
     hold_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     series_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("reservation_series.id"), default=None)
+    # "Find a partner": the booker can open their own slot up for other
+    # players to request a guest spot on, instead of inviting people by email.
+    open_to_join: Mapped[bool] = mapped_column(default=False)
+    open_note: Mapped[str | None] = mapped_column(String(200), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     court: Mapped[Court] = relationship()

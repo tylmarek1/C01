@@ -1,19 +1,29 @@
 import type {
+  Achievement,
   AdminStats,
   Amenity,
   AuthResponse,
+  CalendarToken,
   Court,
   CourtAvailability,
+  CourtUtilization,
   FacilityBlock,
+  JoinRequest,
+  JoinRequestWithReservation,
+  LeaderboardEntry,
   Notification,
+  OpenGame,
+  PlayerStats,
   Reservation,
   ReservationAdmin,
   ReservationEvent,
   ReservationGuest,
   ReservationSeriesResult,
+  ReservationSplit,
   ReservationStatus,
   Review,
   SportType,
+  Teammate,
   User,
   UserAdmin,
   UserRole,
@@ -66,7 +76,27 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   return (await response.json()) as T
 }
 
-function buildQuery(params: Record<string, string | boolean | undefined>): string {
+/** Downloads a file from an authenticated endpoint (the browser can't send
+ * an Authorization header via a plain <a href>) by fetching it as a blob and
+ * triggering a save through a synthetic anchor click. */
+async function downloadAuthedFile(path: string, token: string, filename: string): Promise<void> {
+  const response = await fetch(`${API_URL}${path}`, { headers: { Authorization: `Bearer ${token}` } })
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new ApiError(response.status, extractErrorMessage(body) ?? response.statusText)
+  }
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
+}
+
+function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined) search.set(key, String(value))
@@ -122,6 +152,7 @@ export const api = {
       description?: string
       image_url?: string
       amenities?: Amenity[]
+      price_per_hour?: number
     },
   ) => request<Court>("/courts", { method: "POST", body: JSON.stringify(payload) }, token),
 
@@ -251,4 +282,68 @@ export const api = {
 
   updateUserRole: (token: string, userId: string, role: UserRole) =>
     request<UserAdmin>(`/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) }, token),
+
+  exportReservationsCsv: (token: string) => downloadAuthedFile("/admin/reservations/export.csv", token, "reservations.csv"),
+
+  getCourtUtilization: (token: string, courtId: string, days?: number) =>
+    request<CourtUtilization>(`/admin/courts/${courtId}/utilization${buildQuery({ days })}`, {}, token),
+
+  // Achievements + player stats
+  listAchievements: () => request<Achievement[]>("/achievements"),
+
+  listMyAchievements: (token: string) => request<Achievement[]>("/achievements/mine", {}, token),
+
+  getMyStats: (token: string) => request<PlayerStats>("/stats/me", {}, token),
+
+  getLeaderboard: (token: string, limit?: number) =>
+    request<LeaderboardEntry[]>(`/stats/leaderboard${buildQuery({ limit })}`, {}, token),
+
+  // Court discovery
+  listTrendingCourts: (days?: number, limit?: number) => request<Court[]>(`/courts/trending${buildQuery({ days, limit })}`),
+
+  listRecommendedCourts: (token: string, limit?: number) =>
+    request<Court[]>(`/courts/recommended${buildQuery({ limit })}`, {}, token),
+
+  // "Find a partner" — open games and join requests
+  listOpenGames: (token: string) => request<OpenGame[]>("/reservations/open", {}, token),
+
+  setReservationOpen: (token: string, reservationId: string, payload: { open_to_join: boolean; open_note?: string }) =>
+    request<Reservation>(`/reservations/${reservationId}/open`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+
+  listJoinRequests: (token: string, reservationId: string) =>
+    request<JoinRequest[]>(`/reservations/${reservationId}/join-requests`, {}, token),
+
+  requestToJoin: (token: string, reservationId: string, note?: string) =>
+    request<JoinRequest>(
+      `/reservations/${reservationId}/join-requests`,
+      { method: "POST", body: JSON.stringify({ note }) },
+      token,
+    ),
+
+  acceptJoinRequest: (token: string, reservationId: string, requestId: string) =>
+    request<ReservationGuest>(`/reservations/${reservationId}/join-requests/${requestId}/accept`, { method: "POST" }, token),
+
+  declineJoinRequest: (token: string, reservationId: string, requestId: string) =>
+    request<JoinRequest>(`/reservations/${reservationId}/join-requests/${requestId}/decline`, { method: "POST" }, token),
+
+  listMyJoinRequests: (token: string) => request<JoinRequestWithReservation[]>("/reservations/join-requests/mine", {}, token),
+
+  listFrequentTeammates: (token: string, limit?: number) =>
+    request<Teammate[]>(`/reservations/frequent-teammates${buildQuery({ limit })}`, {}, token),
+
+  // Calendar export
+  downloadReservationIcs: (token: string, reservationId: string, filename: string) =>
+    downloadAuthedFile(`/reservations/${reservationId}/ics`, token, filename),
+
+  issueCalendarToken: (token: string) => request<CalendarToken>("/auth/me/calendar-token", { method: "POST" }, token),
+
+  getCalendarFeedUrl: (calendarToken: string) => `${API_URL}/reservations/calendar.ics?token=${calendarToken}`,
+
+  // Cost split
+  splitReservationCost: (token: string, reservationId: string) =>
+    request<ReservationSplit>(`/reservations/${reservationId}/split`, {}, token),
+
+  // Review helpfulness
+  toggleReviewHelpful: (token: string, reviewId: string) =>
+    request<Review>(`/reviews/${reviewId}/helpful`, { method: "POST" }, token),
 }

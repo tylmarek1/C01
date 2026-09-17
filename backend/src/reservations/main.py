@@ -7,7 +7,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from reservations.api import admin, auth, courts, facility_blocks, favorites, notifications, reservations, reviews, waitlist
+from reservations.api import (
+    admin,
+    auth,
+    courts,
+    facility_blocks,
+    favorites,
+    notifications,
+    reservations,
+    reviews,
+    stats,
+    waitlist,
+)
 from reservations.config import settings
 from reservations.deps import session_factory
 from reservations.worker import run_forever
@@ -53,6 +64,7 @@ app.include_router(facility_blocks.router)
 app.include_router(reviews.router)
 app.include_router(favorites.router)
 app.include_router(admin.router)
+app.include_router(stats.router)
 
 
 @app.get("/health")

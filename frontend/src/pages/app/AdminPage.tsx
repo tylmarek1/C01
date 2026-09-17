@@ -1,8 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, Camera, CalendarClock, Clock3, LayoutGrid, Pencil, Plus, Users } from "lucide-react"
-import { useRef, useState, type ReactNode } from "react"
+import {
+  AlertTriangle,
+  BarChart3,
+  Camera,
+  CalendarClock,
+  Clock3,
+  Download,
+  History,
+  LayoutGrid,
+  Pencil,
+  Plus,
+  Users,
+} from "lucide-react"
+import { Fragment, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/shared/card"
@@ -26,12 +39,12 @@ import { StatTile } from "@/components/shared/stat-tile"
 import { Switch } from "@/components/shared/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/tabs"
 import { Textarea } from "@/components/shared/textarea"
-import { ApiError, api } from "@/lib/api"
+import { ApiError, api, assetUrl } from "@/lib/api"
 import { ALL_AMENITIES, useAmenityLabels } from "@/lib/amenities"
 import { useAuth } from "@/lib/auth-context"
-import { formatDateRange } from "@/lib/format"
+import { formatCurrency, formatDateRange } from "@/lib/format"
 import { compressImageFile } from "@/lib/image"
-import { useTranslation } from "@/lib/i18n"
+import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import { cn } from "@/lib/utils"
 import type { Amenity, Court, ReservationAdmin, ReservationStatus, SportType, UserRole } from "@/types"
@@ -44,9 +57,17 @@ interface CourtFormValues {
   indoor: boolean
   description: string
   amenities: Amenity[]
+  price_per_hour: string
 }
 
-const EMPTY_FORM: CourtFormValues = { name: "", sport_type: "TENNIS", indoor: false, description: "", amenities: [] }
+const EMPTY_FORM: CourtFormValues = {
+  name: "",
+  sport_type: "TENNIS",
+  indoor: false,
+  description: "",
+  amenities: [],
+  price_per_hour: "",
+}
 
 function formValuesFromCourt(court?: Court): CourtFormValues {
   if (!court) return EMPTY_FORM
@@ -56,6 +77,7 @@ function formValuesFromCourt(court?: Court): CourtFormValues {
     indoor: court.indoor,
     description: court.description ?? "",
     amenities: court.amenities,
+    price_per_hour: court.price_per_hour !== null ? String(court.price_per_hour) : "",
   }
 }
 
@@ -189,6 +211,20 @@ function CourtFormDialog({
           </div>
 
           <div className="flex flex-col gap-2">
+            <Label htmlFor="court-price">{t("admin.court.pricePerHour")}</Label>
+            <Input
+              id="court-price"
+              type="number"
+              min={0}
+              step="1"
+              inputMode="decimal"
+              value={values.price_per_hour}
+              onChange={(event) => setValues((v) => ({ ...v, price_per_hour: event.target.value }))}
+              placeholder={t("admin.court.pricePlaceholder")}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
             <Label htmlFor="court-description">{t("admin.court.description")}</Label>
             <Textarea
               id="court-description"
@@ -242,6 +278,83 @@ function CourtFormDialog({
   )
 }
 
+const UTILIZATION_DAYS = 30
+const UTILIZATION_HOURS = Array.from({ length: 15 }, (_, i) => 7 + i) // 07:00–21:00
+const UTILIZATION_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]
+
+function occupancyColor(occupancy: number): string {
+  if (occupancy <= 0) return "bg-pebble"
+  if (occupancy < 0.25) return "bg-signal-blue/25"
+  if (occupancy < 0.5) return "bg-signal-blue/50"
+  if (occupancy < 0.75) return "bg-signal-blue/75"
+  return "bg-signal-blue"
+}
+
+function CourtUtilizationDialog({ court, trigger }: { court: Court; trigger: ReactNode }) {
+  const { token } = useAuth()
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["court-utilization", court.id, UTILIZATION_DAYS],
+    queryFn: () => api.getCourtUtilization(token!, court.id, UTILIZATION_DAYS),
+    enabled: open,
+  })
+
+  const cellByKey = new Map(data?.cells.map((cell) => [`${cell.day_of_week}-${cell.hour}`, cell]) ?? [])
+  const hasAnyBookings = (data?.cells ?? []).some((cell) => cell.booked_count > 0)
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t("admin.utilization.dialog.title", { court: court.name })}</DialogTitle>
+          <DialogDescription>{t("admin.utilization.dialog.description", { days: UTILIZATION_DAYS })}</DialogDescription>
+        </DialogHeader>
+
+        {isLoading && <Skeleton className="h-64 w-full" />}
+
+        {!isLoading && !hasAnyBookings && <p className="py-8 text-center text-sm text-slate-gray">{t("admin.utilization.empty")}</p>}
+
+        {!isLoading && hasAnyBookings && (
+          <div className="overflow-x-auto pb-2">
+            <div
+              className="grid min-w-[560px] gap-1"
+              style={{ gridTemplateColumns: `32px repeat(${UTILIZATION_HOURS.length}, minmax(0, 1fr))` }}
+            >
+              <div />
+              {UTILIZATION_HOURS.map((hour) => (
+                <div key={hour} className="text-center text-[10px] text-slate-gray">
+                  {hour}
+                </div>
+              ))}
+              {UTILIZATION_WEEKDAYS.map((day) => (
+                <Fragment key={day}>
+                  <div className="flex items-center text-xs font-medium text-slate-gray">
+                    {t(`weekday.${day}` as TranslationKey)}
+                  </div>
+                  {UTILIZATION_HOURS.map((hour) => {
+                    const cell = cellByKey.get(`${day}-${hour}`)
+                    const occupancy = cell?.occupancy ?? 0
+                    return (
+                      <div
+                        key={hour}
+                        title={`${t(`weekday.${day}` as TranslationKey)} ${hour}:00 — ${Math.round(occupancy * 100)}%`}
+                        className={cn("aspect-square rounded-sm", occupancyColor(occupancy))}
+                      />
+                    )
+                  })}
+                </Fragment>
+              ))}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function CourtsTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
@@ -263,6 +376,7 @@ function CourtsTab() {
         indoor: values.indoor,
         description: values.description || undefined,
         amenities: values.amenities,
+        price_per_hour: values.price_per_hour === "" ? undefined : Number(values.price_per_hour),
       }),
     onSuccess: () => {
       toast.success(t("admin.toast.courtCreated"))
@@ -302,29 +416,46 @@ function CourtsTab() {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-col">
                   <span className="font-semibold text-ink-navy">{court.name}</span>
-                  <span className="text-xs text-slate-gray">{sportLabels[court.sport_type]}</span>
+                  <span className="text-xs text-slate-gray">
+                    {sportLabels[court.sport_type]}
+                    {" · "}
+                    {court.price_per_hour !== null
+                      ? t("courts.pricePerHour", { price: formatCurrency(court.price_per_hour) })
+                      : t("courts.priceUnset")}
+                  </span>
                 </div>
-                <CourtFormDialog
-                  court={court}
-                  onSaved={async (values) => {
-                    await updateMutation.mutateAsync({
-                      id: court.id,
-                      values: {
-                        name: values.name,
-                        sport_type: values.sport_type,
-                        indoor: values.indoor,
-                        description: values.description || undefined,
-                        amenities: values.amenities,
-                      },
-                    })
-                  }}
-                  onImageUploaded={invalidate}
-                  trigger={
-                    <Button variant="ghost" size="icon" className="size-8" aria-label={t("admin.court.editAria")}>
-                      <Pencil className="size-4" />
-                    </Button>
-                  }
-                />
+                <div className="flex items-center gap-1">
+                  <CourtUtilizationDialog
+                    court={court}
+                    trigger={
+                      <Button variant="ghost" size="icon" className="size-8" aria-label={t("admin.court.utilizationAria")}>
+                        <BarChart3 className="size-4" />
+                      </Button>
+                    }
+                  />
+                  <CourtFormDialog
+                    court={court}
+                    onSaved={async (values) => {
+                      await updateMutation.mutateAsync({
+                        id: court.id,
+                        values: {
+                          name: values.name,
+                          sport_type: values.sport_type,
+                          indoor: values.indoor,
+                          description: values.description || undefined,
+                          amenities: values.amenities,
+                          price_per_hour: values.price_per_hour === "" ? null : Number(values.price_per_hour),
+                        },
+                      })
+                    }}
+                    onImageUploaded={invalidate}
+                    trigger={
+                      <Button variant="ghost" size="icon" className="size-8" aria-label={t("admin.court.editAria")}>
+                        <Pencil className="size-4" />
+                      </Button>
+                    }
+                  />
+                </div>
               </div>
               <div className="flex items-center justify-between border-t border-hairline pt-3">
                 <span className="text-sm text-slate-gray">{court.active ? t("admin.court.visible") : t("admin.court.hidden")}</span>
@@ -352,6 +483,46 @@ const STATUS_FILTERS: (ReservationStatus | "ALL")[] = [
   "NO_SHOW",
 ]
 
+const CANCELLABLE_STATUSES: ReservationStatus[] = ["PENDING", "CONFIRMED", "CHECKED_IN"]
+
+function ReservationHistoryDialog({ reservation, trigger }: { reservation: ReservationAdmin; trigger: ReactNode }) {
+  const { token } = useAuth()
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  const { data: history, isLoading } = useQuery({
+    queryKey: ["reservation-history", reservation.id],
+    queryFn: () => api.getReservationHistory(token!, reservation.id),
+    enabled: open,
+  })
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("admin.reservations.historyDialog.title")}</DialogTitle>
+          <DialogDescription>{reservation.court.name}</DialogDescription>
+        </DialogHeader>
+        {isLoading && <Skeleton className="h-24 w-full" />}
+        {!isLoading && history?.length === 0 && <p className="text-sm text-slate-gray">{t("admin.reservations.historyDialog.empty")}</p>}
+        <div className="flex flex-col gap-3">
+          {history?.map((event) => (
+            <div key={event.id} className="flex items-start gap-3 border-b border-hairline pb-3 last:border-b-0">
+              <span className="mt-1 size-2 shrink-0 rounded-full bg-signal-blue" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-ink-navy">{t(`event.${event.event_type}` as TranslationKey)}</span>
+                <span className="text-xs text-slate-gray">{new Date(event.created_at).toLocaleString()}</span>
+                {event.note && <span className="text-xs text-slate-gray">{event.note}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function ReservationsTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
@@ -364,18 +535,48 @@ function ReservationsTab() {
     queryFn: () => api.listAllReservations(token!, statusFilter === "ALL" ? undefined : statusFilter),
   })
 
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin-reservations"] })
+
   const cancelMutation = useMutation({
     mutationFn: (reservation: ReservationAdmin) => api.cancelReservation(token!, reservation.id),
     onSuccess: () => {
       toast.success(t("admin.toast.reservationCancelled"))
-      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] })
+      invalidate()
     },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationCancel")),
+  })
+
+  const confirmMutation = useMutation({
+    mutationFn: (reservation: ReservationAdmin) => api.confirmReservation(token!, reservation.id),
+    onSuccess: () => {
+      toast.success(t("admin.toast.reservationConfirmed"))
+      invalidate()
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationConfirm")),
+  })
+
+  const checkInMutation = useMutation({
+    mutationFn: (reservation: ReservationAdmin) => api.checkInReservation(token!, reservation.id),
+    onSuccess: () => {
+      toast.success(t("admin.toast.reservationCheckedIn"))
+      invalidate()
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationCheckIn")),
+  })
+
+  const isBusy = cancelMutation.isPending || confirmMutation.isPending || checkInMutation.isPending
+
+  const exportMutation = useMutation({
+    mutationFn: () => api.exportReservationsCsv(token!),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationCancel")),
   })
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button size="sm" variant="outline" disabled={exportMutation.isPending} onClick={() => exportMutation.mutate()}>
+          <Download className="size-3.5" /> {t("admin.reservations.exportCsv")}
+        </Button>
         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ReservationStatus | "ALL")}>
           <SelectTrigger className="w-44">
             <SelectValue />
@@ -411,16 +612,34 @@ function ReservationsTab() {
               <span className="text-xs text-slate-gray">
                 {reservation.user.name} · {reservation.user.email}
               </span>
+              {reservation.open_to_join && (
+                <Badge variant="secondary" className="w-fit">
+                  {t("admin.reservations.openBadge")}
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant={STATUS_VARIANT[reservation.status]}>{statusLabels[reservation.status]}</Badge>
-              {reservation.status !== "CANCELLED" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={cancelMutation.isPending}
-                  onClick={() => cancelMutation.mutate(reservation)}
-                >
+              {reservation.status === "PENDING" && (
+                <Button size="sm" disabled={isBusy} onClick={() => confirmMutation.mutate(reservation)}>
+                  {t("admin.reservations.confirm")}
+                </Button>
+              )}
+              {reservation.status === "CONFIRMED" && (
+                <Button size="sm" variant="dark" disabled={isBusy} onClick={() => checkInMutation.mutate(reservation)}>
+                  {t("admin.reservations.checkIn")}
+                </Button>
+              )}
+              <ReservationHistoryDialog
+                reservation={reservation}
+                trigger={
+                  <Button size="sm" variant="ghost" aria-label={t("admin.reservations.history")}>
+                    <History className="size-3.5" />
+                  </Button>
+                }
+              />
+              {CANCELLABLE_STATUSES.includes(reservation.status) && (
+                <Button size="sm" variant="outline" disabled={isBusy} onClick={() => cancelMutation.mutate(reservation)}>
                   {t("admin.reservations.cancel")}
                 </Button>
               )}
@@ -438,7 +657,11 @@ function AvailabilityTab() {
   const queryClient = useQueryClient()
 
   const { data: courts } = useQuery({ queryKey: ["admin-courts"], queryFn: () => api.listCourts({ includeInactive: true }, token) })
-  const { data: blocks, isLoading } = useQuery({ queryKey: ["facility-blocks"], queryFn: () => api.listFacilityBlocks() })
+  const [filterCourtId, setFilterCourtId] = useState("ALL")
+  const { data: blocks, isLoading } = useQuery({
+    queryKey: ["facility-blocks", filterCourtId],
+    queryFn: () => api.listFacilityBlocks(filterCourtId === "ALL" ? undefined : filterCourtId),
+  })
 
   const [courtId, setCourtId] = useState("")
   const [start, setStart] = useState("")
@@ -523,6 +746,22 @@ function AvailabilityTab() {
       </Card>
 
       <div className="flex flex-col gap-3">
+        <div className="flex justify-end">
+          <Select value={filterCourtId} onValueChange={setFilterCourtId}>
+            <SelectTrigger className="w-52">
+              <SelectValue placeholder={t("admin.availability.filterCourt")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{t("admin.availability.allCourts")}</SelectItem>
+              {courts?.map((court) => (
+                <SelectItem key={court.id} value={court.id}>
+                  {court.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}
         {!isLoading && blocks?.length === 0 && (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-hairline py-16 text-center">
@@ -539,6 +778,9 @@ function AvailabilityTab() {
               <span className="font-medium text-ink-navy">{block.court.name}</span>
               <span className="text-sm text-slate-gray">{formatDateRange(block.start_time, block.end_time)}</span>
               <span className="text-xs text-slate-gray">{block.reason}</span>
+              <span className="text-xs text-mist-gray">
+                {t("admin.availability.createdOn", { date: new Date(block.created_at).toLocaleDateString() })}
+              </span>
             </div>
             <Button size="sm" variant="outline" onClick={() => deleteMutation.mutate(block.id)}>
               {t("admin.availability.remove")}
@@ -630,17 +872,25 @@ function OverviewTab() {
           <CardDescription>{t("admin.overview.busiestHoursDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-32 items-end gap-1">
-            {hourly.map((count, hour) => (
-              <div key={hour} className="flex flex-1 flex-col items-center gap-1.5">
-                <div
-                  className="w-full rounded-t-sm bg-signal-blue"
-                  style={{ height: `${Math.max(2, Math.round((count / maxHourly) * 100))}%` }}
-                  title={`${hour}:00 — ${count}`}
-                />
-                {hour % 3 === 0 && <span className="text-[10px] text-slate-gray">{hour}</span>}
-              </div>
-            ))}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex h-32 items-end gap-1">
+              {hourly.map((count, hour) => (
+                <div key={hour} className="flex h-full flex-1 items-end">
+                  <div
+                    className="w-full rounded-t-sm bg-signal-blue"
+                    style={{ height: `${Math.max(2, Math.round((count / maxHourly) * 100))}%` }}
+                    title={`${hour}:00 — ${count}`}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              {hourly.map((_, hour) => (
+                <div key={hour} className="flex-1 text-center text-[10px] text-slate-gray">
+                  {hour % 3 === 0 ? hour : ""}
+                </div>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -672,13 +922,29 @@ function UsersTab() {
           key={user.id}
           className="flex flex-col gap-3 rounded-2xl border border-hairline bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
         >
-          <div className="flex flex-col">
-            <span className="font-medium text-ink-navy">{user.name}</span>
-            <span className="text-sm text-slate-gray">{user.email}</span>
-            <span className="text-xs text-slate-gray">
-              {t("admin.users.activeCount", { count: user.active_reservation_count })} ·{" "}
-              {user.no_show_count} {user.no_show_count === 1 ? t("admin.users.noShow.one") : t("admin.users.noShow.other")}
-            </span>
+          <div className="flex items-center gap-3">
+            <Avatar className="size-10">
+              <AvatarImage src={assetUrl(user.avatar_url)} alt={user.name} className="object-cover" />
+              <AvatarFallback>
+                {user.name
+                  .split(" ")
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-medium text-ink-navy">{user.name}</span>
+              <span className="text-sm text-slate-gray">{user.email}</span>
+              <span className="text-xs text-slate-gray">
+                {t("admin.users.activeCount", { count: user.active_reservation_count })} ·{" "}
+                {user.no_show_count} {user.no_show_count === 1 ? t("admin.users.noShow.one") : t("admin.users.noShow.other")}
+              </span>
+              <span className="text-xs text-mist-gray">
+                {t("admin.users.memberSince", { date: new Date(user.created_at).toLocaleDateString() })}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Badge variant={user.role === "VENUE_MANAGER" ? "success" : "secondary"}>
@@ -720,13 +986,15 @@ function AdminPage() {
       />
 
       <Tabs defaultValue="overview" className="mt-10">
-        <TabsList>
-          <TabsTrigger value="overview">{t("admin.tabs.overview")}</TabsTrigger>
-          <TabsTrigger value="courts">{t("admin.tabs.courts")}</TabsTrigger>
-          <TabsTrigger value="reservations">{t("admin.tabs.reservations")}</TabsTrigger>
-          <TabsTrigger value="availability">{t("admin.tabs.availability")}</TabsTrigger>
-          <TabsTrigger value="users">{t("admin.tabs.users")}</TabsTrigger>
-        </TabsList>
+        <div className="-mx-6 overflow-x-auto px-6 pb-1">
+          <TabsList>
+            <TabsTrigger value="overview">{t("admin.tabs.overview")}</TabsTrigger>
+            <TabsTrigger value="courts">{t("admin.tabs.courts")}</TabsTrigger>
+            <TabsTrigger value="reservations">{t("admin.tabs.reservations")}</TabsTrigger>
+            <TabsTrigger value="availability">{t("admin.tabs.availability")}</TabsTrigger>
+            <TabsTrigger value="users">{t("admin.tabs.users")}</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="overview">
           <OverviewTab />
         </TabsContent>

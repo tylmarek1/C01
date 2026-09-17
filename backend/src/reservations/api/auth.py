@@ -1,3 +1,5 @@
+import secrets
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -5,7 +7,7 @@ from sqlalchemy.orm import Session
 from reservations.deps import get_current_user, get_db
 from reservations.images import compress_and_store_avatar
 from reservations.models import User
-from reservations.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserOut, UserUpdate
+from reservations.schemas.auth import CalendarTokenOut, LoginRequest, RegisterRequest, TokenResponse, UserOut, UserUpdate
 from reservations.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -64,3 +66,15 @@ def upload_avatar(
     db.commit()
     db.refresh(current_user)
     return UserOut.model_validate(current_user)
+
+
+@router.post("/me/calendar-token", response_model=CalendarTokenOut)
+def issue_calendar_token(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CalendarTokenOut:
+    """(Re)issues the opaque token used to authenticate the personal .ics
+    calendar feed URL — regenerating invalidates any link handed out before."""
+    current_user.calendar_token = secrets.token_urlsafe(32)
+    db.commit()
+    return CalendarTokenOut(calendar_token=current_user.calendar_token)

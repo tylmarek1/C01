@@ -1,15 +1,41 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from reservations.deps import get_current_user, get_db
-from reservations.models import Reservation, ReservationStatus, Review, User
+from reservations.deps import get_current_user, get_db, get_optional_user
+from reservations.models import Reservation, ReservationStatus, Review, ReviewVote, User
 from reservations.schemas.review import ReviewCreate, ReviewOut
 
 router = APIRouter(tags=["reviews"])
+
+
+def _attach_helpful_votes(db: Session, reviews: list[Review], current_user: User | None) -> list[Review]:
+    if not reviews:
+        return reviews
+    review_ids = [r.id for r in reviews]
+    counts = dict(
+        db.execute(
+            select(ReviewVote.review_id, func.count())
+            .where(ReviewVote.review_id.in_(review_ids))
+            .group_by(ReviewVote.review_id)
+        ).all()
+    )
+    voted_by_me: set[uuid.UUID] = set()
+    if current_user is not None:
+        voted_by_me = set(
+            db.scalars(
+                select(ReviewVote.review_id)
+                .where(ReviewVote.review_id.in_(review_ids))
+                .where(ReviewVote.user_id == current_user.id)
+            )
+        )
+    for review in reviews:
+        review.helpful_count = counts.get(review.id, 0)
+        review.voted_helpful_by_me = review.id in voted_by_me
+    return reviews
 
 
 @router.post("/reviews", response_model=ReviewOut, status_code=status.HTTP_201_CREATED)
@@ -44,15 +70,41 @@ def create_review(
 
 
 @router.get("/courts/{court_id}/reviews", response_model=list[ReviewOut])
-def list_court_reviews(court_id: uuid.UUID, db: Session = Depends(get_db)) -> list[Review]:
+def list_court_reviews(
+    court_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> list[Review]:
     stmt = select(Review).where(Review.court_id == court_id).order_by(Review.created_at.desc())
-    return list(db.scalars(stmt))
+    return _attach_helpful_votes(db, list(db.scalars(stmt)), current_user)
 
 
 @router.get("/reviews/mine", response_model=list[ReviewOut])
 def list_my_reviews(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[Review]:
     stmt = select(Review).where(Review.user_id == current_user.id).order_by(Review.created_at.desc())
-    return list(db.scalars(stmt))
+    return _attach_helpful_votes(db, list(db.scalars(stmt)), current_user)
+
+
+@router.post("/reviews/{review_id}/helpful", response_model=ReviewOut)
+def toggle_review_helpful(
+    review_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Review:
+    review = db.get(Review, review_id)
+    if review is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
+
+    existing_vote = db.scalar(
+        select(ReviewVote).where(ReviewVote.review_id == review_id).where(ReviewVote.user_id == current_user.id)
+    )
+    if existing_vote is None:
+        db.add(ReviewVote(review_id=review_id, user_id=current_user.id))
+    else:
+        db.delete(existing_vote)
+    db.commit()
+
+    return _attach_helpful_votes(db, [review], current_user)[0]
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)

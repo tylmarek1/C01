@@ -1,26 +1,39 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CalendarClock, CalendarPlus, CheckCircle2, Clock3, LayoutGrid, ListChecks, Rows3 } from "lucide-react"
+import {
+  Award,
+  CalendarClock,
+  CalendarPlus,
+  CheckCircle2,
+  Clock3,
+  LayoutGrid,
+  ListChecks,
+  Rows3,
+  Sparkles,
+} from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/shared/dialog"
 import { ReservationCard } from "@/components/shared/reservation-card"
 import { ReservationDetailDialog } from "@/components/shared/reservation-detail-dialog"
 import { SectionHeader } from "@/components/shared/section-header"
 import { Skeleton } from "@/components/shared/skeleton"
 import { StatTile } from "@/components/shared/stat-tile"
+import { Textarea } from "@/components/shared/textarea"
 import { WeekCalendar } from "@/components/shared/week-calendar"
-import { ApiError, api } from "@/lib/api"
+import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { formatDateRange } from "@/lib/format"
-import { useTranslation } from "@/lib/i18n"
+import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import { cn } from "@/lib/utils"
-import type { Reservation } from "@/types"
+import type { OpenGame, Reservation } from "@/types"
 
-type ViewMode = "list" | "calendar"
+type ViewMode = "list" | "calendar" | "open"
 
 function DashboardPage() {
   const { user, token } = useAuth()
@@ -52,6 +65,30 @@ function DashboardPage() {
   const { data: sharedWithMe } = useQuery({
     queryKey: ["shared-with-me"],
     queryFn: () => api.listSharedWithMe(token!),
+    enabled: Boolean(token),
+  })
+
+  const { data: myStats } = useQuery({
+    queryKey: ["stats-me"],
+    queryFn: () => api.getMyStats(token!),
+    enabled: Boolean(token),
+  })
+
+  const { data: openGames } = useQuery({
+    queryKey: ["reservations-open"],
+    queryFn: () => api.listOpenGames(token!),
+    enabled: Boolean(token) && viewMode === "open",
+  })
+
+  const { data: myJoinRequests } = useQuery({
+    queryKey: ["join-requests-mine"],
+    queryFn: () => api.listMyJoinRequests(token!),
+    enabled: Boolean(token),
+  })
+
+  const { data: teammates } = useQuery({
+    queryKey: ["frequent-teammates"],
+    queryFn: () => api.listFrequentTeammates(token!, 5),
     enabled: Boolean(token),
   })
 
@@ -132,6 +169,27 @@ function DashboardPage() {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("dashboard.error.waitlistLeave")),
   })
 
+  const setOpenMutation = useMutation({
+    mutationFn: ({ reservation, openToJoin, note }: { reservation: Reservation; openToJoin: boolean; note: string }) =>
+      api.setReservationOpen(token!, reservation.id, { open_to_join: openToJoin, open_note: note || undefined }),
+    onSuccess: () => {
+      toast.success(t("dashboard.toast.openUpdated"))
+      invalidate()
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("dashboard.error.openUpdate")),
+  })
+
+  const requestToJoinMutation = useMutation({
+    mutationFn: ({ game, note }: { game: OpenGame; note: string }) => api.requestToJoin(token!, game.id, note || undefined),
+    onSuccess: () => {
+      toast.success(t("dashboard.toast.joinRequestSent"))
+      queryClient.invalidateQueries({ queryKey: ["join-requests-mine"] })
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("dashboard.error.joinRequest")),
+  })
+  const [joinTarget, setJoinTarget] = useState<OpenGame | null>(null)
+  const [joinNote, setJoinNote] = useState("")
+
   const confirmedCount = reservations?.filter((r) => r.status === "CONFIRMED").length ?? 0
   const pendingCount = reservations?.filter((r) => r.status === "PENDING").length ?? 0
   const completedCount = reservations?.filter((r) => r.status === "COMPLETED").length ?? 0
@@ -155,12 +213,44 @@ function DashboardPage() {
         }
       />
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-4">
+      <div className="mt-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile icon={CalendarClock} label={t("dashboard.stat.total")} value={reservations?.length ?? 0} />
         <StatTile icon={CheckCircle2} label={t("dashboard.stat.confirmed")} value={confirmedCount} />
         <StatTile icon={Clock3} label={t("dashboard.stat.held")} value={pendingCount} />
         <StatTile icon={ListChecks} label={t("dashboard.stat.completed")} value={completedCount} />
+        <StatTile
+          icon={Award}
+          label={t("dashboard.stat.achievements")}
+          value={myStats ? `${myStats.achievements_unlocked}/${myStats.achievements_total}` : "–"}
+        />
       </div>
+
+      {teammates && teammates.length > 0 && (
+        <div className="mt-10 flex flex-col gap-3">
+          <span className="text-sm font-semibold text-ink-navy">{t("dashboard.teammates.title")}</span>
+          <div className="flex flex-wrap gap-3">
+            {teammates.map((teammate) => (
+              <div key={teammate.user.id} className="flex items-center gap-2.5 rounded-2xl border border-hairline bg-card px-3 py-2 shadow-card">
+                <Avatar className="size-8">
+                  <AvatarImage src={assetUrl(teammate.user.avatar_url)} alt={teammate.user.name} className="object-cover" />
+                  <AvatarFallback className="text-xs">
+                    {teammate.user.name
+                      .split(" ")
+                      .map((part) => part[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-ink-navy">{teammate.user.name}</span>
+                  <span className="text-xs text-slate-gray">{t("dashboard.teammates.gamesTogether", { count: teammate.games_together })}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {activeWaitlist.length > 0 && (
         <div className="mt-10 flex flex-col gap-3">
@@ -173,6 +263,13 @@ function DashboardPage() {
               <div className="flex flex-col gap-1">
                 <span className="font-medium text-ink-navy">{entry.court.name}</span>
                 <span className="text-sm text-slate-gray">{formatDateRange(entry.start_time, entry.end_time)}</span>
+                {entry.status === "OFFERED" && entry.offer_expires_at && (
+                  <span className="text-xs font-medium text-amber-600">
+                    {t("reservationCard.holdExpires", {
+                      time: new Date(entry.offer_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                    })}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2.5">
                 <Badge variant={entry.status === "OFFERED" ? "success" : "secondary"}>
@@ -215,13 +312,26 @@ function DashboardPage() {
           <LayoutGrid className="size-3.5" />
           {t("calendar.view.week")}
         </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("open")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            viewMode === "open" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
+          )}
+        >
+          <Sparkles className="size-3.5" />
+          {t("dashboard.view.open")}
+        </button>
       </div>
 
-      {viewMode === "calendar" ? (
+      {viewMode === "calendar" && (
         <div className="mt-4">
           <WeekCalendar reservations={reservations ?? []} onSelectReservation={setDetailReservation} />
         </div>
-      ) : (
+      )}
+
+      {viewMode === "list" && (
         <div className="mt-4 flex flex-col gap-4">
           {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-24 w-full" />)}
 
@@ -246,12 +356,116 @@ function DashboardPage() {
               onReschedule={(reservation, startTime, endTime) => rescheduleMutation.mutate({ reservation, startTime, endTime })}
               onOpenDetail={setDetailReservation}
               onInviteGuest={(reservation, email) => inviteGuestMutation.mutate({ reservation, email })}
+              onSetOpen={(reservation, openToJoin, note) => setOpenMutation.mutate({ reservation, openToJoin, note })}
+              isSettingOpen={setOpenMutation.isPending}
               hasReview={reviewedReservationIds.has(reservation.id)}
               onSubmitReview={(reservation, rating, comment) => reviewMutation.mutate({ reservation, rating, comment })}
             />
           ))}
         </div>
       )}
+
+      {viewMode === "open" && (
+        <div className="mt-4 flex flex-col gap-4">
+          {!openGames && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-24 w-full" />)}
+
+          {openGames?.length === 0 && (
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-hairline py-16 text-center">
+              <p className="font-medium text-ink-navy">{t("dashboard.openGames.empty.title")}</p>
+              <p className="max-w-xs text-sm text-slate-gray">{t("dashboard.openGames.empty.description")}</p>
+            </div>
+          )}
+
+          {openGames?.map((game) => {
+            const alreadyRequested = myJoinRequests?.some((request) => request.reservation_id === game.id)
+            return (
+              <div
+                key={game.id}
+                className="flex flex-col gap-3 rounded-2xl border border-hairline bg-card p-5 shadow-card sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex flex-col gap-1">
+                  <span className="font-semibold text-ink-navy">{game.court.name}</span>
+                  <span className="text-sm text-slate-gray">{formatDateRange(game.start_time, game.end_time)}</span>
+                  <span className="text-xs text-slate-gray">{t("dashboard.openGames.hostedBy", { name: game.user.name })}</span>
+                  {game.open_note && <span className="text-xs text-slate-gray">{game.open_note}</span>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary">{t("dashboard.openGames.spotsLeft", { count: game.spots_left })}</Badge>
+                  <Button
+                    size="sm"
+                    disabled={alreadyRequested}
+                    onClick={() => {
+                      setJoinTarget(game)
+                      setJoinNote("")
+                    }}
+                  >
+                    {alreadyRequested ? t("joinRequestStatus.PENDING") : t("dashboard.openGames.request")}
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {myJoinRequests && myJoinRequests.length > 0 && (
+        <div className="mt-10 flex flex-col gap-3">
+          <span className="text-sm font-semibold text-ink-navy">{t("dashboard.myJoinRequests.title")}</span>
+          {myJoinRequests.map((request) => (
+            <div
+              key={request.id}
+              className="flex flex-col gap-2 rounded-2xl border border-hairline bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="flex flex-col gap-1">
+                <span className="font-medium text-ink-navy">{request.user.name}</span>
+                {request.note && <span className="text-sm text-slate-gray">{request.note}</span>}
+              </div>
+              <Badge
+                variant={
+                  request.status === "ACCEPTED" ? "success" : request.status === "DECLINED" ? "destructive" : "secondary"
+                }
+              >
+                {t(`joinRequestStatus.${request.status}` as TranslationKey)}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={Boolean(joinTarget)} onOpenChange={(open) => !open && setJoinTarget(null)}>
+        <DialogContent>
+          {joinTarget && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{t("dashboard.joinRequest.dialog.title")}</DialogTitle>
+                <DialogDescription>
+                  {t("dashboard.joinRequest.dialog.description", { name: joinTarget.user.name, court: joinTarget.court.name })}
+                </DialogDescription>
+              </DialogHeader>
+              <Textarea
+                value={joinNote}
+                onChange={(event) => setJoinNote(event.target.value)}
+                placeholder={t("dashboard.joinRequest.notePlaceholder")}
+                maxLength={200}
+              />
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setJoinTarget(null)}>
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  disabled={requestToJoinMutation.isPending}
+                  onClick={() => {
+                    requestToJoinMutation.mutate({ game: joinTarget, note: joinNote.trim() })
+                    setJoinTarget(null)
+                  }}
+                >
+                  {t("dashboard.joinRequest.send")}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {sharedWithMe && sharedWithMe.length > 0 && (
         <div className="mt-10 flex flex-col gap-3">

@@ -52,6 +52,20 @@ function CourtsPage() {
     queryFn: () => api.listCourts({ sport, amenity, q }),
   })
 
+  const hasFilters = Boolean(sport || amenity || q)
+
+  const { data: trendingCourts } = useQuery({
+    queryKey: ["courts-trending"],
+    queryFn: () => api.listTrendingCourts(7, 6),
+    enabled: !hasFilters,
+  })
+
+  const { data: recommendedCourts } = useQuery({
+    queryKey: ["courts-recommended"],
+    queryFn: () => api.listRecommendedCourts(token!),
+    enabled: !hasFilters && Boolean(token),
+  })
+
   const { data: favorites } = useQuery({
     queryKey: ["favorites-mine"],
     queryFn: () => api.listMyFavorites(token!),
@@ -144,7 +158,44 @@ function CourtsPage() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {!hasFilters && trendingCourts && trendingCourts.length > 0 && (
+        <div className="mt-10 flex flex-col gap-4">
+          <span className="text-sm font-semibold text-ink-navy">{t("courts.trending.title")}</span>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {trendingCourts.map((court) => (
+              <CourtCard
+                key={court.id}
+                court={court}
+                href={`/courts/${court.id}`}
+                isFavorite={favoriteIds.has(court.id)}
+                onToggleFavorite={user ? (c) => favoriteMutation.mutate(c) : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!hasFilters && user && recommendedCourts && recommendedCourts.length > 0 && (
+        <div className="mt-10 flex flex-col gap-4">
+          <span className="text-sm font-semibold text-ink-navy">{t("courts.recommended.title")}</span>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {recommendedCourts.map((court) => (
+              <CourtCard
+                key={court.id}
+                court={court}
+                href={`/courts/${court.id}`}
+                isFavorite={favoriteIds.has(court.id)}
+                onToggleFavorite={(c) => favoriteMutation.mutate(c)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!hasFilters && ((trendingCourts && trendingCourts.length > 0) || (user && recommendedCourts && recommendedCourts.length > 0)) && (
+        <span className="mt-10 block text-sm font-semibold text-ink-navy">{t("courts.allCourts")}</span>
+      )}
+      <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-3", !hasFilters ? "mt-4" : "mt-10")}>
         {isLoading && Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="aspect-[16/10] w-full rounded-2xl" />)}
 
         {!isLoading && courts?.length === 0 && (

@@ -1,5 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Camera, CalendarClock, CheckCircle2, ShieldCheck, Trash2, XCircle } from "lucide-react"
+import {
+  Award,
+  Camera,
+  CalendarClock,
+  CalendarDays,
+  CheckCircle2,
+  Copy,
+  Flame,
+  MapPinned,
+  ShieldCheck,
+  Star,
+  Trash2,
+  Trophy,
+  Volleyball,
+} from "lucide-react"
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
@@ -20,6 +34,7 @@ import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 import { compressImageFile } from "@/lib/image"
+import { cn } from "@/lib/utils"
 import type { Court } from "@/types"
 
 function initials(name: string) {
@@ -41,15 +56,28 @@ function OverviewTab() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(user?.name ?? "")
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
-  const { data: reservations } = useQuery({
-    queryKey: ["reservations"],
-    queryFn: () => api.listReservations(token!),
+  const { data: stats } = useQuery({
+    queryKey: ["stats-me"],
+    queryFn: () => api.getMyStats(token!),
     enabled: Boolean(token),
   })
-  const total = reservations?.length ?? 0
-  const confirmed = reservations?.filter((r) => r.status === "CONFIRMED" || r.status === "CHECKED_IN" || r.status === "COMPLETED").length ?? 0
-  const noShows = reservations?.filter((r) => r.status === "NO_SHOW").length ?? 0
+
+  const calendarTokenMutation = useMutation({
+    mutationFn: () => api.issueCalendarToken(token!),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.calendar.error")),
+  })
+
+  const feedUrl = calendarTokenMutation.data ? api.getCalendarFeedUrl(calendarTokenMutation.data.calendar_token) : null
+
+  function copyFeedUrl() {
+    if (!feedUrl) return
+    navigator.clipboard.writeText(feedUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const saveNameMutation = useMutation({
     mutationFn: (nextName: string) => api.updateProfile(token!, nextName),
@@ -98,10 +126,57 @@ function OverviewTab() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile icon={CalendarClock} label={t("profile.stat.total")} value={total} />
-        <StatTile icon={CheckCircle2} label={t("profile.stat.confirmed")} value={confirmed} />
-        <StatTile icon={XCircle} label={t("profile.stat.noShows")} value={noShows} />
+        <StatTile icon={CheckCircle2} label={t("profile.stat.completed")} value={stats?.completed_reservations ?? 0} />
+        <StatTile icon={CalendarClock} label={t("profile.stat.hoursPlayed")} value={stats?.hours_played ?? 0} />
+        <StatTile icon={MapPinned} label={t("profile.stat.courtsPlayed")} value={stats?.distinct_courts_played ?? 0} />
+        <StatTile icon={Volleyball} label={t("profile.stat.sportsPlayed")} value={stats?.sports_played ?? 0} />
+        <StatTile icon={Flame} label={t("profile.stat.streak")} value={stats?.current_streak_weeks ?? 0} />
+        <StatTile
+          icon={Award}
+          label={t("profile.stat.achievements")}
+          value={stats ? `${stats.achievements_unlocked}/${stats.achievements_total}` : "–"}
+        />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarDays className="size-5 text-signal-blue" /> {t("profile.calendar.title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-slate-gray">{t("profile.calendar.description")}</p>
+          {feedUrl ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 rounded-lg border border-hairline bg-pebble px-3 py-2">
+                <span className="flex-1 truncate text-xs text-slate-gray">{feedUrl}</span>
+                <Button size="sm" variant="ghost" onClick={copyFeedUrl}>
+                  <Copy className="size-3.5" /> {copied ? t("profile.calendar.copied") : t("profile.calendar.copy")}
+                </Button>
+              </div>
+              <p className="text-xs text-slate-gray">{t("profile.calendar.hint")}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-fit"
+                disabled={calendarTokenMutation.isPending}
+                onClick={() => calendarTokenMutation.mutate()}
+              >
+                {t("profile.calendar.regenerate")}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              className="w-fit"
+              disabled={calendarTokenMutation.isPending}
+              onClick={() => calendarTokenMutation.mutate()}
+            >
+              {t("profile.calendar.generate")}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -285,7 +360,10 @@ function ReviewsTab() {
               <StarRating value={review.rating} />
             </div>
             {review.comment && <p className="text-sm text-slate-gray">{review.comment}</p>}
-            <span className="text-xs text-mist-gray">{new Date(review.created_at).toLocaleDateString()}</span>
+            <span className="text-xs text-mist-gray">
+              {new Date(review.created_at).toLocaleDateString()}
+              {review.helpful_count > 0 && ` · ${t("courtDetail.reviews.helpfulCount", { count: review.helpful_count })}`}
+            </span>
           </div>
           <Button
             size="sm"
@@ -302,6 +380,115 @@ function ReviewsTab() {
   )
 }
 
+function AchievementsTab() {
+  const { token } = useAuth()
+  const { t } = useTranslation()
+
+  const { data: achievements, isLoading } = useQuery({
+    queryKey: ["achievements-mine"],
+    queryFn: () => api.listMyAchievements(token!),
+    enabled: Boolean(token),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-20 w-full rounded-2xl" />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {achievements?.map((achievement) => (
+        <div
+          key={achievement.key}
+          className={cn(
+            "flex items-center gap-4 rounded-2xl border p-4 shadow-card",
+            achievement.unlocked ? "border-hairline bg-card" : "border-dashed border-hairline bg-cloud opacity-70",
+          )}
+        >
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-pebble text-xl">
+            {achievement.icon}
+          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-ink-navy">{achievement.title}</span>
+            <span className="text-xs text-slate-gray">{achievement.description}</span>
+            <span className="text-[11px] text-mist-gray">
+              {achievement.unlocked && achievement.earned_at
+                ? t("achievements.earnedOn", { date: new Date(achievement.earned_at).toLocaleDateString() })
+                : t("achievements.locked")}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function LeaderboardTab() {
+  const { token, user } = useAuth()
+  const { t } = useTranslation()
+
+  const { data: leaderboard, isLoading } = useQuery({
+    queryKey: ["leaderboard"],
+    queryFn: () => api.getLeaderboard(token!, 20),
+    enabled: Boolean(token),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-16 w-full rounded-2xl" />
+        ))}
+      </div>
+    )
+  }
+
+  if (leaderboard?.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-hairline py-16 text-center">
+        <p className="text-sm text-slate-gray">{t("leaderboard.empty")}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {leaderboard?.map((entry) => (
+        <div
+          key={entry.user.id}
+          className={cn(
+            "flex items-center gap-4 rounded-2xl border p-4 shadow-card",
+            entry.user.id === user?.id ? "border-signal-blue bg-[#eaf3ff]" : "border-hairline bg-card",
+          )}
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-pebble text-sm font-semibold text-ink-navy">
+            {entry.rank <= 3 ? <Trophy className="size-4 text-amber-500" /> : t("leaderboard.rank", { rank: entry.rank })}
+          </span>
+          <Avatar className="size-9">
+            <AvatarImage src={assetUrl(entry.user.avatar_url)} alt={entry.user.name} className="object-cover" />
+            <AvatarFallback>{initials(entry.user.name)}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-medium text-ink-navy">
+              {entry.user.name}
+              {entry.user.id === user?.id && <span className="ml-1.5 text-xs text-signal-blue">({t("leaderboard.you")})</span>}
+            </span>
+            <span className="text-xs text-slate-gray">
+              {entry.completed_reservations} · {t("leaderboard.hoursPlayed", { hours: entry.hours_played })}
+            </span>
+          </div>
+          <Star className="ml-auto size-4 text-mist-gray" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function ProfilePage() {
   const { t } = useTranslation()
 
@@ -312,11 +499,19 @@ function ProfilePage() {
       <Tabs defaultValue="overview" className="mt-10">
         <TabsList>
           <TabsTrigger value="overview">{t("profile.tabs.overview")}</TabsTrigger>
+          <TabsTrigger value="achievements">{t("profile.tabs.achievements")}</TabsTrigger>
+          <TabsTrigger value="leaderboard">{t("profile.tabs.leaderboard")}</TabsTrigger>
           <TabsTrigger value="favorites">{t("profile.tabs.favorites")}</TabsTrigger>
           <TabsTrigger value="reviews">{t("profile.tabs.reviews")}</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
           <OverviewTab />
+        </TabsContent>
+        <TabsContent value="achievements">
+          <AchievementsTab />
+        </TabsContent>
+        <TabsContent value="leaderboard">
+          <LeaderboardTab />
         </TabsContent>
         <TabsContent value="favorites">
           <FavoritesTab />

@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from reservations import rules, waitlist_service
+from reservations import achievements, rules, waitlist_service
 from reservations.lifecycle import transition
 from reservations.models import (
     NotificationType,
@@ -83,6 +83,7 @@ def _auto_complete(db) -> None:
     )
     for reservation in db.scalars(checked_in_stmt):
         transition(db, reservation, ReservationStatus.COMPLETED, note="Auto-completed after end time")
+        achievements.evaluate_and_award(db, reservation.user_id)
 
     no_show_stmt = (
         select(Reservation).where(Reservation.status == ReservationStatus.CONFIRMED).where(Reservation.end_time < now)

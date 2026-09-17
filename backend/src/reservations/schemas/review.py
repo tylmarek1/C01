@@ -22,3 +22,7 @@ class ReviewOut(BaseModel):
     comment: str | None
     created_at: datetime
     user: UserOut
+    # Populated only by the list endpoints (one aggregate query per page) —
+    # left at defaults wherever a review is nested inside another response.
+    helpful_count: int = 0
+    voted_helpful_by_me: bool = False

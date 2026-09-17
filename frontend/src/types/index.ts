@@ -2,6 +2,7 @@ export type UserRole = "PLAYER" | "VENUE_MANAGER"
 export type SportType = "TENNIS" | "VOLLEYBALL" | "BADMINTON"
 export type ReservationStatus = "PENDING" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "NO_SHOW"
 export type WaitlistStatus = "WAITING" | "OFFERED" | "ACCEPTED" | "EXPIRED" | "CANCELLED"
+export type JoinRequestStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED"
 export type Amenity =
   | "LIGHTING"
   | "PARKING"
@@ -21,6 +22,10 @@ export type NotificationType =
   | "FACILITY_UNAVAILABLE"
   | "WAITLIST_JOINED"
   | "WAITLIST_SLOT_OFFERED"
+  | "ACHIEVEMENT_UNLOCKED"
+  | "JOIN_REQUEST_RECEIVED"
+  | "JOIN_REQUEST_ACCEPTED"
+  | "JOIN_REQUEST_DECLINED"
 export type ReservationEventType =
   | "CREATED"
   | "CONFIRMED"
@@ -54,6 +59,7 @@ export interface Court {
   description: string | null
   image_url: string | null
   amenities: Amenity[]
+  price_per_hour: number | null
   average_rating: number | null
   review_count: number
 }
@@ -66,6 +72,8 @@ export interface Reservation {
   status: ReservationStatus
   hold_expires_at: string | null
   series_id: string | null
+  open_to_join: boolean
+  open_note: string | null
   created_at: string
 }
 
@@ -138,6 +146,8 @@ export interface Review {
   comment: string | null
   created_at: string
   user: User
+  helpful_count: number
+  voted_helpful_by_me: boolean
 }
 
 export interface ReservationGuest {
@@ -171,4 +181,84 @@ export interface AuthResponse {
   access_token: string
   token_type: string
   user: User
+}
+
+export interface Achievement {
+  key: string
+  title: string
+  description: string
+  icon: string
+  earned_at: string | null
+  unlocked: boolean
+}
+
+export interface PlayerStats {
+  completed_reservations: number
+  hours_played: number
+  distinct_courts_played: number
+  sports_played: number
+  current_streak_weeks: number
+  achievements_unlocked: number
+  achievements_total: number
+}
+
+export interface LeaderboardEntry {
+  user: User
+  completed_reservations: number
+  hours_played: number
+  rank: number
+}
+
+export interface JoinRequest {
+  id: string
+  user: User
+  status: JoinRequestStatus
+  note: string | null
+  created_at: string
+}
+
+export interface JoinRequestWithReservation extends JoinRequest {
+  reservation_id: string
+}
+
+export interface OpenGame extends Reservation {
+  user: User
+  spots_left: number
+}
+
+export interface Teammate {
+  user: User
+  games_together: number
+}
+
+export interface ReservationSplitParticipant {
+  user: User
+  share: number
+}
+
+export interface ReservationSplit {
+  total_cost: number | null
+  currency_note: string
+  duration_hours: number
+  participant_count: number
+  per_person: number | null
+  participants: ReservationSplitParticipant[]
+}
+
+export interface CalendarToken {
+  calendar_token: string
+}
+
+export interface CourtUtilizationCell {
+  day_of_week: number
+  hour: number
+  booked_count: number
+  possible_count: number
+  occupancy: number
+}
+
+export interface CourtUtilization {
+  court_id: string
+  days_analyzed: number
+  cells: CourtUtilizationCell[]
 }

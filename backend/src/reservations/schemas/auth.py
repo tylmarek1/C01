@@ -34,3 +34,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class CalendarTokenOut(BaseModel):
+    calendar_token: str

@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import Enum, String
+from sqlalchemy import Enum, Numeric, String
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -38,3 +38,6 @@ class Court(Base):
     # illustration for the court's sport_type instead.
     image_url: Mapped[str | None] = mapped_column(String(500), default=None)
     amenities: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list)
+    # Informational only — there's no payment integration, this just powers
+    # the guest cost-split calculator. Null means "price not published".
+    price_per_hour: Mapped[float | None] = mapped_column(Numeric(8, 2), default=None)

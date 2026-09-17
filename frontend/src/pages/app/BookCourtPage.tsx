@@ -57,6 +57,12 @@ function BookCourtPage() {
   const { t } = useTranslation()
 
   const { data: courts, isLoading } = useQuery({ queryKey: ["courts"], queryFn: () => api.listCourts() })
+  const { data: trendingCourts } = useQuery({ queryKey: ["courts-trending"], queryFn: () => api.listTrendingCourts(7, 4) })
+  const { data: recommendedCourts } = useQuery({
+    queryKey: ["courts-recommended"],
+    queryFn: () => api.listRecommendedCourts(token!),
+    enabled: Boolean(token),
+  })
 
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null)
   const [date, setDate] = useState(todayDateString())
@@ -140,6 +146,48 @@ function BookCourtPage() {
       <div className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="flex flex-col gap-3">
           <span className="text-sm font-semibold text-ink-navy">{t("book.step1")}</span>
+
+          {((trendingCourts && trendingCourts.length > 0) || (recommendedCourts && recommendedCourts.length > 0)) && (
+            <div className="flex flex-col gap-2 pb-2">
+              {recommendedCourts && recommendedCourts.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-medium text-slate-gray">{t("book.suggestions.recommended")}:</span>
+                  {recommendedCourts.map((court) => (
+                    <button
+                      key={court.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCourt(court)
+                        setStartTime(undefined)
+                      }}
+                      className="rounded-full border border-signal-blue/40 bg-[#eaf3ff] px-2.5 py-1 text-xs font-medium text-signal-blue transition-colors hover:bg-signal-blue hover:text-paper"
+                    >
+                      {court.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {trendingCourts && trendingCourts.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-medium text-slate-gray">{t("book.suggestions.trending")}:</span>
+                  {trendingCourts.map((court) => (
+                    <button
+                      key={court.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCourt(court)
+                        setStartTime(undefined)
+                      }}
+                      className="rounded-full border border-hairline bg-pebble px-2.5 py-1 text-xs font-medium text-ink-navy transition-colors hover:bg-hairline"
+                    >
+                      {court.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {isLoading && Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-20 w-full" />)}
           {courts?.map((court) => (
             <CourtCard

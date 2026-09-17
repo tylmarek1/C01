@@ -9,6 +9,7 @@ Run with: uv run python -m reservations.seed
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from reservations.achievements import evaluate_and_award
 from reservations.db import create_schema, make_engine, make_session_factory
 from reservations.models import (
     Court,
@@ -37,6 +38,7 @@ DEMO_COURTS = [
         indoor=False,
         description="Outdoor clay court with floodlights for evening play.",
         amenities=["LIGHTING", "PARKING"],
+        price_per_hour=350,
     ),
     Court(
         name="Tennis Court 2",
@@ -44,6 +46,7 @@ DEMO_COURTS = [
         indoor=True,
         description="Climate-controlled indoor hard court, open year-round.",
         amenities=["LOCKERS", "SHOWERS", "EQUIPMENT_RENTAL"],
+        price_per_hour=480,
     ),
     Court(
         name="Volleyball Court",
@@ -51,6 +54,7 @@ DEMO_COURTS = [
         indoor=False,
         description="Full-size outdoor sand court, popular for evening leagues.",
         amenities=["LIGHTING", "SEATING"],
+        price_per_hour=300,
     ),
     Court(
         name="Volleyball Arena",
@@ -58,6 +62,7 @@ DEMO_COURTS = [
         indoor=True,
         description="Indoor sprung-floor arena with spectator seating.",
         amenities=["SEATING", "SHOWERS", "WHEELCHAIR_ACCESSIBLE", "CAFE"],
+        price_per_hour=550,
     ),
     Court(
         name="Badminton Court 1",
@@ -65,6 +70,7 @@ DEMO_COURTS = [
         indoor=True,
         description="Tournament-grade indoor court with a matte, glare-free floor.",
         amenities=["EQUIPMENT_RENTAL", "LOCKERS"],
+        price_per_hour=250,
     ),
     Court(
         name="Badminton Court 2",
@@ -72,6 +78,7 @@ DEMO_COURTS = [
         indoor=True,
         description="Second indoor badminton court, right next to Court 1.",
         amenities=["EQUIPMENT_RENTAL"],
+        price_per_hour=250,
     ),
 ]
 
@@ -181,24 +188,61 @@ def main() -> None:
                         confirmed_reservation = reservation
                 created_reservations += 1
 
-            # A finished visit in the past, so there's something to review.
-            past_start = datetime.now(VENUE_TZ).replace(hour=9, minute=0, second=0, microsecond=0) - timedelta(days=5)
-            past_reservation = Reservation(
-                court_id=courts_by_name["Tennis Court 2"].id,
-                user_id=player.id,
-                start_time=past_start,
-                end_time=past_start + timedelta(hours=1),
-                status=ReservationStatus.COMPLETED,
-            )
-            session.add(past_reservation)
-            session.flush()
-            session.add(
-                ReservationEvent(reservation_id=past_reservation.id, event_type=ReservationEventType.CREATED, actor_id=player.id)
-            )
-            session.add(
-                ReservationEvent(reservation_id=past_reservation.id, event_type=ReservationEventType.COMPLETED)
-            )
-            created_reservations += 1
+            if confirmed_reservation is not None:
+                confirmed_reservation.open_to_join = True
+                confirmed_reservation.open_note = "Need one more for doubles — all levels welcome!"
+
+            # A handful of finished visits in the past — something to review,
+            # and enough history for player stats/achievements/leaderboard to
+            # show real numbers instead of empty states.
+            past_visits = [
+                (courts_by_name["Tennis Court 2"], 5, 9),
+                (courts_by_name["Volleyball Court"], 10, 18),
+                (courts_by_name["Badminton Court 2"], 15, 20),
+            ]
+            past_reservation = None
+            for court, days_ago, hour in past_visits:
+                past_start = datetime.now(VENUE_TZ).replace(hour=hour, minute=0, second=0, microsecond=0) - timedelta(
+                    days=days_ago
+                )
+                visit = Reservation(
+                    court_id=court.id,
+                    user_id=player.id,
+                    start_time=past_start,
+                    end_time=past_start + timedelta(hours=1),
+                    status=ReservationStatus.COMPLETED,
+                )
+                session.add(visit)
+                session.flush()
+                session.add(
+                    ReservationEvent(reservation_id=visit.id, event_type=ReservationEventType.CREATED, actor_id=player.id)
+                )
+                session.add(ReservationEvent(reservation_id=visit.id, event_type=ReservationEventType.COMPLETED))
+                created_reservations += 1
+                if past_reservation is None:
+                    past_reservation = visit
+
+            # A couple of completed visits for the teammate too, so the
+            # leaderboard has more than one row to rank.
+            for court, days_ago, hour in [(courts_by_name["Tennis Court 1"], 3, 17), (courts_by_name["Volleyball Arena"], 8, 19)]:
+                mate_start = datetime.now(VENUE_TZ).replace(hour=hour, minute=0, second=0, microsecond=0) - timedelta(
+                    days=days_ago
+                )
+                mate_visit = Reservation(
+                    court_id=court.id,
+                    user_id=teammate.id,
+                    start_time=mate_start,
+                    end_time=mate_start + timedelta(hours=1),
+                    status=ReservationStatus.COMPLETED,
+                )
+                session.add(mate_visit)
+                session.flush()
+                session.add(
+                    ReservationEvent(reservation_id=mate_visit.id, event_type=ReservationEventType.CREATED, actor_id=teammate.id)
+                )
+                session.add(ReservationEvent(reservation_id=mate_visit.id, event_type=ReservationEventType.COMPLETED))
+                created_reservations += 1
+
             session.commit()
 
             session.add(
@@ -259,6 +303,10 @@ def main() -> None:
             )
             created_blocks = 1
             session.commit()
+
+        evaluate_and_award(session, player.id)
+        evaluate_and_award(session, teammate.id)
+        session.commit()
 
     print(
         f"Seeded {created_courts} new court(s), {created_users} new demo account(s), "

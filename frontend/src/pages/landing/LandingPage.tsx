@@ -20,6 +20,11 @@ function LandingPage() {
   const { user } = useAuth()
   const { t } = useTranslation()
   const { data: courts, isLoading } = useQuery({ queryKey: ["courts"], queryFn: () => api.listCourts() })
+  const { data: trendingCourts, isLoading: isLoadingTrending } = useQuery({
+    queryKey: ["courts-trending"],
+    queryFn: () => api.listTrendingCourts(7, 3),
+  })
+  const heroCourts = trendingCourts && trendingCourts.length > 0 ? trendingCourts : (courts ?? []).slice(0, 3)
 
   const steps: { icon: typeof Clock3; titleKey: TranslationKey; descriptionKey: TranslationKey }[] = [
     { icon: Clock3, titleKey: "howItWorks.step1.title", descriptionKey: "howItWorks.step1.description" },
@@ -40,7 +45,7 @@ function LandingPage() {
             <p className="max-w-md text-lg text-slate-gray">{t("hero.description")}</p>
             <div className="flex flex-wrap items-center gap-3">
               <Button size="lg" asChild>
-                <Link to={user ? "/app/book" : "/register"}>{t("hero.cta.signup")}</Link>
+                <Link to={user ? "/app/book" : "/register"}>{user ? t("hero.cta.authed") : t("hero.cta.signup")}</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <Link to="/courts">{t("hero.cta.browse")}</Link>
@@ -57,9 +62,9 @@ function LandingPage() {
                 <Badge>{t("hero.card.live")}</Badge>
               </div>
               <div className="flex flex-col gap-3">
-                {isLoading &&
+                {(isLoading || isLoadingTrending) &&
                   Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}
-                {courts?.slice(0, 3).map((court) => (
+                {heroCourts.map((court) => (
                   <Link
                     key={court.id}
                     to={`/courts/${court.id}`}
@@ -70,9 +75,11 @@ function LandingPage() {
                     </span>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-ink-navy">{court.name}</span>
-                      <span className="text-xs text-slate-gray">{court.indoor ? "Indoor" : "Outdoor"}</span>
+                      <span className="text-xs text-slate-gray">{court.indoor ? t("courts.indoor") : t("courts.outdoor")}</span>
                     </div>
-                    <span className="ml-auto text-xs font-medium text-signal-blue">{t("hero.card.hours")}</span>
+                    <span className="ml-auto text-xs font-medium text-signal-blue">
+                      {court.review_count > 0 ? `★ ${court.average_rating?.toFixed(1)}` : t("courts.viewCourt")}
+                    </span>
                   </Link>
                 ))}
               </div>
@@ -126,9 +133,9 @@ function LandingPage() {
         />
         <div className="mx-auto flex max-w-sm flex-col items-center gap-4 rounded-3xl border border-hairline bg-card p-10 shadow-card">
           <span className="text-5xl font-bold text-ink-navy">$0</span>
-          <p className="text-slate-gray">Unlimited bookings, all sports, no card required.</p>
+          <p className="text-slate-gray">{t("pricing.unlimited")}</p>
           <Button size="lg" className="mt-2 w-full" asChild>
-            <Link to={user ? "/app/book" : "/register"}>{t("pricing.cta")}</Link>
+            <Link to={user ? "/app/book" : "/register"}>{user ? t("pricing.cta.authed") : t("pricing.cta")}</Link>
           </Button>
         </div>
       </section>
@@ -139,7 +146,7 @@ function LandingPage() {
           <h2 className="text-3xl font-bold text-paper sm:text-4xl">{t("cta.title")}</h2>
           <p className="max-w-md text-mist-gray">{t("cta.description")}</p>
           <Button size="lg" asChild>
-            <Link to={user ? "/app/book" : "/register"}>{t("cta.button")}</Link>
+            <Link to={user ? "/app/book" : "/register"}>{user ? t("cta.button.authed") : t("cta.button")}</Link>
           </Button>
         </div>
       </section>

@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom"
 
 import { AppLayout } from "@/components/shared/app-layout"
-import { ProtectedRoute } from "@/components/shared/protected-route"
+import { ProtectedRoute, RedirectIfAuthed } from "@/components/shared/protected-route"
 import { AboutPage } from "@/pages/AboutPage"
 import { AdminPage } from "@/pages/app/AdminPage"
 import { BookCourtPage } from "@/pages/app/BookCourtPage"
@@ -20,8 +20,22 @@ function App() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<LandingPage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
+        <Route
+          path="login"
+          element={
+            <RedirectIfAuthed>
+              <LoginPage />
+            </RedirectIfAuthed>
+          }
+        />
+        <Route
+          path="register"
+          element={
+            <RedirectIfAuthed>
+              <RegisterPage />
+            </RedirectIfAuthed>
+          }
+        />
         <Route path="about" element={<AboutPage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="courts" element={<CourtsPage />} />

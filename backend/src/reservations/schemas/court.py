@@ -16,6 +16,7 @@ class CourtOut(BaseModel):
     description: str | None = None
     image_url: str | None = None
     amenities: list[str] = []
+    price_per_hour: float | None = None
     # Populated only by endpoints that bother computing it (list/detail) —
     # left as None/0 wherever a court is just nested inside another response.
     average_rating: float | None = None
@@ -29,6 +30,7 @@ class CourtCreate(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     image_url: str | None = Field(default=None, max_length=500)
     amenities: list[Amenity] = []
+    price_per_hour: float | None = Field(default=None, ge=0)
 
 
 class CourtUpdate(BaseModel):
@@ -39,3 +41,4 @@ class CourtUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     image_url: str | None = Field(default=None, max_length=500)
     amenities: list[Amenity] | None = None
+    price_per_hour: float | None = Field(default=None, ge=0)

@@ -24,7 +24,7 @@ def session_factory(engine: Engine) -> Iterator[sessionmaker]:
         conn.execute(
             text(
                 "TRUNCATE reservation_events, notifications, waitlist_entries, facility_blocks, "
-                "reviews, favorites, reservation_guests, "
+                "reviews, review_votes, favorites, reservation_guests, join_requests, user_achievements, "
                 "reservations, reservation_series, courts, users CASCADE"
             )
         )

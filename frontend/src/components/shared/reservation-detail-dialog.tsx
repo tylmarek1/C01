@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { X } from "lucide-react"
+import { Check, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/shared/badge"
@@ -54,6 +54,32 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationDetail.error.removeGuest")),
   })
 
+  const { data: joinRequests, isLoading: isLoadingJoinRequests } = useQuery({
+    queryKey: ["reservation-join-requests", reservation?.id],
+    queryFn: () => api.listJoinRequests(token!, reservation!.id),
+    enabled: Boolean(token && reservation && reservation.open_to_join),
+  })
+  const pendingJoinRequests = joinRequests?.filter((request) => request.status === "PENDING") ?? []
+
+  const acceptJoinMutation = useMutation({
+    mutationFn: (requestId: string) => api.acceptJoinRequest(token!, reservation!.id, requestId),
+    onSuccess: () => {
+      toast.success(t("reservationDetail.toast.joinAccepted"))
+      queryClient.invalidateQueries({ queryKey: ["reservation-join-requests", reservation?.id] })
+      queryClient.invalidateQueries({ queryKey: ["reservation-guests", reservation?.id] })
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationDetail.error.joinAccept")),
+  })
+
+  const declineJoinMutation = useMutation({
+    mutationFn: (requestId: string) => api.declineJoinRequest(token!, reservation!.id, requestId),
+    onSuccess: () => {
+      toast.success(t("reservationDetail.toast.joinDeclined"))
+      queryClient.invalidateQueries({ queryKey: ["reservation-join-requests", reservation?.id] })
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationDetail.error.joinDecline")),
+  })
+
   const canManageGuests =
     reservation && (reservation.status === "PENDING" || reservation.status === "CONFIRMED" || reservation.status === "CHECKED_IN")
 
@@ -82,6 +108,14 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                 <Badge variant={STATUS_VARIANT[reservation.status]}>{statusLabels[reservation.status]}</Badge>
               </div>
 
+              {reservation.status === "PENDING" && reservation.hold_expires_at && (
+                <p className="text-xs font-medium text-amber-600">
+                  {t("reservationCard.holdExpires", {
+                    time: new Date(reservation.hold_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  })}
+                </p>
+              )}
+
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-semibold text-ink-navy">{t("reservationDetail.guests.title")}</span>
                 {isLoadingGuests && <Skeleton className="h-10 w-full" />}
@@ -108,6 +142,45 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                   </div>
                 ))}
               </div>
+
+              {reservation.open_to_join && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-ink-navy">{t("reservationDetail.joinRequests.title")}</span>
+                  {reservation.open_note && <p className="text-xs text-slate-gray">{t("reservationDetail.openNote", { note: reservation.open_note })}</p>}
+                  {isLoadingJoinRequests && <Skeleton className="h-10 w-full" />}
+                  {!isLoadingJoinRequests && pendingJoinRequests.length === 0 && (
+                    <p className="text-sm text-slate-gray">{t("reservationDetail.joinRequests.empty")}</p>
+                  )}
+                  {pendingJoinRequests.map((request) => (
+                    <div key={request.id} className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-ink-navy">{request.user.name}</span>
+                        {request.note && <span className="text-xs text-slate-gray">{request.note}</span>}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => acceptJoinMutation.mutate(request.id)}
+                          disabled={acceptJoinMutation.isPending || declineJoinMutation.isPending}
+                          className="flex size-7 items-center justify-center rounded-full text-emerald-700 hover:bg-emerald-50"
+                          aria-label={t("reservationDetail.joinRequests.accept")}
+                        >
+                          <Check className="size-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => declineJoinMutation.mutate(request.id)}
+                          disabled={acceptJoinMutation.isPending || declineJoinMutation.isPending}
+                          className="flex size-7 items-center justify-center rounded-full text-slate-gray hover:bg-pebble hover:text-destructive"
+                          aria-label={t("reservationDetail.joinRequests.decline")}
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-semibold text-ink-navy">{t("reservationDetail.history.title")}</span>

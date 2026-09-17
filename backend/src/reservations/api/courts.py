@@ -1,18 +1,19 @@
 import uuid
 from datetime import date as date_type
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from reservations.deps import get_current_manager, get_db, get_optional_user
+from reservations.deps import get_current_manager, get_current_user, get_db, get_optional_user
 from reservations.images import compress_and_store_court_image
 from reservations.models import (
     ACTIVE_RESERVATION_STATUSES,
     Amenity,
     Court,
     Reservation,
+    ReservationStatus,
     Review,
     SportType,
     User,
@@ -23,6 +24,13 @@ from reservations.schemas.court import CourtCreate, CourtOut, CourtUpdate
 from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
 
 router = APIRouter(prefix="/courts", tags=["courts"])
+
+_REAL_BOOKING_STATUSES = (
+    ReservationStatus.CONFIRMED,
+    ReservationStatus.CHECKED_IN,
+    ReservationStatus.COMPLETED,
+    ReservationStatus.NO_SHOW,
+)
 
 
 def _get_court(db: Session, court_id: uuid.UUID) -> Court:
@@ -75,6 +83,70 @@ def list_courts(
         stmt = stmt.where(Court.amenities.any(amenity.value))
     stmt = stmt.order_by(Court.name)
     return _attach_ratings(db, list(db.scalars(stmt)))
+
+
+@router.get("/trending", response_model=list[CourtOut])
+def list_trending_courts(
+    days: int = Query(default=7, ge=1, le=30),
+    limit: int = Query(default=5, ge=1, le=20),
+    db: Session = Depends(get_db),
+) -> list[Court]:
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    rows = db.execute(
+        select(Reservation.court_id, func.count())
+        .where(Reservation.status.in_(_REAL_BOOKING_STATUSES))
+        .where(Reservation.created_at >= since)
+        .group_by(Reservation.court_id)
+        .order_by(func.count().desc())
+        .limit(limit)
+    ).all()
+    courts = [db.get(Court, court_id) for court_id, _ in rows]
+    return _attach_ratings(db, [c for c in courts if c is not None and c.active])
+
+
+@router.get("/recommended", response_model=list[CourtOut])
+def list_recommended_courts(
+    limit: int = Query(default=5, ge=1, le=20),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[Court]:
+    """Courts of the sport the player books most, that they haven't tried
+    yet — a simple, explainable heuristic rather than anything ML-based.
+    Falls back gracefully (any unplayed court, then just top-rated overall)
+    instead of ever coming back empty once someone's a regular."""
+    played_court_ids = set(
+        db.scalars(
+            select(Reservation.court_id)
+            .where(Reservation.user_id == current_user.id)
+            .where(Reservation.status.in_(_REAL_BOOKING_STATUSES))
+            .distinct()
+        )
+    )
+
+    favorite_sport = db.execute(
+        select(Court.sport_type, func.count())
+        .join(Reservation, Reservation.court_id == Court.id)
+        .where(Reservation.user_id == current_user.id)
+        .where(Reservation.status.in_(_REAL_BOOKING_STATUSES))
+        .group_by(Court.sport_type)
+        .order_by(func.count().desc())
+        .limit(1)
+    ).first()
+
+    def _ranked(stmt) -> list[Court]:
+        courts = _attach_ratings(db, list(db.scalars(stmt)))
+        courts.sort(key=lambda c: (c.average_rating is None, -(c.average_rating or 0)))
+        return courts
+
+    base = select(Court).where(Court.active.is_(True))
+    unplayed = base.where(Court.id.notin_(played_court_ids)) if played_court_ids else base
+
+    candidates = _ranked(unplayed.where(Court.sport_type == favorite_sport[0])) if favorite_sport is not None else []
+    if not candidates:
+        candidates = _ranked(unplayed)
+    if not candidates:
+        candidates = _ranked(base)
+    return candidates[:limit]
 
 
 @router.get("/{court_id}", response_model=CourtOut)

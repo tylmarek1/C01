@@ -1,5 +1,7 @@
-import { CalendarClock, Clock3, Star, UserPlus } from "lucide-react"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { CalendarClock, CalendarPlus, Clock3, Coins, Star, UserPlus, Users } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
@@ -14,15 +16,139 @@ import {
 } from "@/components/shared/dialog"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
+import { Skeleton } from "@/components/shared/skeleton"
 import { SportIcon } from "@/components/shared/sport-icon"
 import { StarRatingInput } from "@/components/shared/star-rating"
+import { Switch } from "@/components/shared/switch"
 import { Textarea } from "@/components/shared/textarea"
-import { formatDateRange } from "@/lib/format"
+import { ApiError, api } from "@/lib/api"
+import { useAuth } from "@/lib/auth-context"
+import { formatCurrency, formatDateRange } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import type { Reservation } from "@/types"
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" })
+
+function SplitCostDialog({ reservation }: { reservation: Reservation }) {
+  const { token } = useAuth()
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["reservation-split", reservation.id],
+    queryFn: () => api.splitReservationCost(token!, reservation.id),
+    enabled: open,
+  })
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <Coins className="size-3.5" /> {t("reservationCard.split.button")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("split.dialog.title")}</DialogTitle>
+          {data && (
+            <DialogDescription>
+              {t("split.dialog.description", { court: reservation.court.name, hours: data.duration_hours })}
+            </DialogDescription>
+          )}
+        </DialogHeader>
+        {isLoading && <Skeleton className="h-32 w-full" />}
+        {data && data.total_cost === null && <p className="text-sm text-slate-gray">{t("split.noPrice")}</p>}
+        {data && data.total_cost !== null && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between rounded-lg border border-hairline p-3">
+              <span className="text-sm font-medium text-ink-navy">{t("split.total")}</span>
+              <span className="text-sm font-semibold text-ink-navy">{formatCurrency(data.total_cost)}</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {data.participants.map((participant) => (
+                <div key={participant.user.id} className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2">
+                  <span className="text-sm text-ink-navy">{participant.user.name}</span>
+                  <span className="text-sm text-slate-gray">
+                    {formatCurrency(participant.share)} <span className="text-xs">{t("split.perPerson")}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function OpenToJoinDialog({
+  reservation,
+  onSave,
+  isSaving,
+}: {
+  reservation: Reservation
+  onSave: (openToJoin: boolean, note: string) => void
+  isSaving: boolean
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const [enabled, setEnabled] = useState(reservation.open_to_join)
+  const [note, setNote] = useState(reservation.open_note ?? "")
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (next) {
+          setEnabled(reservation.open_to_join)
+          setNote(reservation.open_note ?? "")
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="sm" variant={reservation.open_to_join ? "dark" : "outline"}>
+          <Users className="size-3.5" /> {t("reservationCard.openToJoin.button")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("reservationCard.openToJoin.title")}</DialogTitle>
+        </DialogHeader>
+        <div className="flex items-center justify-between rounded-lg border border-hairline p-3">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-ink-navy">{t("reservationCard.openToJoin.label")}</span>
+            <span className="text-xs text-slate-gray">{t("reservationCard.openToJoin.description")}</span>
+          </div>
+          <Switch checked={enabled} onCheckedChange={setEnabled} />
+        </div>
+        {enabled && (
+          <Input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder={t("reservationCard.openToJoin.notePlaceholder")}
+            maxLength={200}
+          />
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            disabled={isSaving}
+            onClick={() => {
+              onSave(enabled, note.trim())
+              setOpen(false)
+            }}
+          >
+            {t("reservationCard.openToJoin.save")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 interface ReservationCardProps {
   reservation: Reservation
@@ -32,6 +158,8 @@ interface ReservationCardProps {
   onReschedule?: (reservation: Reservation, startTime: string, endTime: string) => void
   onOpenDetail?: (reservation: Reservation) => void
   onInviteGuest?: (reservation: Reservation, email: string) => void
+  onSetOpen?: (reservation: Reservation, openToJoin: boolean, note: string) => void
+  isSettingOpen?: boolean
   hasReview?: boolean
   onSubmitReview?: (reservation: Reservation, rating: number, comment: string) => void
   isBusy?: boolean
@@ -45,10 +173,13 @@ function ReservationCard({
   onReschedule,
   onOpenDetail,
   onInviteGuest,
+  onSetOpen,
+  isSettingOpen = false,
   hasReview = false,
   onSubmitReview,
   isBusy = false,
 }: ReservationCardProps) {
+  const { token } = useAuth()
   const { t } = useTranslation()
   const statusLabels = useStatusLabels()
   const { court, status } = reservation
@@ -64,11 +195,19 @@ function ReservationCard({
   const [date, setDate] = useState(() => start.toISOString().slice(0, 10))
   const [time, setTime] = useState(() => start.toTimeString().slice(0, 5))
 
+  const icsMutation = useMutation({
+    mutationFn: () => api.downloadReservationIcs(token!, reservation.id, `${court.name}.ics`),
+    onSuccess: () => toast.success(t("reservationCard.toast.icsDownloaded")),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationCard.error.icsDownload")),
+  })
+
   const canReschedule = (status === "PENDING" || status === "CONFIRMED") && Boolean(onReschedule)
   const canCancel = (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onCancel)
   const canInviteGuest =
     (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onInviteGuest)
   const canReview = status === "COMPLETED" && !hasReview && Boolean(onSubmitReview)
+  const canOpenToJoin = status === "CONFIRMED" && Boolean(onSetOpen)
+  const canSplit = status !== "CANCELLED" && status !== "EXPIRED"
 
   function submitReschedule() {
     const newStart = new Date(`${date}T${time}:00`)
@@ -130,6 +269,22 @@ function ReservationCard({
           <Button size="sm" variant="dark" disabled={isBusy} onClick={() => onCheckIn(reservation)}>
             {t("reservationCard.checkIn")}
           </Button>
+        )}
+
+        {(status === "CONFIRMED" || status === "CHECKED_IN" || status === "COMPLETED") && (
+          <Button size="sm" variant="outline" disabled={icsMutation.isPending} onClick={() => icsMutation.mutate()}>
+            <CalendarPlus className="size-3.5" /> {t("reservationCard.calendar.button")}
+          </Button>
+        )}
+
+        {canSplit && <SplitCostDialog reservation={reservation} />}
+
+        {canOpenToJoin && (
+          <OpenToJoinDialog
+            reservation={reservation}
+            isSaving={isSettingOpen}
+            onSave={(openToJoin, note) => onSetOpen?.(reservation, openToJoin, note)}
+          />
         )}
 
         {canInviteGuest && (

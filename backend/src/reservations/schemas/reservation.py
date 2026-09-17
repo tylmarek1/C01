@@ -60,6 +60,11 @@ class ReservationCreate(BaseModel):
         return end_time
 
 
+class ReservationOpenUpdate(BaseModel):
+    open_to_join: bool
+    open_note: str | None = Field(default=None, max_length=200)
+
+
 class ReservationReschedule(BaseModel):
     start_time: datetime
     end_time: datetime
@@ -114,6 +119,8 @@ class ReservationOut(BaseModel):
     status: ReservationStatus
     hold_expires_at: datetime | None
     series_id: uuid.UUID | None
+    open_to_join: bool
+    open_note: str | None
     created_at: datetime
 
 
@@ -121,6 +128,28 @@ class ReservationAdminOut(ReservationOut):
     """Same as ReservationOut, plus who booked it — for venue-manager views only."""
 
     user: UserOut
+
+
+class OpenGameOut(ReservationOut):
+    """A reservation browsed via GET /reservations/open — includes the
+    booker (so you know who you'd be playing with) and remaining capacity."""
+
+    user: UserOut
+    spots_left: int
+
+
+class ReservationSplitParticipant(BaseModel):
+    user: UserOut
+    share: float
+
+
+class ReservationSplit(BaseModel):
+    total_cost: float | None
+    currency_note: str = "Informational only — no payment is processed."
+    duration_hours: float
+    participant_count: int
+    per_person: float | None
+    participants: list[ReservationSplitParticipant]
 
 
 class ReservationEventOut(BaseModel):

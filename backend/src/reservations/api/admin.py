@@ -1,7 +1,11 @@
+import csv
+import io
 import uuid
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -9,6 +13,8 @@ from reservations.deps import get_current_manager, get_db
 from reservations.models import ACTIVE_RESERVATION_STATUSES, Court, Reservation, ReservationStatus, User, UserRole
 from reservations.schemas.admin import AdminStats, CourtPopularity, HourlyDemand, UserAdminOut, UserRoleUpdate
 from reservations.schemas.court import CourtOut
+from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
+from reservations.schemas.stats import CourtUtilization, CourtUtilizationCell
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -154,3 +160,85 @@ def update_user_role(
         active_reservation_count=active_count,
         no_show_count=no_show_count,
     )
+
+
+@router.get("/reservations/export.csv")
+def export_reservations_csv(
+    db: Session = Depends(get_db), _manager: User = Depends(get_current_manager)
+) -> StreamingResponse:
+    stmt = select(Reservation).order_by(Reservation.start_time.desc())
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["id", "court", "sport", "booked_by", "email", "start_time", "end_time", "status", "created_at"])
+    for r in db.scalars(stmt):
+        writer.writerow(
+            [
+                r.id,
+                r.court.name,
+                r.court.sport_type.value,
+                r.user.name,
+                r.user.email,
+                r.start_time.isoformat(),
+                r.end_time.isoformat(),
+                r.status.value,
+                r.created_at.isoformat(),
+            ]
+        )
+    buffer.seek(0)
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=reservations.csv"},
+    )
+
+
+@router.get("/courts/{court_id}/utilization", response_model=CourtUtilization)
+def get_court_utilization(
+    court_id: uuid.UUID,
+    days: int = Query(default=30, ge=1, le=180),
+    db: Session = Depends(get_db),
+    _manager: User = Depends(get_current_manager),
+) -> CourtUtilization:
+    """How full each weekday/hour slot has been over the trailing window —
+    feeds an admin heatmap so managers can spot dead hours and busy hours."""
+    court = db.get(Court, court_id)
+    if court is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
+
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=days)
+
+    possible_count: Counter[tuple[int, int]] = Counter()
+    day = since
+    while day < now:
+        weekday = day.astimezone(VENUE_TZ).weekday()
+        for hour in range(OPENING_HOUR, CLOSING_HOUR):
+            possible_count[(weekday, hour)] += 1
+        day += timedelta(days=1)
+
+    stmt = (
+        select(Reservation)
+        .where(Reservation.court_id == court_id)
+        .where(Reservation.status.in_((*ACTIVE_RESERVATION_STATUSES, ReservationStatus.COMPLETED)))
+        .where(Reservation.start_time >= since)
+        .where(Reservation.start_time < now)
+    )
+    booked_count: Counter[tuple[int, int]] = Counter()
+    for reservation in db.scalars(stmt):
+        local_start = reservation.start_time.astimezone(VENUE_TZ)
+        span_hours = int((reservation.end_time - reservation.start_time).total_seconds() // 3600)
+        for offset in range(max(span_hours, 1)):
+            slot = local_start + timedelta(hours=offset)
+            booked_count[(slot.weekday(), slot.hour)] += 1
+
+    cells = [
+        CourtUtilizationCell(
+            day_of_week=weekday,
+            hour=hour,
+            booked_count=booked_count.get((weekday, hour), 0),
+            possible_count=possible_count.get((weekday, hour), 0),
+        )
+        for weekday in range(7)
+        for hour in range(OPENING_HOUR, CLOSING_HOUR)
+    ]
+    return CourtUtilization(court_id=court.id, days_analyzed=days, cells=cells)

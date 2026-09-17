@@ -41,6 +41,10 @@ const NOTIFICATION_DESTINATION: Record<NotificationType, string> = {
   FACILITY_UNAVAILABLE: "/app",
   WAITLIST_JOINED: "/app",
   WAITLIST_SLOT_OFFERED: "/app",
+  ACHIEVEMENT_UNLOCKED: "/app/profile",
+  JOIN_REQUEST_RECEIVED: "/app",
+  JOIN_REQUEST_ACCEPTED: "/app",
+  JOIN_REQUEST_DECLINED: "/app",
 }
 
 function NotificationRow({

@@ -24,4 +24,15 @@ function ProtectedRoute({ children, requireRole }: { children: ReactNode; requir
   return children
 }
 
-export { ProtectedRoute }
+/** The inverse of ProtectedRoute — for /login and /register, which a
+ * signed-in user shouldn't be able to land back on and resubmit. */
+function RedirectIfAuthed({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) return null
+  if (user) return <Navigate to="/app" replace />
+
+  return children
+}
+
+export { ProtectedRoute, RedirectIfAuthed }

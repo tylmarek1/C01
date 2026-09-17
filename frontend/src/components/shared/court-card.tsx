@@ -5,9 +5,17 @@ import { Badge } from "@/components/shared/badge"
 import { CourtArt } from "@/components/shared/court-art"
 import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"
+import { useAmenityLabels } from "@/lib/amenities"
+import { formatCurrency } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import type { Court } from "@/types"
+
+function PriceTag({ court }: { court: Court }) {
+  const { t } = useTranslation()
+  if (court.price_per_hour === null) return null
+  return <span className="text-xs font-medium text-signal-blue">{t("courts.pricePerHour", { price: formatCurrency(court.price_per_hour) })}</span>
+}
 
 interface CourtCardProps {
   court: Court
@@ -32,6 +40,7 @@ function CourtCard({
 }: CourtCardProps) {
   const { t } = useTranslation()
   const sportLabels = useSportLabels()
+  const amenityLabels = useAmenityLabels()
   const indoorOutdoor = court.indoor ? t("courts.indoor") : t("courts.outdoor")
 
   if (href && !compact) {
@@ -70,10 +79,27 @@ function CourtCard({
             </div>
           )}
           {court.description && <p className="line-clamp-2 text-sm text-slate-gray">{court.description}</p>}
-          <span className="mt-auto flex items-center gap-1 pt-2 text-sm font-semibold text-signal-blue">
-            {t("courts.viewCourt")}
-            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-          </span>
+          {court.amenities.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {court.amenities.slice(0, 3).map((amenity) => (
+                <Badge key={amenity} variant="secondary" className="text-[10px]">
+                  {amenityLabels[amenity]}
+                </Badge>
+              ))}
+              {court.amenities.length > 3 && (
+                <Badge variant="secondary" className="text-[10px]">
+                  +{court.amenities.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
+          <div className="mt-auto flex items-center justify-between pt-2">
+            <span className="flex items-center gap-1 text-sm font-semibold text-signal-blue">
+              {t("courts.viewCourt")}
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </span>
+            <PriceTag court={court} />
+          </div>
         </div>
       </Link>
     )
@@ -94,8 +120,17 @@ function CourtCard({
             {sportLabels[court.sport_type]}
             <Badge variant="secondary">{indoorOutdoor}</Badge>
           </span>
+          {court.review_count > 0 && (
+            <span className="flex items-center gap-1.5">
+              <StarRating value={court.average_rating ?? 0} />
+              <span className="text-xs text-slate-gray">({court.review_count})</span>
+            </span>
+          )}
         </span>
-        <ArrowRight className="ml-auto size-4 shrink-0 text-slate-gray transition-transform group-hover:translate-x-0.5" />
+        <span className="ml-auto flex flex-col items-end gap-1">
+          <PriceTag court={court} />
+          <ArrowRight className="size-4 shrink-0 text-slate-gray transition-transform group-hover:translate-x-0.5" />
+        </span>
       </Link>
     )
   }
@@ -128,6 +163,15 @@ function CourtCard({
           {sportLabels[court.sport_type]}
           <Badge variant="secondary">{indoorOutdoor}</Badge>
         </span>
+        {court.review_count > 0 && (
+          <span className="flex items-center gap-1.5">
+            <StarRating value={court.average_rating ?? 0} />
+            <span className="text-xs text-slate-gray">({court.review_count})</span>
+          </span>
+        )}
+      </span>
+      <span className="ml-auto shrink-0">
+        <PriceTag court={court} />
       </span>
     </button>
   )
