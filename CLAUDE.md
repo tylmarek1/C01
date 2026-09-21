@@ -187,21 +187,26 @@ Optimize for **engineering quality *and* low unnecessary token/session
 spend** — not for maximum possible analysis. `self-review` (you, reading
 the diff once) is the default and is usually the *entire* review; most
 changes need nothing beyond it plus `finish-task`'s checks. Don't reach
-for the built-in `/code-review` skill reflexively, and when you do use it,
-**always pass an explicit level** (`/code-review low`, `medium`, …) —
-invoking it bare silently reuses whichever level was last used in the
-session, and `high`/`ultra` fan out into several parallel subagents, which
-is real budget for a change that doesn't need it (this has actually
-happened: a docs-only PR here once triggered a full multi-agent
-`/code-review` at an inherited `ultra` level and burned a meaningful
-fraction of a weekly budget for a change `self-review` alone was enough
-for).
+for the built-in `/code-review` skill reflexively. When you do use it for
+a normal feature/bugfix/change, the default is **low effort**, **0
+subagents**, and **strictly scoped to the current diff and its directly
+affected code paths** — never a repository-wide audit, and never invoked
+bare (bare `/code-review` silently reuses whichever level was last used in
+the session, which is how this went wrong once: a docs-only PR here
+triggered a full multi-agent `/code-review` at an inherited `ultra` level
+and burned a meaningful fraction of a weekly budget for a change
+`self-review` alone was enough for). Escalate effort, or use up to 1–2
+subagents, only when the change's actual risk justifies it — the table
+below — and even then keep the review focused on the change and its
+direct impact, not a broader sweep, unless a full audit was explicitly
+requested. Review is proportional to **risk**, not to project size or how
+many review-flavored skills happen to exist.
 
 | Risk | Example here | Review |
 |---|---|---|
-| **Low** | UI copy, styling, a small component, docs, a small refactor | `self-review` only, then stop |
-| **Medium** | a typical feature, an API change, a multi-component change, ordinary business logic | `self-review` + `finish-task`'s checks; `/code-review low`/`medium` only if nothing else can review it |
-| **High** | reservation concurrency / the exclusion constraint, auth/authorization, a `lifecycle.py` transition, a database schema change, a large cross-layer change | `self-review` plus a targeted read of the specific risk area (the relevant "Known pitfalls" entry, `security-review`/`database-evolution` as applicable); `/code-review high` is reasonable |
+| **Low** | UI copy, styling, a small component, docs, a small refactor | `self-review` only, then stop — 0 subagents |
+| **Medium** | a typical feature, an API change, a multi-component change, ordinary business logic | `self-review` + `finish-task`'s checks; if an independent pass is genuinely useful, `/code-review low`, explicitly scoped to the diff — not a repo-wide audit. 0 subagents by default |
+| **High** | reservation concurrency / the exclusion constraint, auth/authorization, a `lifecycle.py` transition, a database schema/migration change, a large cross-layer change | `self-review` plus a targeted read of the specific risk area (the relevant "Known pitfalls" entry, `security-review`/`database-evolution` as applicable); `/code-review` may escalate effort and/or use up to 1–2 subagents here, but stays scoped to the change and its direct impact |
 | **Explicit / architectural full audit** | only when actually asked for one, or a change genuinely too broad to scope narrower | the full multi-angle `/code-review ultra`, or `improve-app`'s full audit mode |
 
 Prefer a **targeted test over another review pass** wherever the risk is
@@ -215,8 +220,12 @@ Don't run every skill for every change — `feature-development`'s Step 0
 scopes which skills actually apply; a low-risk change doesn't need
 `security-review`, `performance-review`, `architecture-review` and
 `production-readiness` all run "just in case." Each already states when
-it applies (that's the trigger, not "always run me"); trust it. And don't
-loop: `change → verify → review → fix if needed → verify → stop` — once
+it applies (that's the trigger, not "always run me"); trust it. This
+applies to `/code-review` too, at any effort level: it reviews the change
+in front of it, it does not go looking for a reason to pull in a broader
+security/performance/production-readiness pass — only follow one of those
+if something the diff itself actually touches genuinely calls for it. And
+don't loop: `change → verify → review → fix if needed → verify → stop` — once
 the change does what was asked, the relevant checks pass, and one review
 pass found nothing left unfixed in scope, that's done; don't chain another
 audit looking for more to find.
