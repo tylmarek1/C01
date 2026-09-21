@@ -5,15 +5,19 @@ description: Decide whether new Courtly (C01) functionality fits an existing mod
 
 # Does this fit the current architecture?
 
-Courtly's backend is a flat, feature-module layout under
-`backend/src/reservations/` (one file per concern: `lifecycle.py`,
-`rules.py`, `achievements.py`, `waitlist_service.py`, `calendar_export.py`,
-...) with routers in `api/` staying thin. The frontend is
-`pages/<area>/` + a shared `components/shared/` reuse layer. There is no
-plugin system, no dependency-injection framework, no microservice boundary —
-"architecture" here means: does this belong in an existing file, a new file
-next to similar ones, or does it change a cross-cutting concern
-(`lifecycle.py`, auth, the exclusion constraint)?
+Courtly's backend is a flat, feature-module layout (one file per concern);
+the frontend is `pages/<area>/` + a shared `components/shared/` reuse
+layer — see `docs/codebase-map.md` for the full map, not repeated here.
+There is no plugin system, no
+dependency-injection framework, no microservice boundary — "architecture"
+here means: does this belong in an existing file, a new file next to
+similar ones, or does it change a cross-cutting concern (`lifecycle.py`,
+auth, the exclusion constraint)?
+
+If the answer to question 4 below is "yes, this genuinely needs a new
+file/module," that's exactly the kind of change `docs/codebase-map.md`
+should reflect — a one-line addition to the relevant table, not a new
+document.
 
 ## Questions to answer before adding a new module/file
 

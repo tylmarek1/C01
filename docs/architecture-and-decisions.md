@@ -2,6 +2,12 @@
 
 ## Overview
 
+This section is a snapshot from when ADR-000 was written, kept as-is
+alongside the decisions below rather than rewritten to match later
+changes (§0's append-only rule for this file). For the current module map
+— everything added since, including the C02 approval flow, the admin
+panel and the rest of `api/` — see `docs/codebase-map.md` instead.
+
 ```
 React SPA (frontend/) ──fetch, JWT bearer──► FastAPI (backend/src/reservations/main.py)
                                                 │  routers: auth, courts, reservations

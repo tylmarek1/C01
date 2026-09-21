@@ -47,6 +47,12 @@ model/schema/type — the grep-based impact sweep is exactly for this, since
 nothing in this stack (no Alembic, no generated types) will catch a missed
 call site for you.
 
+## If the refactor moves, renames, or splits a module
+
+Check whether `docs/codebase-map.md` now describes the old shape — fix
+the specific line if so (its own "Keeping this current" section has the
+bar: a real move/rename/split, not a like-for-like edit inside a file).
+
 ## After a structural refactor of a module with many consumers
 
 `lifecycle.py`, `rules.py`, and anything `api/reservations.py` depends on
