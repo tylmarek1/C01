@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { CalendarCheck2, Clock3, ShieldCheck } from "lucide-react"
+import { Bell, CalendarCheck2, CalendarSync, Clock3, Coins, ShieldCheck, Trophy, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/shared/badge"
@@ -30,6 +30,22 @@ function LandingPage() {
     { icon: Clock3, titleKey: "howItWorks.step1.title", descriptionKey: "howItWorks.step1.description" },
     { icon: ShieldCheck, titleKey: "howItWorks.step2.title", descriptionKey: "howItWorks.step2.description" },
     { icon: CalendarCheck2, titleKey: "howItWorks.step3.title", descriptionKey: "howItWorks.step3.description" },
+  ]
+
+  const differentiators: { icon: typeof Users; titleKey: TranslationKey; descriptionKey: TranslationKey }[] = [
+    { icon: Users, titleKey: "landing.why.openGames.title", descriptionKey: "landing.why.openGames.description" },
+    { icon: Bell, titleKey: "landing.why.waitlist.title", descriptionKey: "landing.why.waitlist.description" },
+    { icon: Coins, titleKey: "landing.why.split.title", descriptionKey: "landing.why.split.description" },
+    { icon: CalendarSync, titleKey: "landing.why.calendarSync.title", descriptionKey: "landing.why.calendarSync.description" },
+    { icon: Clock3, titleKey: "landing.why.recurring.title", descriptionKey: "landing.why.recurring.description" },
+    { icon: Trophy, titleKey: "landing.why.achievements.title", descriptionKey: "landing.why.achievements.description" },
+  ]
+
+  const faqTeaser: { questionKey: TranslationKey; answerKey: TranslationKey }[] = [
+    { questionKey: "landing.faq.hold.question", answerKey: "landing.faq.hold.answer" },
+    { questionKey: "landing.faq.approval.question", answerKey: "landing.faq.approval.answer" },
+    { questionKey: "landing.faq.cancel.question", answerKey: "landing.faq.cancel.answer" },
+    { questionKey: "landing.faq.limit.question", answerKey: "landing.faq.limit.answer" },
   ]
 
   return (
@@ -123,6 +139,23 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* Why Courtly — real differentiators, not generic marketing */}
+      <section className="mx-auto max-w-6xl px-6 pb-24">
+        <SectionHeader
+          eyebrow={t("landing.why.eyebrow")}
+          title={t("landing.why.title")}
+          description={t("landing.why.description")}
+          className="mb-14"
+        />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {differentiators.map((item) => (
+            <div key={item.titleKey} className="rounded-2xl border border-hairline bg-card p-6 shadow-card">
+              <FeatureItem icon={item.icon} title={t(item.titleKey)} description={t(item.descriptionKey)} />
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="mx-auto max-w-4xl px-6 pb-24 text-center">
         <SectionHeader
@@ -136,6 +169,46 @@ function LandingPage() {
           <p className="text-slate-gray">{t("pricing.unlimited")}</p>
           <Button size="lg" className="mt-2 w-full" asChild>
             <Link to={user ? "/app/book" : "/register"}>{user ? t("pricing.cta.authed") : t("pricing.cta")}</Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* FAQ teaser */}
+      <section id="faq" className="mx-auto max-w-3xl px-6 pb-24">
+        <SectionHeader eyebrow={t("landing.faq.eyebrow")} title={t("landing.faq.title")} className="mb-10" />
+        <div className="flex flex-col gap-3">
+          {faqTeaser.map((item) => (
+            <details
+              key={item.questionKey}
+              className="group rounded-2xl border border-hairline bg-card p-5 shadow-card open:pb-5"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-ink-navy marker:content-none">
+                {t(item.questionKey)}
+                <span className="shrink-0 text-lg text-slate-gray transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 text-sm text-slate-gray">{t(item.answerKey)}</p>
+            </details>
+          ))}
+        </div>
+        <div className="mt-6 text-center">
+          <Button variant="link" asChild>
+            <Link to="/help#faq">{t("landing.faq.viewAll")} →</Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* Venue manager callout — the second real actor in the domain, currently invisible to a player-focused hero */}
+      <section className="mx-auto max-w-6xl px-6 pb-24">
+        <div className="flex flex-col items-center gap-6 rounded-3xl border border-hairline bg-cloud px-8 py-14 text-center sm:flex-row sm:justify-between sm:text-left">
+          <div className="flex flex-col gap-2">
+            <span className="w-fit rounded-full bg-[#e6f0ff] px-2.5 py-1 text-xs font-medium text-deep-cobalt sm:mx-0">
+              {t("landing.venueManager.eyebrow")}
+            </span>
+            <h2 className="text-2xl font-bold text-ink-navy sm:text-3xl">{t("landing.venueManager.title")}</h2>
+            <p className="max-w-md text-slate-gray">{t("landing.venueManager.description")}</p>
+          </div>
+          <Button size="lg" variant="dark" className="w-full shrink-0 sm:w-auto" asChild>
+            <Link to="/help#venue-managers">{t("landing.venueManager.cta")}</Link>
           </Button>
         </div>
       </section>

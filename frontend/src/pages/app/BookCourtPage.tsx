@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/shared/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/card"
 import { CourtCard } from "@/components/shared/court-card"
+import { ErrorState } from "@/components/shared/error-state"
 import { Label } from "@/components/shared/label"
 import { Input } from "@/components/shared/input"
 import { OccupancyTimeline } from "@/components/shared/occupancy-timeline"
@@ -56,7 +57,12 @@ function BookCourtPage() {
   const [searchParams] = useSearchParams()
   const { t } = useTranslation()
 
-  const { data: courts, isLoading } = useQuery({ queryKey: ["courts"], queryFn: () => api.listCourts() })
+  const {
+    data: courts,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({ queryKey: ["courts"], queryFn: () => api.listCourts() })
   const { data: trendingCourts } = useQuery({ queryKey: ["courts-trending"], queryFn: () => api.listTrendingCourts(7, 4) })
   const { data: recommendedCourts } = useQuery({
     queryKey: ["courts-recommended"],
@@ -189,6 +195,9 @@ function BookCourtPage() {
           )}
 
           {isLoading && Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-20 w-full" />)}
+          {isError && (
+            <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
+          )}
           {courts?.map((court) => (
             <CourtCard
               key={court.id}

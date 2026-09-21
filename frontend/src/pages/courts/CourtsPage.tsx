@@ -6,6 +6,7 @@ import { toast } from "sonner"
 
 import { CourtCard } from "@/components/shared/court-card"
 import { EmptyState } from "@/components/shared/empty-state"
+import { ErrorState } from "@/components/shared/error-state"
 import { Input } from "@/components/shared/input"
 import { SectionHeader } from "@/components/shared/section-header"
 import { Skeleton } from "@/components/shared/skeleton"
@@ -48,7 +49,12 @@ function CourtsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput])
 
-  const { data: courts, isLoading } = useQuery({
+  const {
+    data: courts,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["courts", sport ?? "all", amenity ?? "all", q ?? ""],
     queryFn: () => api.listCourts({ sport, amenity, q }),
   })
@@ -199,7 +205,16 @@ function CourtsPage() {
       <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-3", !hasFilters ? "mt-4" : "mt-10")}>
         {isLoading && Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="aspect-[16/10] w-full rounded-2xl" />)}
 
-        {!isLoading && courts?.length === 0 && (
+        {isError && (
+          <ErrorState
+            className="col-span-full"
+            title={t("common.error.title")}
+            description={t("common.error.description")}
+            onRetry={() => refetch()}
+          />
+        )}
+
+        {!isLoading && !isError && courts?.length === 0 && (
           <EmptyState title={t("courts.empty.title")} description={t("courts.empty.description")} className="col-span-full" />
         )}
 

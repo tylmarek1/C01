@@ -68,6 +68,7 @@ function Navbar() {
 
         <nav className="hidden items-center gap-8 md:flex">
           <NavItem to="/courts">{t("nav.courts")}</NavItem>
+          <NavItem to="/help">{t("nav.help")}</NavItem>
           {user && (
             <>
               <NavItem to="/app">{t("nav.dashboard")}</NavItem>
@@ -157,6 +158,9 @@ function Navbar() {
           <nav className="flex flex-col gap-4">
             <NavItem to="/courts" onClick={() => setMobileOpen(false)}>
               {t("nav.courts")}
+            </NavItem>
+            <NavItem to="/help" onClick={() => setMobileOpen(false)}>
+              {t("nav.help")}
             </NavItem>
             {user && (
               <>

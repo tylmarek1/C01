@@ -32,6 +32,7 @@ import {
   DialogTrigger,
 } from "@/components/shared/dialog"
 import { EmptyState } from "@/components/shared/empty-state"
+import { ErrorState } from "@/components/shared/error-state"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
 import { SectionHeader } from "@/components/shared/section-header"
@@ -378,7 +379,12 @@ function CourtsTab() {
   const sportLabels = useSportLabels()
   const queryClient = useQueryClient()
 
-  const { data: courts, isLoading } = useQuery({
+  const {
+    data: courts,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["admin-courts"],
     queryFn: () => api.listCourts({ includeInactive: true }, token),
   })
@@ -426,6 +432,15 @@ function CourtsTab() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-64 w-full rounded-2xl" />)}
+
+        {isError && (
+          <ErrorState
+            className="col-span-full"
+            title={t("common.error.title")}
+            description={t("common.error.description")}
+            onRetry={() => refetch()}
+          />
+        )}
 
         {courts?.map((court) => (
           <div key={court.id} className="flex flex-col overflow-hidden rounded-2xl border border-hairline bg-card shadow-card">
@@ -561,7 +576,12 @@ function ReservationsTab() {
   const [cancelTarget, setCancelTarget] = useState<ReservationAdmin | null>(null)
   const [rejectTarget, setRejectTarget] = useState<ReservationAdmin | null>(null)
 
-  const { data: reservations, isLoading } = useQuery({
+  const {
+    data: reservations,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["admin-reservations", statusFilter],
     queryFn: () => api.listAllReservations(token!, statusFilter === "ALL" ? undefined : statusFilter),
   })
@@ -652,7 +672,11 @@ function ReservationsTab() {
       <div className="flex flex-col gap-3">
         {isLoading && Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-20 w-full" />)}
 
-        {!isLoading && reservations?.length === 0 && (
+        {isError && (
+          <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
+        )}
+
+        {!isLoading && !isError && reservations?.length === 0 && (
           <EmptyState title={t("admin.reservations.empty.title")} description={t("admin.reservations.empty.description")} />
         )}
 
@@ -743,7 +767,12 @@ function AvailabilityTab() {
 
   const { data: courts } = useQuery({ queryKey: ["admin-courts"], queryFn: () => api.listCourts({ includeInactive: true }, token) })
   const [filterCourtId, setFilterCourtId] = useState("ALL")
-  const { data: blocks, isLoading } = useQuery({
+  const {
+    data: blocks,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["facility-blocks", filterCourtId],
     queryFn: () => api.listFacilityBlocks(filterCourtId === "ALL" ? undefined : filterCourtId),
   })
@@ -850,7 +879,10 @@ function AvailabilityTab() {
         </div>
 
         {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}
-        {!isLoading && blocks?.length === 0 && (
+        {isError && (
+          <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
+        )}
+        {!isLoading && !isError && blocks?.length === 0 && (
           <EmptyState title={t("admin.availability.empty.title")} description={t("admin.availability.empty.description")} />
         )}
         {blocks?.map((block) => (
@@ -918,9 +950,9 @@ function OverviewTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
   const statusLabels = useStatusLabels()
-  const { data: stats, isLoading } = useQuery({ queryKey: ["admin-stats"], queryFn: () => api.getAdminStats(token!) })
+  const { data: stats, isLoading, isError, refetch } = useQuery({ queryKey: ["admin-stats"], queryFn: () => api.getAdminStats(token!) })
 
-  if (isLoading || !stats) {
+  if (isLoading) {
     return (
       <div className="grid gap-4 sm:grid-cols-3">
         {Array.from({ length: 6 }).map((_, index) => (
@@ -928,6 +960,10 @@ function OverviewTab() {
         ))}
       </div>
     )
+  }
+
+  if (isError || !stats) {
+    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
   }
 
   const maxStatus = Math.max(1, ...Object.values(stats.status_breakdown))
@@ -1006,7 +1042,12 @@ function UsersTab() {
   const { token, user: currentUser } = useAuth()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const { data: users, isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: () => api.listAdminUsers(token!) })
+  const {
+    data: users,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({ queryKey: ["admin-users"], queryFn: () => api.listAdminUsers(token!) })
 
   const roleMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: UserRole }) => api.updateUserRole(token!, userId, role),
@@ -1020,6 +1061,10 @@ function UsersTab() {
   return (
     <div className="flex flex-col gap-3">
       {isLoading && Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}
+
+      {isError && (
+        <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
+      )}
 
       {users?.map((user) => (
         <div

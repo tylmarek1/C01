@@ -29,6 +29,21 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   for meaningful changes, driven by `finish-task`, with a hook guarding
   against direct commits to `main`.
 - This changelog.
+- A public **Help Center** (`/help`), linked from the navbar and footer on
+  every page: a getting-started walkthrough, how booking/holds/approval/limits
+  work, a plain-language glossary of every reservation status, the social
+  features (open games, guests, split cost, teammates), staying-on-top-of-it
+  tools (waitlist, calendar sync, recurring bookings, reschedule), a
+  venue-manager guide, and a full FAQ — in English and Czech.
+- A landing-page "Why Courtly" section surfacing features that existed but
+  weren't visible from the homepage (open games, waitlist, split cost,
+  calendar sync, recurring bookings, achievements), an FAQ teaser, and a
+  venue-manager callout linking into the new Help Center.
+- `components/shared/error-state.tsx` — a shared "this failed to load, retry"
+  state (the `isError` sibling of `EmptyState`), now wired into every page's
+  primary data queries (dashboard, profile tabs, admin tabs, courts, book a
+  court) — those previously rendered nothing on a failed request instead of
+  an actionable error.
 
 ### Changed
 

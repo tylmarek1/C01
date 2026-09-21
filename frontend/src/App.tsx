@@ -11,6 +11,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage"
 // versa — this was the app's single >500kB bundle-size finding.
 const AboutPage = lazy(() => import("@/pages/AboutPage").then((m) => ({ default: m.AboutPage })))
 const ContactPage = lazy(() => import("@/pages/ContactPage").then((m) => ({ default: m.ContactPage })))
+const HelpPage = lazy(() => import("@/pages/HelpPage").then((m) => ({ default: m.HelpPage })))
 const CourtsPage = lazy(() => import("@/pages/courts/CourtsPage").then((m) => ({ default: m.CourtsPage })))
 const CourtDetailPage = lazy(() => import("@/pages/courts/CourtDetailPage").then((m) => ({ default: m.CourtDetailPage })))
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })))
@@ -43,6 +44,7 @@ function App() {
         />
         <Route path="about" element={<AboutPage />} />
         <Route path="contact" element={<ContactPage />} />
+        <Route path="help" element={<HelpPage />} />
         <Route path="courts" element={<CourtsPage />} />
         <Route path="courts/:id" element={<CourtDetailPage />} />
         <Route

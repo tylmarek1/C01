@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/ca
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { CourtCard } from "@/components/shared/court-card"
 import { EmptyState } from "@/components/shared/empty-state"
+import { ErrorState } from "@/components/shared/error-state"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
 import { SectionHeader } from "@/components/shared/section-header"
@@ -259,7 +260,7 @@ function FavoritesTab() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
-  const { data: favorites, isLoading } = useQuery({
+  const { data: favorites, isLoading, isError, refetch } = useQuery({
     queryKey: ["favorites-mine"],
     queryFn: () => api.listMyFavorites(token!),
     enabled: Boolean(token),
@@ -279,6 +280,10 @@ function FavoritesTab() {
         ))}
       </div>
     )
+  }
+
+  if (isError) {
+    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
   }
 
   if (favorites?.length === 0) {
@@ -315,7 +320,7 @@ function ReviewsTab() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
-  const { data: reviews, isLoading } = useQuery({
+  const { data: reviews, isLoading, isError, refetch } = useQuery({
     queryKey: ["reviews-mine"],
     queryFn: () => api.listMyReviews(token!),
     enabled: Boolean(token),
@@ -343,6 +348,10 @@ function ReviewsTab() {
         ))}
       </div>
     )
+  }
+
+  if (isError) {
+    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
   }
 
   if (reviews?.length === 0) {
@@ -396,7 +405,7 @@ function AchievementsTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
 
-  const { data: achievements, isLoading } = useQuery({
+  const { data: achievements, isLoading, isError, refetch } = useQuery({
     queryKey: ["achievements-mine"],
     queryFn: () => api.listMyAchievements(token!),
     enabled: Boolean(token),
@@ -410,6 +419,10 @@ function AchievementsTab() {
         ))}
       </div>
     )
+  }
+
+  if (isError) {
+    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
   }
 
   return (
@@ -444,7 +457,7 @@ function LeaderboardTab() {
   const { token, user } = useAuth()
   const { t } = useTranslation()
 
-  const { data: leaderboard, isLoading } = useQuery({
+  const { data: leaderboard, isLoading, isError, refetch } = useQuery({
     queryKey: ["leaderboard"],
     queryFn: () => api.getLeaderboard(token!, 20),
     enabled: Boolean(token),
@@ -458,6 +471,10 @@ function LeaderboardTab() {
         ))}
       </div>
     )
+  }
+
+  if (isError) {
+    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
   }
 
   if (leaderboard?.length === 0) {
