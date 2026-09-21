@@ -44,7 +44,9 @@ def _expire_stale_holds(db) -> None:
         .with_for_update(skip_locked=True)
     )
     for reservation in db.scalars(stmt):
-        transition(db, reservation, ReservationStatus.EXPIRED, note="Hold expired unconfirmed")
+        transition(
+            db, reservation, ReservationStatus.EXPIRED, note="Hold expired unconfirmed"
+        )
         notify(
             db,
             reservation.user_id,
@@ -52,7 +54,9 @@ def _expire_stale_holds(db) -> None:
             "Your hold expired",
             f"Your {rules.HOLD_MINUTES}-minute hold on {reservation.court.name} expired before you confirmed it.",
         )
-        waitlist_service.offer_next(db, reservation.court_id, reservation.start_time, reservation.end_time)
+        waitlist_service.offer_next(
+            db, reservation.court_id, reservation.start_time, reservation.end_time
+        )
 
 
 def _expire_stale_approvals(db) -> None:
@@ -66,7 +70,12 @@ def _expire_stale_approvals(db) -> None:
         .with_for_update(skip_locked=True)
     )
     for reservation in db.scalars(stmt):
-        transition(db, reservation, ReservationStatus.EXPIRED, note="Approval request expired undecided")
+        transition(
+            db,
+            reservation,
+            ReservationStatus.EXPIRED,
+            note="Approval request expired undecided",
+        )
         notify(
             db,
             reservation.user_id,
@@ -74,7 +83,9 @@ def _expire_stale_approvals(db) -> None:
             "Your request expired",
             f"No venue manager decided on your {reservation.court.name} request in time, so it was released.",
         )
-        waitlist_service.offer_next(db, reservation.court_id, reservation.start_time, reservation.end_time)
+        waitlist_service.offer_next(
+            db, reservation.court_id, reservation.start_time, reservation.end_time
+        )
 
 
 def _send_reminders(db) -> None:
@@ -82,10 +93,15 @@ def _send_reminders(db) -> None:
     window_end = now + rules.REMINDER_LEAD
     stmt = (
         select(Reservation)
-        .where(Reservation.status.in_([ReservationStatus.CONFIRMED, ReservationStatus.CHECKED_IN]))
+        .where(
+            Reservation.status.in_(
+                [ReservationStatus.CONFIRMED, ReservationStatus.CHECKED_IN]
+            )
+        )
         .where(Reservation.reminder_sent_at.is_(None))
         .where(Reservation.start_time > now)
         .where(Reservation.start_time <= window_end)
+        .with_for_update(skip_locked=True)
     )
     for reservation in db.scalars(stmt):
         reservation.reminder_sent_at = now
@@ -105,17 +121,33 @@ def _auto_complete(db) -> None:
     now = datetime.now(timezone.utc)
 
     checked_in_stmt = (
-        select(Reservation).where(Reservation.status == ReservationStatus.CHECKED_IN).where(Reservation.end_time < now)
+        select(Reservation)
+        .where(Reservation.status == ReservationStatus.CHECKED_IN)
+        .where(Reservation.end_time < now)
+        .with_for_update(skip_locked=True)
     )
     for reservation in db.scalars(checked_in_stmt):
-        transition(db, reservation, ReservationStatus.COMPLETED, note="Auto-completed after end time")
+        transition(
+            db,
+            reservation,
+            ReservationStatus.COMPLETED,
+            note="Auto-completed after end time",
+        )
         achievements.evaluate_and_award(db, reservation.user_id)
 
     no_show_stmt = (
-        select(Reservation).where(Reservation.status == ReservationStatus.CONFIRMED).where(Reservation.end_time < now)
+        select(Reservation)
+        .where(Reservation.status == ReservationStatus.CONFIRMED)
+        .where(Reservation.end_time < now)
+        .with_for_update(skip_locked=True)
     )
     for reservation in db.scalars(no_show_stmt):
-        transition(db, reservation, ReservationStatus.NO_SHOW, note="Never checked in before the slot ended")
+        transition(
+            db,
+            reservation,
+            ReservationStatus.NO_SHOW,
+            note="Never checked in before the slot ended",
+        )
 
 
 def _expire_waitlist_offers(db) -> None:
@@ -124,20 +156,34 @@ def _expire_waitlist_offers(db) -> None:
         select(WaitlistEntry)
         .where(WaitlistEntry.status == WaitlistStatus.OFFERED)
         .where(WaitlistEntry.offer_expires_at < now)
+        .with_for_update(skip_locked=True)
     )
     for entry in db.scalars(stmt):
         entry.status = WaitlistStatus.EXPIRED
-        waitlist_service.offer_next(db, entry.court_id, entry.start_time, entry.end_time)
+        waitlist_service.offer_next(
+            db, entry.court_id, entry.start_time, entry.end_time
+        )
+
+
+# Each sub-task gets its own session/transaction in tick() below, so one
+# failing task can't roll back or block the others — see docs/capability-map.md.
+_SUB_TASKS = (
+    _expire_stale_holds,
+    _expire_stale_approvals,
+    _send_reminders,
+    _auto_complete,
+    _expire_waitlist_offers,
+)
 
 
 def tick(session_factory: sessionmaker) -> None:
-    with session_factory() as db:
-        _expire_stale_holds(db)
-        _expire_stale_approvals(db)
-        _send_reminders(db)
-        _auto_complete(db)
-        _expire_waitlist_offers(db)
-        db.commit()
+    for sub_task in _SUB_TASKS:
+        try:
+            with session_factory() as db:
+                sub_task(db)
+                db.commit()
+        except Exception:
+            logger.exception("Background worker sub-task %s failed", sub_task.__name__)
 
 
 async def run_forever(session_factory: sessionmaker) -> None:

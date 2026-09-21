@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+import pytest
 from sqlalchemy.orm import sessionmaker
 
 from reservations import worker
@@ -22,7 +23,12 @@ PRAGUE = ZoneInfo("Europe/Prague")
 
 
 def make_user(session, email: str) -> User:
-    user = User(name="Test User", email=email, password_hash=hash_password("supersecret"), role=UserRole.PLAYER)
+    user = User(
+        name="Test User",
+        email=email,
+        password_hash=hash_password("supersecret"),
+        role=UserRole.PLAYER,
+    )
     session.add(user)
     session.flush()
     return user
@@ -61,7 +67,9 @@ def test_worker_expires_stale_pending_holds(session_factory: sessionmaker) -> No
         assert any(n.type.value == "RESERVATION_EXPIRED" for n in notifications)
 
 
-def test_worker_completes_past_checked_in_reservations(session_factory: sessionmaker) -> None:
+def test_worker_completes_past_checked_in_reservations(
+    session_factory: sessionmaker,
+) -> None:
     with session_factory() as session:
         user = make_user(session, "auto-complete@example.com")
         court = make_court(session, "Complete Court")
@@ -83,7 +91,9 @@ def test_worker_completes_past_checked_in_reservations(session_factory: sessionm
         assert refreshed.status == ReservationStatus.COMPLETED
 
 
-def test_worker_marks_past_confirmed_reservations_no_show(session_factory: sessionmaker) -> None:
+def test_worker_marks_past_confirmed_reservations_no_show(
+    session_factory: sessionmaker,
+) -> None:
     with session_factory() as session:
         user = make_user(session, "no-show@example.com")
         court = make_court(session, "No Show Court")
@@ -135,7 +145,46 @@ def test_worker_sends_reminder_once(session_factory: sessionmaker) -> None:
         assert len(reminders) == 1
 
 
-def test_worker_expires_waitlist_offer_and_offers_next(session_factory: sessionmaker) -> None:
+def test_worker_tick_survives_one_failing_sub_task(
+    session_factory: sessionmaker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A bug in one housekeeping sub-task must not block the others — this
+    is the exact failure mode docs/capability-map.md flagged: all 5 used to
+    share one transaction, so one exception rolled back everything for that
+    tick, silently, forever, until someone happened to read the log."""
+    with session_factory() as session:
+        user = make_user(session, "tick-isolation@example.com")
+        court = make_court(session, "Isolation Court")
+        reservation = Reservation(
+            court_id=court.id,
+            user_id=user.id,
+            start_time=datetime.now(timezone.utc) + timedelta(days=1),
+            end_time=datetime.now(timezone.utc) + timedelta(days=1, hours=1),
+            status=ReservationStatus.PENDING,
+            hold_expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+        )
+        session.add(reservation)
+        session.commit()
+        reservation_id = reservation.id
+
+    def _broken(db) -> None:
+        raise RuntimeError("simulated failure in an unrelated sub-task")
+
+    # The broken task runs *before* the real one in this list, so a
+    # regression back to "one shared transaction" would roll back the real
+    # task's work too, not just skip the broken one.
+    monkeypatch.setattr(worker, "_SUB_TASKS", (_broken, worker._expire_stale_holds))
+
+    worker.tick(session_factory)  # must not raise
+
+    with session_factory() as session:
+        refreshed = session.get(Reservation, reservation_id)
+        assert refreshed.status == ReservationStatus.EXPIRED
+
+
+def test_worker_expires_waitlist_offer_and_offers_next(
+    session_factory: sessionmaker,
+) -> None:
     with session_factory() as session:
         first_user = make_user(session, "waitlist-first@example.com")
         second_user = make_user(session, "waitlist-second@example.com")
@@ -152,7 +201,11 @@ def test_worker_expires_waitlist_offer_and_offers_next(session_factory: sessionm
             offer_expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
         )
         waiting = WaitlistEntry(
-            court_id=court.id, user_id=second_user.id, start_time=start, end_time=end, status=WaitlistStatus.WAITING
+            court_id=court.id,
+            user_id=second_user.id,
+            start_time=start,
+            end_time=end,
+            status=WaitlistStatus.WAITING,
         )
         session.add_all([offered, waiting])
         session.commit()
