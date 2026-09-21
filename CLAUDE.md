@@ -25,10 +25,15 @@ it (see `feature-development`'s Step 1 for the line between the two).
 `cviko1/todo.md` all describe the project as it stood on **2026-09-14**: a
 3-state reservation flow (`DRAFT → CONFIRMED → CANCELLED`) with only
 auth + courts + reservations. The actual code on `main` today is well past
-that — a 7-state lifecycle (`PENDING → CONFIRMED → CHECKED_IN → COMPLETED`,
-or `→ CANCELLED/EXPIRED/NO_SHOW`), a dozen backend routers, a full admin
-panel, i18n, achievements, reviews, waitlists, and 90+ tests, none of it
-reflected in prose anywhere.
+that — a 9-state lifecycle (`PENDING → CONFIRMED → CHECKED_IN → COMPLETED`,
+or `→ CANCELLED/EXPIRED/NO_SHOW`, plus `PENDING_APPROVAL`/`REJECTED` for
+courts that require a manager's approval), a dozen backend routers, a full
+admin panel, i18n, achievements, reviews, waitlists, and 170+ tests, none of
+it reflected in the READMEs. **The exception** is `docs/specification.md`
+(and its frozen predecessor `specification-v0.1.md`), written on 2026-09-21
+against the code: it is the requirement for the reservation operations and
+their rules, with every verification example executable in
+`backend/tests/test_spec_baseline.py` / `test_approval_api.py`.
 
 **Rule:** for "what currently exists," trust `backend/src/` and
 `frontend/src/` over any README or doc. Treat `docs/intent-and-change.md`
@@ -44,7 +49,9 @@ state name, a test count), the code is right; fix the doc opportunistically
 ```
 docs/intent-and-change.md           Project Frame (domain, states, rules) — graded, still accurate as decisions
 docs/architecture-and-decisions.md  ADR-000..003 — stack choice, exclusion-constraint design, repo split, JWT auth
-docs/evidence-and-evolution.md      the executed C01 spike write-up (persistence + concurrency evidence)
+docs/evidence-and-evolution.md      the executed C01 spike write-up + the C02 evidence (spec -> running app)
+docs/specification.md               C02 specification, current version v0.2 (approval process); v0.1 frozen in specification-v0.1.md
+docs/change-c02-impact.md           impact analysis of the C02 change + architectural drivers handed to C03
 backend/                            FastAPI app — see backend/CLAUDE.md
 frontend/                           React app — see frontend/CLAUDE.md
 cviko1/todo.md                      historical C01 Definition-of-Done checklist, not an active backlog
@@ -166,7 +173,9 @@ link here instead.
 4. **The exclusion constraint's status list going stale.** Adding a new
    reservation status that should still hold a court, without adding it to
    `no_overlapping_active_reservations`'s `WHERE status IN (...)` clause,
-   silently removes double-booking protection for that status.
+   silently removes double-booking protection for that status. A test
+   (`test_the_exclusion_constraint_blocks_exactly_the_active_statuses`) now
+   fails if the constraint and `ACTIVE_RESERVATION_STATUSES` disagree.
    (`database-evolution`)
 5. **`create_all` doesn't alter existing tables.** A column/enum change on
    an existing table looks like it worked (no error) but the dev database

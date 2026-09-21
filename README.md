@@ -38,9 +38,9 @@ reservation API, and a React frontend ("Courtly") that talks to it — see
 | **Resource** | `Court` — sport type (TENNIS / VOLLEYBALL / BADMINTON), indoor/outdoor, active flag |
 | **Reservation** | one court, one user, one time slot `[start_time, end_time)`, timestamptz |
 | **User** | `Player` (books/confirms/cancels own reservations) or `Venue manager` (manages courts, can cancel any reservation) |
-| **States** | `DRAFT → CONFIRMED`, `DRAFT/CONFIRMED → CANCELLED` (`CANCELLED` is final) |
-| **Operations** | create · confirm/approve · cancel · check availability |
-| **Common rule** | two `CONFIRMED` reservations of the same court must never overlap |
+| **States** | `PENDING` (a 5-minute hold) `→ CONFIRMED`; on courts that require approval `PENDING → PENDING_APPROVAL → CONFIRMED / REJECTED`; `→ CANCELLED` before the start; unanswered holds/requests `→ EXPIRED`; then `CHECKED_IN → COMPLETED / NO_SHOW`. Full lifecycle: [`docs/specification.md`](docs/specification.md) |
+| **Operations** | create · check availability · confirm · cancel · approve/reject (approval-required courts) |
+| **Common rule** | two reservations that hold a court (`PENDING`, `PENDING_APPROVAL`, `CONFIRMED`, `CHECKED_IN`) must never overlap |
 | **Domain-specific rule** | a reservation must be 60/90/120 minutes, start on `:00`/`:30`, and lie fully within opening hours 07:00–22:00 |
 | **External boundary** | Notification Service — e-mails the player on confirm/cancel (stub for now) |
 
@@ -100,7 +100,10 @@ system.
 ```
 docs/intent-and-change.md           Project Frame + selected future pressure
 docs/architecture-and-decisions.md  architecture overview + decision records
-docs/evidence-and-evolution.md      spike evidence and decisions
+docs/evidence-and-evolution.md      spike evidence and decisions + C02 evidence (spec -> running app)
+docs/specification-v0.1.md          C02 baseline v0.1: the four core operations (frozen)
+docs/specification.md               C02 specification v0.2: + approval process (current)
+docs/change-c02-impact.md           impact analysis of the C02 change, architectural drivers for C03
 docs/screenshots/                   README preview images
 backend/                            FastAPI application (see backend/README.md)
 frontend/                           React application (see frontend/README.md)
@@ -118,8 +121,8 @@ described below:
 POST /reservations  {court_id, start_time, end_time}  (user identified by JWT bearer token)
 → validate   Pydantic schema (types, end > start) + domain slot rule
              (60/90/120 min, starts at :00 or :30, within 07:00–22:00 Europe/Prague)
-→ persist    INSERT reservation with status DRAFT into PostgreSQL
-→ return     201 Created {"id": "<uuid>", "status": "DRAFT", ...}; 422 on invalid input
+→ persist    INSERT reservation with status PENDING (a hold) into PostgreSQL
+→ return     201 Created {"id": "<uuid>", "status": "PENDING", ...}; 422 on invalid input
 → automated check
              pytest + httpx TestClient against the real PostgreSQL:
              valid request → 201 + row with that id exists in DB;
@@ -146,7 +149,7 @@ Beyond the C01 spike, the project now has a runnable product slice:
 - **Backend API** — `POST /auth/register`, `POST /auth/login`, `GET /auth/me`
   (JWT bearer auth, bcrypt password hashing), `GET /courts`, and the full
   reservation lifecycle: `POST /reservations`, `GET /reservations`,
-  `POST /reservations/{id}/confirm`, `POST /reservations/{id}/cancel`. 17
+  `POST /reservations/{id}/confirm`, `POST /reservations/{id}/cancel` (plus approve/reject). 175
   pytest tests run against the real PostgreSQL. Details, config and the full
   API table: [`backend/README.md`](backend/README.md).
 - **Frontend** — a React app ("Courtly") with a marketing landing page,
@@ -186,7 +189,7 @@ tests, evidence, ADR-001), integrated from `c01-spike` into `main`:
 - [x] Shared repository
 - [x] Clear reservation domain (sports courts)
 - [x] Resource + Reservation + User modelled
-- [x] Meaningful reservation states (DRAFT / CONFIRMED / CANCELLED)
+- [x] Meaningful reservation states (C01: DRAFT / CONFIRMED / CANCELLED — since evolved, see [`docs/specification.md`](docs/specification.md))
 - [x] Core operations defined: create, confirm/approve, cancel, check availability
 - [x] Common overlap rule (enforced in PostgreSQL, verified under concurrency)
 - [x] 1 domain-specific business rule (slot length/alignment/opening hours)

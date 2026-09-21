@@ -20,7 +20,7 @@ React SPA ──fetch, JWT bearer──► FastAPI (src/reservations/main.py)
 docker compose up -d --wait db          # from repo root — Postgres 16 on :5432
 cd backend
 uv sync                                 # install deps into backend/.venv
-uv run pytest -v                        # 90+ tests, real Postgres — see "Tests wipe the dev DB" below
+uv run pytest -v                        # 170+ tests, real Postgres — see "Tests wipe the dev DB" below
 uv run python -m reservations.seed      # idempotent demo data
 uv run fastapi dev src/reservations/main.py   # dev server w/ reload, :8000, Swagger at /docs
 curl localhost:8000/health
@@ -55,13 +55,18 @@ reformatted beyond the lines you touched; that's expected, not a bug.
   handler — follow the existing split.
 - `lifecycle.py` — the reservation state machine
   (`PENDING → CONFIRMED → CHECKED_IN → COMPLETED`, or
-  `→ CANCELLED/EXPIRED/NO_SHOW`). Any change to what transitions are legal
-  belongs here, not scattered across routers.
+  `→ CANCELLED/EXPIRED/NO_SHOW`; on courts with `requires_approval`,
+  `PENDING → PENDING_APPROVAL → CONFIRMED/REJECTED/CANCELLED/EXPIRED`). Any
+  change to what transitions are legal — and the guards on them (hold not
+  expired, court active, approval required) — belongs here, not scattered
+  across routers. Never construct a `Reservation` with `status=CONFIRMED`
+  around `transition()`: the waitlist-accept path did, and it would have
+  bypassed the approval rule.
 - `rules.py` / `booking_validation.py` — booking business rules (lead time,
   max advance, slot length/alignment, opening hours, facility-block
   conflicts). New booking constraints go here.
-- `achievements.py`, `calendar_export.py`, `waitlist_service.py`,
-  `notifications.py`, `images.py` — feature-specific service modules; these
+- `achievements.py`, `approval_service.py`, `calendar_export.py`,
+  `waitlist_service.py`, `notifications.py`, `images.py` — feature-specific service modules; these
   hold real logic, not thin wrappers.
 - `worker.py` — an in-process asyncio background task (hold-expiry,
   reminders, auto-complete, waitlist cascade). If you add a time-based side
@@ -128,13 +133,14 @@ ExcludeConstraint(
     (literal_column("tstzrange(start_time, end_time, '[)')"), "&&"),
     name="no_overlapping_active_reservations",
     using="gist",
-    where=text("status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN')"),
+    where=text("status IN ('PENDING', 'PENDING_APPROVAL', 'CONFIRMED', 'CHECKED_IN')"),
 )
 ```
 
 PostgreSQL itself rejects an overlapping insert/update for any reservation
-whose status is `PENDING`, `CONFIRMED`, or `CHECKED_IN` on the same court —
-`COMPLETED`/`CANCELLED`/`EXPIRED`/`NO_SHOW` don't block a slot. Half-open
+whose status is `PENDING`, `PENDING_APPROVAL`, `CONFIRMED`, or `CHECKED_IN` on
+the same court — `COMPLETED`/`CANCELLED`/`EXPIRED`/`REJECTED`/`NO_SHOW` don't
+block a slot. Half-open
 ranges (`'[)'`) allow back-to-back bookings. The API must translate the
 resulting `ExclusionViolation` into HTTP 409, not a 500 or a silent retry.
 
@@ -181,7 +187,11 @@ doesn't know how to parse it yet.
   SQLite; the exclusion constraint is Postgres-specific and is exactly what
   the tests need to exercise.
 - One file per feature area (`test_<feature>_api.py`), matching the `api/`
-  router split.
+  router split. Exception: `test_spec_baseline.py` and `test_approval_api.py`
+  are the executable form of `docs/specification*.md` — each test name starts
+  with the id of the verification example (`VE-xx.y`) it runs. Change
+  behaviour those examples describe → change the specification and the VE
+  together, not one of them.
 - `conftest.py`'s session-scoped `engine` fixture runs `drop_schema` +
   `create_schema` against `DATABASE_URL` — **there is no separate test
   database**. Running `uv run pytest` wipes whatever is in the dev database.

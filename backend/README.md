@@ -50,10 +50,16 @@ data again.
 | `POST /auth/login` | — | Exchange email/password for a JWT |
 | `GET /auth/me` | Bearer | Current user |
 | `GET /courts` | — | List active courts |
-| `POST /reservations` | Bearer | Create a `DRAFT` reservation (validates the 60/90/120 min slot rule, `:00`/`:30` alignment, 07:00–22:00 opening hours) |
+| `GET /courts/{id}/availability/check?start_time=&end_time=` | — | Is the court free for exactly this interval? `{available, reason}` — reason `RESERVATION_OVERLAP` or `FACILITY_BLOCK` |
+| `POST /reservations` | Bearer | Create a `PENDING` reservation — a 5-minute hold that already blocks the court (validates the 60/90/120 min slot rule, `:00`/`:30` alignment, 07:00–22:00 opening hours, booking window, limits; 409 if the slot is held/booked) |
 | `GET /reservations` | Bearer | List the current user's reservations |
-| `POST /reservations/{id}/confirm` | Bearer | `DRAFT` → `CONFIRMED` (409 if the slot was just taken) |
-| `POST /reservations/{id}/cancel` | Bearer | → `CANCELLED` |
+| `POST /reservations/{id}/confirm` | Bearer | `PENDING` → `CONFIRMED`; on a court with `requires_approval` → `PENDING_APPROVAL` instead (409 if the hold expired or the court was deactivated) |
+| `POST /reservations/{id}/approve` | Venue manager | `PENDING_APPROVAL` → `CONFIRMED` |
+| `POST /reservations/{id}/reject` | Venue manager | `PENDING_APPROVAL` → `REJECTED`, releases the slot |
+| `POST /reservations/{id}/cancel` | Bearer | `PENDING`/`PENDING_APPROVAL`/`CONFIRMED` → `CANCELLED`, only before the start time (409 otherwise) |
+
+The behaviour behind these endpoints — rules, states, rejection outcomes —
+is specified in [`docs/specification.md`](../docs/specification.md).
 
 Passwords are hashed with `bcrypt`; access tokens are `HS256` JWTs carrying the
 user id as `sub`. The common no-overlap rule is enforced by a PostgreSQL
