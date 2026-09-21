@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from reservations.models import UserRole
 
-# How many PENDING/CONFIRMED/CHECKED_IN reservations a user may hold at once.
+# How many PENDING/PENDING_APPROVAL/CONFIRMED/CHECKED_IN reservations a user may hold at once.
 MAX_ACTIVE_RESERVATIONS = {
     UserRole.PLAYER: 3,
     UserRole.VENUE_MANAGER: 1000,
@@ -19,6 +19,12 @@ MIN_LEAD_MINUTES = 15
 # A fresh PENDING reservation must be confirmed within this window or it expires.
 HOLD_MINUTES = 5
 HOLD_DURATION = timedelta(minutes=HOLD_MINUTES)
+
+# A request awaiting a manager's approval lapses after this long (or when the
+# slot starts, whichever is first) — see approval_service.approval_deadline.
+# No external source for 24 h: assumption A-05 in docs/specification.md.
+APPROVAL_WINDOW_HOURS = 24
+APPROVAL_WINDOW = timedelta(hours=APPROVAL_WINDOW_HOURS)
 
 # How long before start_time a reminder notification fires (once).
 REMINDER_LEAD = timedelta(hours=2)

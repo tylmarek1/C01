@@ -9,11 +9,13 @@ from reservations.models import Reservation
 
 _STATUS_MAP = {
     "PENDING": "TENTATIVE",
+    "PENDING_APPROVAL": "TENTATIVE",
     "CONFIRMED": "CONFIRMED",
     "CHECKED_IN": "CONFIRMED",
     "COMPLETED": "CONFIRMED",
     "CANCELLED": "CANCELLED",
     "EXPIRED": "CANCELLED",
+    "REJECTED": "CANCELLED",
     "NO_SHOW": "CANCELLED",
 }
 

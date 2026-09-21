@@ -19,6 +19,7 @@ from reservations.models import (
     WaitlistEntry,
     WaitlistStatus,
 )
+from reservations import approval_service
 from reservations.notifications import notify
 from reservations.schemas.reservation import ReservationOut
 from reservations.schemas.waitlist import WaitlistEntryOut, WaitlistJoin
@@ -110,12 +111,15 @@ def accept_waitlist_offer(
     if entry.offer_expires_at is not None and entry.offer_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status.HTTP_409_CONFLICT, "This offer has expired")
 
+    # BR-11: on an approval-required court an accepted offer is a request, not a booking.
+    needs_approval = entry.court.requires_approval
     reservation = Reservation(
         court_id=entry.court_id,
         user_id=current_user.id,
         start_time=entry.start_time,
         end_time=entry.end_time,
-        status=ReservationStatus.CONFIRMED,
+        status=ReservationStatus.PENDING_APPROVAL if needs_approval else ReservationStatus.CONFIRMED,
+        approval_expires_at=approval_service.approval_deadline(entry.start_time) if needs_approval else None,
     )
     db.add(reservation)
     try:
@@ -133,18 +137,26 @@ def accept_waitlist_offer(
             note="Booked from a waitlist offer",
         )
     )
-    db.add(
-        ReservationEvent(
-            reservation_id=reservation.id, event_type=ReservationEventType.CONFIRMED, actor_id=current_user.id
+    if needs_approval:
+        db.add(
+            ReservationEvent(
+                reservation_id=reservation.id, event_type=ReservationEventType.SUBMITTED, actor_id=current_user.id
+            )
         )
-    )
-    notify(
-        db,
-        current_user.id,
-        NotificationType.RESERVATION_CONFIRMED,
-        "Waitlist slot booked",
-        f"You're confirmed for {entry.court.name}.",
-    )
+        approval_service.notify_approval_requested(db, reservation)
+    else:
+        db.add(
+            ReservationEvent(
+                reservation_id=reservation.id, event_type=ReservationEventType.CONFIRMED, actor_id=current_user.id
+            )
+        )
+        notify(
+            db,
+            current_user.id,
+            NotificationType.RESERVATION_CONFIRMED,
+            "Waitlist slot booked",
+            f"You're confirmed for {entry.court.name}.",
+        )
     db.commit()
     db.refresh(reservation)
     return reservation

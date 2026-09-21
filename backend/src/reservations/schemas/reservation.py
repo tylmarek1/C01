@@ -120,6 +120,7 @@ class ReservationOut(BaseModel):
     end_time: datetime
     status: ReservationStatus
     hold_expires_at: datetime | None
+    approval_expires_at: datetime | None
     series_id: uuid.UUID | None
     open_to_join: bool
     open_note: str | None

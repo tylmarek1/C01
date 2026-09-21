@@ -179,7 +179,9 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 | ID | Setup → action | Expected |
 |---|---|---|
 | VE-03.8 | approval-required court; `PENDING` hold; owner confirms | `PENDING_APPROVAL` (**not** `CONFIRMED`); hold cleared; deadline ≈ now + 24 h; slot still unavailable; every manager has a notification; owner has one |
-| VE-03.9 | same, but the manager confirms on the player's behalf | still `PENDING_APPROVAL` (manager Confirm is not an approval) |
+| VE-03.8b | the same on a court that does **not** require approval | `CONFIRMED` immediately, exactly as in v0.1 |
+| VE-03.9 | same as VE-03.8, but the manager confirms on the player's behalf | still `PENDING_APPROVAL` (manager Confirm is not an approval) |
+| VE-03.10 | the owner confirms their own `PENDING_APPROVAL` (or `REJECTED`) reservation again | `CONFLICT`, state unchanged — Confirm is not an approval |
 
 **Rationale:** Splitting Confirm per Resource keeps the endpoint and OP-01 stable while making the approver's decision the only door to `CONFIRMED` (D-10…D-12). **Assumption / TBD:** A-01, A-02, A-05.
 
@@ -226,9 +228,11 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 | VE-05.2 | the owner (a player) approves own request | `FORBIDDEN`; still `PENDING_APPROVAL` |
 | VE-05.3 | approve a `PENDING` hold / a `CONFIRMED` / a `REJECTED` reservation | `CONFLICT`, state unchanged |
 | VE-05.4 | deadline in the past, sweep not yet run → approve | `CONFLICT`, still `PENDING_APPROVAL` (VE-07.1 for what happens next) |
+| VE-05.4b | court deactivated after submission → approve | `CONFLICT`, still `PENDING_APPROVAL` |
 | VE-05.5 | a manager approves a request that this same manager submitted | allowed (A-06) |
 | VE-05.6 | manager approves and manager rejects concurrently, repeated 20× | exactly one succeeds; final state is `CONFIRMED` or `REJECTED` accordingly; never both |
-| VE-05.7 | approval-required court's `CONFIRMED` reservation cannot be rescheduled; a normal court's can | `CONFLICT` / success (REQ-11) |
+| VE-05.7 | approval-required court's `CONFIRMED` reservation cannot be rescheduled; a normal court's can; a `PENDING` hold on it can | `CONFLICT` / success / success (REQ-11) |
+| VE-05.8 | approve and the owner's cancel concurrently, repeated 20× | the cancel always succeeds and the final state is always `CANCELLED` (same rule as Confirm‖Cancel) |
 
 **Rationale:** The approver's explicit decision is the whole point of the change; requiring the Venue Manager role and a deadline keeps a request from blocking a slot indefinitely.
 **Assumption / TBD:** A-05 (24 h), A-06 (no separation of duties).
@@ -535,7 +539,7 @@ Each accepted requirement went through the nine questions. Feasibility and consi
 As in v0.1: check-in/completion/no-show; facility blocks (they also cancel `PENDING_APPROVAL` requests they overlap); waitlist (offered after a Cancel, Reject or either expiry; **on an approval-required court an accepted offer becomes `PENDING_APPROVAL`, REQ-11**); rescheduling (**refused for a `CONFIRMED` reservation on an approval-required court, REQ-11**); recurring series (each occurrence is confirmed individually, so each is approved individually); guests, join requests, cost split; reviews, favourites, achievements; calendar export; admin reports; the day-view availability read model (G-01); the UI and i18n. The UI change for C02 (badges, the manager's approval queue, the court flag) is implemented but not specified here.
 
 ## 10. Verification traceability
-Every `VE-*` is executable: VE-01…VE-04 in `backend/tests/test_spec_baseline.py` (v0.1, still green under v0.2), VE-01.10, VE-02.7, VE-03.8/03.9, VE-04.8 and VE-05…VE-08 in `backend/tests/test_approval_api.py`. Tests carry the VE id as the start of their name. The live run of the operations is recorded in `evidence-and-evolution.md`.
+Every `VE-*` is executable: VE-01…VE-04 in `backend/tests/test_spec_baseline.py` (v0.1, still green under v0.2), VE-01.10, VE-02.7, VE-03.8/03.9, VE-04.8 and VE-05…VE-08 in `backend/tests/test_approval_api.py`. Tests carry the VE id as the start of their name. Two further tests in `test_approval_api.py` are guards rather than examples: the exclusion constraint must block exactly the states in `ACTIVE_RESERVATION_STATUSES` (mechanising known pitfall #4 / driver AD-2), and a `PENDING_APPROVAL` reservation must be `TENTATIVE` in the calendar export. The live run of the operations is recorded in `evidence-and-evolution.md`.
 
 ## 11. Approval
 v0.2 becomes **approved by the team** when every member below has reviewed the changed and new parts (§3 BR-02/03/07/09/10/11/12, §4 OP-03…OP-06, §8 D-10…D-20, A-05, A-06) and ticks their line; approving the pull request that introduces this file counts. v0.1's own approval (`specification-v0.1.md` §11) is a prerequisite.

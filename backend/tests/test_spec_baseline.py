@@ -65,11 +65,18 @@ def make_user(
 
 
 def make_court(
-    session_factory: sessionmaker, name: str = "Spec Court", active: bool = True
+    session_factory: sessionmaker,
+    name: str = "Spec Court",
+    active: bool = True,
+    requires_approval: bool = False,
 ) -> uuid.UUID:
     with session_factory() as session:
         court = Court(
-            name=name, sport_type=SportType.TENNIS, indoor=False, active=active
+            name=name,
+            sport_type=SportType.TENNIS,
+            indoor=False,
+            active=active,
+            requires_approval=requires_approval,
         )
         session.add(court)
         session.commit()
@@ -84,6 +91,7 @@ def add_reservation(
     end: datetime,
     status: ReservationStatus,
     hold_expires_at: datetime | None = None,
+    approval_expires_at: datetime | None = None,
 ) -> uuid.UUID:
     """Insert a reservation directly — the only way to reach states/times the API refuses to create."""
     with session_factory() as session:
@@ -94,6 +102,7 @@ def add_reservation(
             end_time=end,
             status=status,
             hold_expires_at=hold_expires_at,
+            approval_expires_at=approval_expires_at,
         )
         session.add(reservation)
         session.commit()
