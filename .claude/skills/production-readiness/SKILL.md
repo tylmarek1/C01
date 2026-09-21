@@ -59,9 +59,10 @@ require for *this* app as it actually exists.
 
 ## Testing
 
-- Backend: 90+ tests against real Postgres — solid for what it covers, but
-  coverage gaps in less-tested feature areas are **important**, not
-  blocking, unless the area in question is what's being shipped.
+- Backend: a substantial suite against real Postgres (see `backend/CLAUDE.md`
+  for the current count) — solid for what it covers, but coverage gaps in
+  less-tested feature areas are **important**, not blocking, unless the area
+  in question is what's being shipped.
 - Frontend: **zero automated tests** — genuinely important for a real
   production app, but this project's current, deliberate state (see root
   `CLAUDE.md`'s "Known gaps") — report as important, not as if it were a
@@ -70,8 +71,8 @@ require for *this* app as it actually exists.
 
 ## Performance
 
-- Run `performance-review`'s checklist. The known bundle-size warning is
-  **important**, not blocking, for a course-scale app.
+- Run `performance-review`'s checklist for regressions. Bundle size is
+  **important**, not blocking, for a course-scale app if it resurfaces.
 
 ## Observability
 

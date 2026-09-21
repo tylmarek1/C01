@@ -42,9 +42,10 @@ Bump only on a genuine breaking change to that side (see below) — most
 day-to-day feature/fix work doesn't need a bump, and bumping isn't a
 substitute for a CHANGELOG entry.
 
-## What *does* matter here, because there's no tooling to catch it for you
-
 ## What counts as "breaking" in this codebase
+
+Matters more here than in a typical project, because there's no tooling
+(no Alembic, no generated client) to catch a breaking change for you.
 
 - **A column/enum change on an existing table** is breaking for the dev
   database specifically — see `database-evolution` (backend). It's not

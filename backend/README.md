@@ -58,8 +58,19 @@ data again.
 | `POST /reservations/{id}/reject` | Venue manager | `PENDING_APPROVAL` → `REJECTED`, releases the slot |
 | `POST /reservations/{id}/cancel` | Bearer | `PENDING`/`PENDING_APPROVAL`/`CONFIRMED` → `CANCELLED`, only before the start time (409 otherwise) |
 
-The behaviour behind these endpoints — rules, states, rejection outcomes —
-is specified in [`docs/specification.md`](../docs/specification.md).
+That's the core reservation lifecycle. The API has grown well past it:
+check-in/check-out, reschedule, guests/cost-split, join requests and
+calendar export are more endpoints on this same `reservations` router;
+achievements/leaderboard live in `stats.py`; and `favorites`,
+`facility_blocks`, `notifications`, `reviews`, `waitlist`, and the
+venue-manager `admin` endpoints (stats, user roles, reservation export,
+court utilization) each have their own router under `src/reservations/api/`
+(see Layout below). Rather than hand-duplicating a table that goes stale
+the next time an endpoint is added, browse the live, always-current
+reference: run the server and open `/docs` (Swagger UI) or `/openapi.json`.
+
+The behaviour behind the reservation endpoints — rules, states, rejection
+outcomes — is specified in [`docs/specification.md`](../docs/specification.md).
 
 Passwords are hashed with `bcrypt`; access tokens are `HS256` JWTs carrying the
 user id as `sub`. The common no-overlap rule is enforced by a PostgreSQL
@@ -75,9 +86,19 @@ src/reservations/
   db.py           engine/session factory, schema create/drop
   security.py     password hashing + JWT
   deps.py         DB session & current-user dependencies
-  seed.py         demo court seeding script
-  models/         SQLAlchemy models (court, user, reservation)
-  schemas/        Pydantic request/response models
-  api/            FastAPI routers (auth, courts, reservations)
+  seed.py         demo data seeding script
+  lifecycle.py    the reservation state machine
+  rules.py, booking_validation.py            booking business rules
+  achievements.py, approval_service.py, calendar_export.py,
+  waitlist_service.py, notifications.py, images.py   feature-specific
+                  service modules — the real logic; routers stay thin
+  worker.py       in-process background tasks (hold-expiry, reminders, ...)
+  models/         one SQLAlchemy model per file
+  schemas/        Pydantic request/response models, mirroring models/
+  api/            one APIRouter per resource
 tests/            pytest suite (runs against the real database)
 ```
+
+For the current, exact list of models/routers/service modules — this
+README intentionally doesn't duplicate it, see `backend/CLAUDE.md`'s
+"Module layout" section instead.
