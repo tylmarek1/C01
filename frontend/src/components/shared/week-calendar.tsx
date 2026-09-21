@@ -113,8 +113,67 @@ function WeekCalendar({ reservations, onSelectReservation }: WeekCalendarProps) 
     [days, reservations],
   )
 
+  // Below `sm`, a 7-column grid needs horizontal scroll to be usable at
+  // all — this shows one day at a time instead. Defaults to today if it
+  // falls in the visible week, otherwise the first day shown.
+  const todayIndex = days.findIndex((day) => isSameDay(day, today))
+  const [mobileDayIndex, setMobileDayIndex] = useState(Math.max(0, todayIndex))
+
   const hasAny = byDay.some((d) => d.length > 0)
   const gridHeight = (CLOSE_HOUR - OPEN_HOUR) * HOUR_HEIGHT
+
+  function renderDayColumn(day: Date, dayIndex: number) {
+    return (
+      <div key={dayIndex} className="flex-1 border-r border-hairline last:border-r-0">
+        <div
+          className={cn(
+            "flex h-10 flex-col items-center justify-center border-b border-hairline text-xs",
+            isSameDay(day, today) && "bg-[#eaf3ff] font-semibold text-signal-blue",
+          )}
+        >
+          <span>{dayFormatter.format(day)}</span>
+          <span className="text-[10px] text-slate-gray">{dateFormatter.format(day)}</span>
+        </div>
+        <div className="relative" style={{ height: gridHeight }}>
+          {hours.map((hour) => (
+            <div key={hour} style={{ height: HOUR_HEIGHT }} className="border-b border-hairline/40" />
+          ))}
+          {byDay[dayIndex].map(({ reservation, top, height, lane, lanes }) => (
+            <button
+              key={reservation.id}
+              type="button"
+              onClick={() => onSelectReservation?.(reservation)}
+              title={reservation.court.name}
+              className={cn(
+                "absolute overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-opacity hover:opacity-90",
+                blockStyle(reservation.status),
+              )}
+              style={{
+                top: `${top}%`,
+                height: `${height}%`,
+                left: `${(lane / lanes) * 100}%`,
+                width: `${100 / lanes}%`,
+              }}
+            >
+              <span className="block truncate font-medium">{reservation.court.name}</span>
+              <span className="block truncate opacity-80">{timeFormatter.format(new Date(reservation.start_time))}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const hourGutter = (
+    <div className="w-14 shrink-0 border-r border-hairline">
+      <div className="h-10 border-b border-hairline" />
+      {hours.map((hour) => (
+        <div key={hour} style={{ height: HOUR_HEIGHT }} className="relative border-b border-hairline/60 text-right">
+          <span className="absolute -top-2 right-1.5 text-[10px] text-slate-gray">{hour}:00</span>
+        </div>
+      ))}
+    </div>
+  )
 
   return (
     <div className="rounded-2xl border border-hairline bg-card shadow-card">
@@ -123,7 +182,18 @@ function WeekCalendar({ reservations, onSelectReservation }: WeekCalendarProps) 
           <Button variant="ghost" size="icon" className="size-8" onClick={() => setWeekStart((d) => addDays(d, -7))}>
             <ChevronLeft className="size-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date()))}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const now = new Date()
+              setWeekStart(startOfWeek(now))
+              // Monday-starting index for "now", independent of whichever
+              // week is currently displayed (unlike the outer `todayIndex`,
+              // which is only valid for the week shown *before* this click).
+              setMobileDayIndex(now.getDay() === 0 ? 6 : now.getDay() - 1)
+            }}
+          >
             {t("calendar.today")}
           </Button>
           <Button variant="ghost" size="icon" className="size-8" onClick={() => setWeekStart((d) => addDays(d, 7))}>
@@ -137,56 +207,39 @@ function WeekCalendar({ reservations, onSelectReservation }: WeekCalendarProps) 
 
       {!hasAny && <p className="p-6 text-center text-sm text-slate-gray">{t("calendar.empty")}</p>}
 
-      <div className="overflow-x-auto">
-        <div className="flex min-w-[720px]">
-          <div className="w-14 shrink-0 border-r border-hairline">
-            <div className="h-10 border-b border-hairline" />
-            {hours.map((hour) => (
-              <div key={hour} style={{ height: HOUR_HEIGHT }} className="relative border-b border-hairline/60 text-right">
-                <span className="absolute -top-2 right-1.5 text-[10px] text-slate-gray">{hour}:00</span>
-              </div>
-            ))}
-          </div>
-
+      {/* Mobile: one day at a time, no horizontal scroll needed. */}
+      <div className="sm:hidden">
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-hairline p-2">
           {days.map((day, dayIndex) => (
-            <div key={dayIndex} className="flex-1 border-r border-hairline last:border-r-0">
-              <div
-                className={cn(
-                  "flex h-10 flex-col items-center justify-center border-b border-hairline text-xs",
-                  isSameDay(day, today) && "bg-[#eaf3ff] font-semibold text-signal-blue",
-                )}
-              >
-                <span>{dayFormatter.format(day)}</span>
-                <span className="text-[10px] text-slate-gray">{dateFormatter.format(day)}</span>
-              </div>
-              <div className="relative" style={{ height: gridHeight }}>
-                {hours.map((hour) => (
-                  <div key={hour} style={{ height: HOUR_HEIGHT }} className="border-b border-hairline/40" />
-                ))}
-                {byDay[dayIndex].map(({ reservation, top, height, lane, lanes }) => (
-                  <button
-                    key={reservation.id}
-                    type="button"
-                    onClick={() => onSelectReservation?.(reservation)}
-                    title={reservation.court.name}
-                    className={cn(
-                      "absolute overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-opacity hover:opacity-90",
-                      blockStyle(reservation.status),
-                    )}
-                    style={{
-                      top: `${top}%`,
-                      height: `${height}%`,
-                      left: `${(lane / lanes) * 100}%`,
-                      width: `${100 / lanes}%`,
-                    }}
-                  >
-                    <span className="block truncate font-medium">{reservation.court.name}</span>
-                    <span className="block truncate opacity-80">{timeFormatter.format(new Date(reservation.start_time))}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <button
+              key={dayIndex}
+              type="button"
+              onClick={() => setMobileDayIndex(dayIndex)}
+              className={cn(
+                "flex shrink-0 flex-col items-center rounded-lg px-2.5 py-1 text-xs",
+                dayIndex === mobileDayIndex
+                  ? "bg-ink-navy text-paper"
+                  : isSameDay(day, today)
+                    ? "bg-[#eaf3ff] font-semibold text-signal-blue"
+                    : "text-slate-gray",
+              )}
+            >
+              <span>{dayFormatter.format(day)}</span>
+              <span className="text-[10px] opacity-80">{dateFormatter.format(day)}</span>
+            </button>
           ))}
+        </div>
+        <div className="flex">
+          {hourGutter}
+          {renderDayColumn(days[mobileDayIndex], mobileDayIndex)}
+        </div>
+      </div>
+
+      {/* Desktop/tablet: full 7-day grid. */}
+      <div className="hidden overflow-x-auto sm:block">
+        <div className="flex min-w-[720px]">
+          {hourGutter}
+          {days.map((day, dayIndex) => renderDayColumn(day, dayIndex))}
         </div>
       </div>
     </div>
