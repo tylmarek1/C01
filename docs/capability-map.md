@@ -1,0 +1,166 @@
+# Engineering Capability Map
+
+A strategic map of Courtly's engineering maturity — what's strong,
+adequate, weak, or missing across product, backend, frontend, security,
+testing, and the `.claude/` engineering system itself. It exists so
+"how are we doing, where should we invest next" compounds across sessions
+instead of resetting to zero every time someone asks.
+
+**This is not a fourth copy of anything.** It doesn't restate root
+`CLAUDE.md`'s "Known pitfalls"/"Known gaps," `docs/project-state.md`'s
+gates, or `docs/codebase-map.md`'s module ownership — it points at them.
+It sits outside root `CLAUDE.md` §0's source-of-truth numbering the same
+way `docs/codebase-map.md` does: not a requirements source, a navigation
+and strategy aid. It is not exhaustive — a capability doesn't earn a row
+here just because it exists, only ones worth tracking status on.
+
+## How this gets updated
+
+- `improve-app` Mode A (a full audit) updates the relevant rows below as
+  part of its own Report step — see that skill.
+- `feature-development` Step 7's "Valuable, but separate" / "Future idea"
+  findings get one line added to the Backlog below, tagged by domain — see
+  that skill's Step 7.
+- Don't update this for routine feature/bugfix work that doesn't change a
+  status or surface a new finding — same bar as `codebase-map.md`'s own
+  "Keeping this current."
+- A closed Backlog line moves to "Recently closed," and gets deleted once
+  it's no longer useful context — this file describes current strategic
+  state, not a permanent changelog. `CHANGELOG.md`/git history is the
+  actual historical record.
+
+## Status legend
+
+**Strong** — solid, evidence-backed, no known gap worth tracking.
+**Adequate** — works, has a known limitation that isn't urgent.
+**Weak** — a real, current gap with some mitigation or low current impact.
+**Missing** — doesn't exist at all.
+
+---
+
+## Security
+
+| Capability | Status | Evidence | Last reviewed |
+|---|---|---|---|
+| Authentication (JWT + bcrypt) | Strong | ADR-003, `security.py`, `security-review` | 2026-09-22 |
+| Authorization (ownership/role checks) | Strong | Three clean dependency tiers (`get_current_user`/`_manager`/`_admin`); no missing ownership check found in an `auth.py`/`deps.py` audit | 2026-09-22 |
+| Auth abuse-resistance (brute-force/rate-limit) | **Missing** | No throttle/lockout on `/auth/login`, `/auth/register` — see Backlog | 2026-09-22 |
+| Input validation / injection | Strong | Pydantic + ORM-first, `security-review` | 2026-09-22 |
+| File upload handling | Strong | Server-generated filenames; decode+re-encode defeats polyglot files. Pixel-dimension cap relies on Pillow's implicit default — minor sub-item, see Backlog | 2026-09-22 |
+| Dependency/supply-chain audit | **Missing** | No `pip-audit`/`npm audit` practice anywhere | 2026-09-22 |
+| Account recovery (password reset) | **Missing** | No `/auth/forgot-password`; needs an email-delivery decision first | 2026-09-22 |
+| Secrets handling | Strong | `security-review`, ADR-003's documented dev fallback | 2026-09-22 |
+
+## Testing & quality
+
+| Capability | Status | Evidence | Last reviewed |
+|---|---|---|---|
+| Backend test coverage | Strong | 177 tests against real Postgres. Feature areas without an identically-named test file (`achievements.py`, `approval_service.py`, `waitlist_service.py`, `images.py`) are well-exercised indirectly — verified, not a gap | 2026-09-22 |
+| Concurrency/regression testing | Strong | `test_persistence_spike.py` pattern, timezone regression test | 2026-09-22 |
+| Frontend automated testing | **Missing** (deliberate) | `accessibility-responsive`'s manual checklist is the current substitute; documented and monitored, not silently accepted | 2026-09-22 |
+| Schema-change safety net | Adequate | No Alembic, no codegen — `schema-change-sweep`'s grep-based sweep mitigates, doesn't automate | 2026-09-22 |
+
+## Backend / architecture
+
+| Capability | Status | Evidence | Last reviewed |
+|---|---|---|---|
+| Reservation state machine | Strong | Exhaustive `ALLOWED_TRANSITIONS`, centralized guards. Concurrency safety is an API-layer convention (`lock=True` at call sites), not enforced inside `lifecycle.py` itself — see Backlog | 2026-09-22 |
+| Double-booking guarantee | Strong | ADR-001, Postgres exclusion constraint, regression-tested | 2026-09-22 |
+| Background worker reliability | **Weak** | All 5 housekeeping sub-tasks share one transaction (one failure silently blocks all 5 every tick); inconsistent row-locking across sub-tasks — see Backlog | 2026-09-22 |
+| API pagination | **Missing** | Every list endpoint is a full-table read — no `limit`/`offset` anywhere | 2026-09-22 |
+| Observability / logging | **Weak** | `import logging` appears in exactly one backend file (`worker.py`); no unhandled-exception logging anywhere in the API layer. No platform, by deliberate design (`production-readiness`) — but even the minimal level is missing | 2026-09-22 |
+| Migrations | **Missing** (deliberate) | No Alembic — known, documented gap (root `CLAUDE.md`) | 2026-09-22 |
+| CI/CD | **Missing** (deliberate) | Known, documented gap | 2026-09-22 |
+
+## Frontend / UX
+
+| Capability | Status | Evidence | Last reviewed |
+|---|---|---|---|
+| Court discovery/search | Strong | Debounced URL-synced search, sport tabs, amenity filters | 2026-09-22 |
+| Booking-flow error recovery | Strong | Form state preserved on failed mutation; one-click waitlist-join offered on a booking conflict | 2026-09-22 |
+| Admin reporting/export | Adequate | Raw reservation list exports to CSV with a status filter; the aggregate dashboard is a fixed 30-day window with no export | 2026-09-22 |
+| Mobile responsiveness (general) | Strong | `accessibility-responsive` checklist, whole-app polish pass (PR #19) | 2026-09-22 |
+| Mobile responsiveness (`week-calendar.tsx`) | **Weak** | Forces horizontal scroll at mobile width; the List-view toggle is an undiscoverable escape hatch | 2026-09-22 |
+| Notification UX | Adequate | Mark-all-read exists; no per-type mute/preferences (low urgency at current volume) | 2026-09-22 |
+
+## Product capabilities
+
+| Capability | Status | Evidence | Last reviewed |
+|---|---|---|---|
+| Core booking/approval/waitlist flow | Strong | C02 spec, 177 backend tests | 2026-09-22 |
+| Onboarding (new player) | Strong | Real empty state + CTA on a zero-reservation dashboard | 2026-09-22 |
+| Onboarding (new venue manager) | **Weak** | No confirmed guided setup for a zero-court manager; low severity since accounts are admin-provisioned | 2026-09-22 |
+| Account recovery | **Missing** | Cross-ref Security | 2026-09-22 |
+
+## Engineering system (`.claude/`)
+
+| Capability | Status | Evidence | Last reviewed |
+|---|---|---|---|
+| Risk-proportional review | Strong | `CLAUDE.md`'s "Review depth matches risk" table, `self-review`/`finish-task`/`improve-app` | 2026-09-22 |
+| Schema/type drift protection | Adequate | `schema-change-sweep` (mechanical grep, not a type system) | 2026-09-22 |
+| Continuous capability tracking | Strong (as of this file) | This file, plus `improve-app`/`feature-development` write-back | 2026-09-22 |
+| Adversarial/forced-finding review | Adequate | Added to `self-review` for High-risk changes — technique adapted from the external `adversarial-reviewer` skill, not imported wholesale | 2026-09-22 |
+
+---
+
+## Backlog
+
+Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
+`improve-app`'s existing vocabulary — not a new scheme.
+
+### Security / reliability
+- **[High]** No rate-limit/lockout on `/auth/login`, `/auth/register` (`backend/src/reservations/api/auth.py`) — code change, small.
+- **[High]** Worker: one failing sub-task silently blocks all 5 housekeeping tasks every tick (`worker.py`) — per-subtask try/except+commit, plus a regression test.
+- **[High]** Run `pip-audit`/`npm audit` once to baseline dependency vulnerabilities — one-off check, then a recurring `security-review` line.
+- **[Med]** Inconsistent row-locking across the worker's 5 sub-tasks (2 of 5 use `skip_locked`, 3 don't) — code change; dormant risk until the app is ever horizontally scaled.
+- **[Med]** No password-reset flow — needs an email-delivery decision first; a product decision, not silent scaffolding.
+- **[Med]** Reservation reschedule: unconfirmed whether it shares `ReservationCreate`'s slot/opening-hours validator, or has a drifted copy — verify first, add a test if it's a real gap.
+- **[Med]** Zero `logging` usage outside `worker.py` — a single unhandled-exception logging hook, not a platform.
+- **[Low]** No explicit pixel-dimension cap before Pillow decode in `images.py` (byte-size is capped; dimension relies on Pillow's implicit default) — one-line change.
+
+### Backend / architecture
+- **[Med]** `transition()`'s concurrency safety is an API-layer convention, not enforced inside `lifecycle.py` itself — make the locking contract an explicit docstring now; stronger enforcement only if it ever actually bites.
+- **[Med]** No pagination anywhere (`/reservations`, `/admin/reservations`, `/admin/users`, `/courts`) — full-stack feature; not urgent at current data scale.
+
+### Product / UX
+- **[Med]** `week-calendar.tsx` forces horizontal scroll at mobile width — a mobile single-day variant, or default to List view under a breakpoint.
+- **[Low-Med]** Admin stats fixed at a 30-day window, aggregate view doesn't export — API date-range param + UI picker.
+- **[Low]** No notification mute/preferences — defer until volume actually justifies it.
+- **[Low]** No guided setup for a freshly-promoted manager with zero courts — small UI addition.
+- **[Low]** Keyboard-only completability of the booking flow was inferred from source, never actually walked in a browser — a 10-minute manual verification.
+
+## Recently closed
+
+*(empty)*
+
+## Rejected (external skills evaluated, 2026-09-22)
+
+Source: `github.com/alirezarezvani/claude-skills`, `engineering-team/skills/`
+(27 skills). Full reasoning lives in the session that did this audit;
+verdicts only here, so the question doesn't get relitigated from scratch.
+
+- **SKIP** — `code-reviewer`, `security-pen-testing` (as a whole),
+  `senior-backend`, `senior-frontend`, `senior-fullstack`, `senior-devops`,
+  `named-persona-adversarial-review`, `engineering-skills` (meta index):
+  either high overlap with what Courtly already has more concretely
+  grounded, or built for a different scale/stack entirely (multi-tenant
+  SaaS with a chosen cloud target and its own agent framework; one
+  skill's "FastAPI" profile turned out to reference entirely Node.js/
+  Express code when actually opened).
+- **Absorbed as a technique, not imported** — `adversarial-reviewer`'s
+  forced multi-persona review (mandatory-finding rule) is now part of
+  `self-review`'s High-risk-change path instead of a separate skill.
+- **SKIP, confirmed out of domain by description** — the remaining ~17
+  (`ai-security`, the AWS/Azure/GCP cloud-architect skills, `cloud-security`,
+  `senior-data-engineer`, `senior-data-scientist`, `senior-ml-engineer`,
+  `senior-prompt-engineer`, `senior-computer-vision`, `incident-commander`,
+  `incident-response`, `red-team`, `ms365-tenant-manager`,
+  `embedded-iot-mentor`, `email-template-builder`, `epic-design`): no LLM
+  features, no chosen cloud target, no IoT/data/ML surface, and no
+  on-call process exist in Courtly.
+
+## Future exploration
+
+- `senior-architect`'s `dependency_analyzer.py` (external repo) — a real
+  code-parsing tool (cyclic-dependency detection), language-generic.
+  Worth a look once C03 (architecture phase) actually starts, not before.
