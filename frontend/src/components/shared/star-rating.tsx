@@ -1,6 +1,7 @@
 import { Star } from "lucide-react"
 import { useState } from "react"
 
+import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 interface StarRatingProps {
@@ -33,6 +34,7 @@ interface StarRatingInputProps {
 /** Interactive 1-5 star picker for submitting a review. */
 function StarRatingInput({ value, onChange, className }: StarRatingInputProps) {
   const [hovered, setHovered] = useState<number | null>(null)
+  const { t } = useTranslation()
   const shown = hovered ?? value
 
   return (
@@ -47,8 +49,8 @@ function StarRatingInput({ value, onChange, className }: StarRatingInputProps) {
             onClick={() => onChange(starValue)}
             onMouseEnter={() => setHovered(starValue)}
             onMouseLeave={() => setHovered(null)}
-            className="rounded p-0.5 transition-transform hover:scale-110"
-            aria-label={`Rate ${starValue} star${starValue > 1 ? "s" : ""}`}
+            className="flex size-9 items-center justify-center rounded-full transition-transform hover:scale-110"
+            aria-label={t("starRating.ariaLabel", { count: starValue })}
           >
             <Star className={cn("size-6", filled ? "fill-amber-400 text-amber-400" : "text-hairline")} />
           </button>

@@ -29,4 +29,21 @@ function AppLayout() {
   )
 }
 
-export { AppLayout }
+/** The authenticated `/app/*` shell — same navbar, but a slim footer instead
+ * of the marketing one, so the product area reads as a focused workspace
+ * rather than a page that happens to sit below a pricing/sport-browse footer. */
+function AppShellLayout() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <Navbar />
+      <main className="flex-1">
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Outlet />
+        </Suspense>
+      </main>
+      <Footer variant="minimal" />
+    </div>
+  )
+}
+
+export { AppLayout, AppShellLayout }

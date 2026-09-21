@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, CalendarClock, Heart, MapPin, ThumbsUp } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CalendarClock, Heart, MapPin, ThumbsUp } from "lucide-react"
 import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -105,6 +105,12 @@ function CourtDetailPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
+      <Link
+        to="/courts"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-slate-gray transition-colors hover:text-ink-navy"
+      >
+        <ArrowLeft className="size-4" /> {t("courtDetail.backToCourts")}
+      </Link>
       {isLoadingCourt || !court ? (
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <Skeleton className="aspect-[16/10] w-full rounded-2xl" />
@@ -216,7 +222,7 @@ function CourtDetailPage() {
             </div>
           </div>
 
-          <Card className="h-fit gap-5">
+          <Card className="h-fit gap-5 lg:sticky lg:top-20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarClock className="size-5 text-signal-blue" /> {t("courtDetail.occupancy.title")}

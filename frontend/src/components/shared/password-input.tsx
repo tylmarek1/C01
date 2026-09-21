@@ -2,10 +2,12 @@ import * as React from "react"
 import { Eye, EyeOff } from "lucide-react"
 
 import { Input } from "@/components/shared/input"
+import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 function PasswordInput({ className, ...props }: React.ComponentProps<typeof Input>) {
   const [visible, setVisible] = React.useState(false)
+  const { t } = useTranslation()
 
   return (
     <div className="relative">
@@ -15,7 +17,7 @@ function PasswordInput({ className, ...props }: React.ComponentProps<typeof Inpu
         onClick={() => setVisible((v) => !v)}
         tabIndex={-1}
         className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-gray transition-colors hover:text-ink-navy"
-        aria-label={visible ? "Hide password" : "Show password"}
+        aria-label={visible ? t("passwordInput.hide") : t("passwordInput.show")}
       >
         {visible ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
       </button>

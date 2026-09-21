@@ -102,7 +102,6 @@ function RegisterPage() {
             onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder={t("auth.field.confirmPasswordPlaceholder")}
             aria-invalid={passwordsMismatch}
-            className={passwordsMismatch ? "border-destructive focus-visible:border-destructive" : undefined}
           />
           {passwordsMismatch && <p className="text-sm text-destructive">{t("auth.error.passwordMismatch")}</p>}
         </div>

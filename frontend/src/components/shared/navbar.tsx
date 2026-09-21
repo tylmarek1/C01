@@ -146,7 +146,7 @@ function Navbar() {
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
             className="flex size-9 items-center justify-center rounded-lg text-ink-navy hover:bg-pebble md:hidden"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileOpen ? t("nav.menu.close") : t("nav.menu.open")}
           >
             {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>

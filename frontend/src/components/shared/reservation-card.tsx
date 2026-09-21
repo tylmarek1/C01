@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { CalendarClock, CalendarPlus, Clock3, Coins, Star, UserPlus, Users } from "lucide-react"
+import { CalendarClock, CalendarPlus, Clock3, Coins, MoreHorizontal, Star, UserPlus, Users } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -14,6 +14,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/shared/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/shared/dropdown-menu"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
 import { Skeleton } from "@/components/shared/skeleton"
@@ -30,10 +36,17 @@ import type { Reservation } from "@/types"
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" })
 
-function SplitCostDialog({ reservation }: { reservation: Reservation }) {
+function SplitCostDialog({
+  reservation,
+  open,
+  onOpenChange,
+}: {
+  reservation: Reservation
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const { token } = useAuth()
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ["reservation-split", reservation.id],
@@ -42,12 +55,7 @@ function SplitCostDialog({ reservation }: { reservation: Reservation }) {
   })
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          <Coins className="size-3.5" /> {t("reservationCard.split.button")}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("split.dialog.title")}</DialogTitle>
@@ -86,13 +94,16 @@ function OpenToJoinDialog({
   reservation,
   onSave,
   isSaving,
+  open,
+  onOpenChange,
 }: {
   reservation: Reservation
   onSave: (openToJoin: boolean, note: string) => void
   isSaving: boolean
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
   const [enabled, setEnabled] = useState(reservation.open_to_join)
   const [note, setNote] = useState(reservation.open_note ?? "")
 
@@ -100,18 +111,13 @@ function OpenToJoinDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        setOpen(next)
+        onOpenChange(next)
         if (next) {
           setEnabled(reservation.open_to_join)
           setNote(reservation.open_note ?? "")
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button size="sm" variant={reservation.open_to_join ? "dark" : "outline"}>
-          <Users className="size-3.5" /> {t("reservationCard.openToJoin.button")}
-        </Button>
-      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("reservationCard.openToJoin.title")}</DialogTitle>
@@ -132,14 +138,14 @@ function OpenToJoinDialog({
           />
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </Button>
           <Button
             disabled={isSaving}
             onClick={() => {
               onSave(enabled, note.trim())
-              setOpen(false)
+              onOpenChange(false)
             }}
           >
             {t("reservationCard.openToJoin.save")}
@@ -187,6 +193,8 @@ function ReservationCard({
   const [guestOpen, setGuestOpen] = useState(false)
   const [guestEmail, setGuestEmail] = useState("")
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [splitOpen, setSplitOpen] = useState(false)
+  const [openToJoinOpen, setOpenToJoinOpen] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
   const start = new Date(reservation.start_time)
@@ -214,6 +222,10 @@ function ReservationCard({
   const canReview = status === "COMPLETED" && !hasReview && Boolean(onSubmitReview)
   const canOpenToJoin = status === "CONFIRMED" && Boolean(onSetOpen)
   const canSplit = status !== "CANCELLED" && status !== "EXPIRED" && status !== "REJECTED"
+  const canExportCalendar = status === "CONFIRMED" || status === "CHECKED_IN" || status === "COMPLETED"
+  // Lower-frequency utility actions live behind the "more" menu so the primary
+  // action (confirm/check-in/review) and cancel stay the clear focal points.
+  const hasMoreActions = canExportCalendar || canSplit || canOpenToJoin || canInviteGuest || canReschedule
 
   function submitReschedule() {
     const newStart = new Date(`${date}T${time}:00`)
@@ -290,29 +302,58 @@ function ReservationCard({
           </Button>
         )}
 
-        {(status === "CONFIRMED" || status === "CHECKED_IN" || status === "COMPLETED") && (
-          <Button size="sm" variant="outline" disabled={icsMutation.isPending} onClick={() => icsMutation.mutate()}>
-            <CalendarPlus className="size-3.5" /> {t("reservationCard.calendar.button")}
-          </Button>
+        {hasMoreActions && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="px-2.5" disabled={isBusy}>
+                <MoreHorizontal className="size-3.5" />
+                <span className="sr-only">{t("reservationCard.moreActions")}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canExportCalendar && (
+                <DropdownMenuItem disabled={icsMutation.isPending} onSelect={() => icsMutation.mutate()}>
+                  <CalendarPlus /> {t("reservationCard.calendar.button")}
+                </DropdownMenuItem>
+              )}
+              {canSplit && (
+                <DropdownMenuItem onSelect={() => setSplitOpen(true)}>
+                  <Coins /> {t("reservationCard.split.button")}
+                </DropdownMenuItem>
+              )}
+              {canOpenToJoin && (
+                <DropdownMenuItem onSelect={() => setOpenToJoinOpen(true)}>
+                  <Users /> {t("reservationCard.openToJoin.button")}
+                </DropdownMenuItem>
+              )}
+              {canInviteGuest && (
+                <DropdownMenuItem onSelect={() => setGuestOpen(true)}>
+                  <UserPlus /> {t("reservationCard.invite")}
+                </DropdownMenuItem>
+              )}
+              {canReschedule && (
+                <DropdownMenuItem onSelect={() => setRescheduleOpen(true)}>
+                  <CalendarClock /> {t("reservationCard.reschedule")}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
 
-        {canSplit && <SplitCostDialog reservation={reservation} />}
+        {canSplit && <SplitCostDialog reservation={reservation} open={splitOpen} onOpenChange={setSplitOpen} />}
 
         {canOpenToJoin && (
           <OpenToJoinDialog
             reservation={reservation}
             isSaving={isSettingOpen}
             onSave={(openToJoin, note) => onSetOpen?.(reservation, openToJoin, note)}
+            open={openToJoinOpen}
+            onOpenChange={setOpenToJoinOpen}
           />
         )}
 
         {canInviteGuest && (
           <Dialog open={guestOpen} onOpenChange={setGuestOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" disabled={isBusy}>
-                <UserPlus className="size-3.5" /> {t("reservationCard.invite")}
-              </Button>
-            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{t("reservationCard.guest.title")}</DialogTitle>
@@ -373,11 +414,6 @@ function ReservationCard({
 
         {canReschedule && (
           <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" disabled={isBusy}>
-                {t("reservationCard.reschedule")}
-              </Button>
-            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{t("reservationCard.reschedule.title")}</DialogTitle>
