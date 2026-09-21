@@ -122,14 +122,17 @@ Nothing here invents C03's content — the course hasn't handed it out yet.
 When it does: paste it verbatim into `docs/course/C03.md`, the same way
 `docs/course/C01.md`/`C02.md` were added (root `CLAUDE.md` §0's rule
 against copying course text applies to every other file, not this one).
-Everything else already points at it once it exists: root `CLAUDE.md`'s
-routing table, and this file's "Architectural drivers carried into C03"
-section is exactly the input C03 is meant to start from (it's the record
-of what C02 already flagged as an open architectural question — read it
-before designing anything, don't re-derive it). A `.claude/workflows/
-c03.md` can be added then, following the same shape as `c01.md`/
-`c02-baseline.md`; there's nothing to add speculatively before the actual
-assignment exists.
+Root `CLAUDE.md`'s routing table's "připrav mě na C03" row already checks
+for this file's existence, so that row needs no edit. This file's
+"Architectural drivers carried into C03" section is exactly the input C03
+is meant to start from (it's the record of what C02 already flagged as an
+open architectural question — read it before designing anything, don't
+re-derive it). A `.claude/workflows/c03.md` can be added then, following
+the same shape as `c01.md`/`c02-baseline.md`; if you add it, also add it
+to the routing table's "dokonči C02" row's workflow list (currently
+`c01.md` / `c02-baseline.md` / `c02-change.md`) so picking up course work
+still resolves to the right file once C03 is the active phase. There's
+nothing to add speculatively before the actual assignment exists.
 
 ---
 
