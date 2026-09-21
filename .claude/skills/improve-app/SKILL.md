@@ -115,6 +115,16 @@ ideas instead of debt items, but keep them tied to what you actually
 inspected — never generic ("add gamification," "add a mobile app") unless
 it's a direct, specific extension of something that already exists here.
 
+### Update the capability map
+
+After a full Mode A audit (not the lightweight Mode B check), update the
+relevant rows in `docs/capability-map.md`: a status that changed (Weak →
+Strong once something's fixed, or a newly-discovered Weak/Missing), and
+one line per new finding under its Backlog section. Targeted edits only —
+same discipline as `docs/codebase-map.md`'s own "Keeping this current,"
+not a rewrite. This is what makes findings compound across sessions
+instead of living only in a chat reply that's gone by the next one.
+
 ### Then: act, when the request was action-oriented
 
 "Improve the app" and "find weaknesses" are different asks. If the request

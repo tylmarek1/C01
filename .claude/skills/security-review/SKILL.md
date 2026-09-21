@@ -13,6 +13,13 @@ re-implement token decoding in a new router. `SECRET_KEY` has an insecure
 local-dev fallback (ADR-003) — that's deliberate, not a bug; flag it only if
 asked to prepare something for beyond local development.
 
+**Abuse-resistance.** `/auth/login` and `/auth/register` currently have no
+rate-limit or lockout — a known, tracked gap (`docs/capability-map.md`'s
+Backlog), not a precedent to match. Don't add another unthrottled
+auth-adjacent endpoint (password reset, a token-reissue endpoint, etc.) on
+the assumption that's the existing convention — ask whether it needs its
+own throttle instead of copying the gap forward.
+
 ## Authorization — the check that's easy to skip
 
 Two dependency layers exist: `get_current_user` (any authenticated user) and
@@ -76,6 +83,18 @@ codebase has hit this exact class of bug before (a client-side-only
 lead-time validation gap caught by manual testing, per project history) —
 if you add a frontend-side validation, confirm the backend enforces the same
 rule independently.
+
+## Dependency / supply-chain audit
+
+Before a security-sensitive or release-scale change, run `uvx pip-audit`
+(backend) and `npm audit` (frontend) — this project pins dependencies but
+has no recurring check that a pinned version isn't a known CVE. Treat a
+new High/Critical finding surfaced by either as blocking for that change;
+a pre-existing finding unrelated to what you're touching is worth flagging
+(`docs/capability-map.md`), not necessarily fixing inline. Don't reach for
+a bespoke vulnerability scanner or a hardcoded CVE list for this — the
+ecosystem tools already query a live database, which anything hand-rolled
+here wouldn't.
 
 ## When to use this
 

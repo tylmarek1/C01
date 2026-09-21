@@ -224,6 +224,13 @@ finding belongs in `improve-app` (a full audit) or, for an already-working
 feature that just needs elevating, `polish` — not a scope expansion of the
 current task.
 
+For a **Valuable, but separate** or **Future idea** finding, also tag which
+domain it belongs to (security / UX / architecture / testing / performance
+/ reliability / developer-experience / missing product capability) and add
+one line to `docs/capability-map.md`'s Backlog — don't let it only live in
+the chat report, or it's gone the moment this conversation ends. One line,
+not a rewrite of the map.
+
 ## Report
 
 State what you built, across which layers, what you verified, and any

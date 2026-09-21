@@ -78,6 +78,33 @@ not from memory of what you meant to do.
   genuinely worth doing (see `improve-app`), don't fold them in silently.
 - Is the diff the smallest change that correctly implements the request?
 
+## Adversarial pass (High-risk changes only)
+
+For anything root `CLAUDE.md`'s "Review depth matches risk" table calls
+High-risk (reservation concurrency/the exclusion constraint, auth/
+authorization, a `lifecycle.py` transition, a database schema/migration
+change, a large cross-layer change), do one more pass after the checklist
+above: reviewing your own just-written code shares your own blind spots,
+so a checklist alone doesn't force a genuine second look. Adopt three
+hostile perspectives in sequence, and require **at least one finding from
+each** — if a persona finds nothing, that means look again, not that the
+diff is clean:
+
+- **Saboteur** — how does this break in production? Bad input, a
+  concurrent request, a resource leak, a crash mid-operation.
+- **New Hire** — could someone unfamiliar with this code understand it in
+  under three file-hops, six months from now, with no memory of why it's
+  shaped this way?
+- **Security Auditor** — walk the trust boundaries this diff actually
+  touches (see this skill's own Security section) as if you didn't write
+  the ownership/validation logic yourself.
+
+A finding two personas independently raise is a stronger signal than one
+only one persona caught — weight it accordingly in what you fix now versus
+flag. This is a technique, not a new review layer to reach for by
+default — it only applies at the High-risk tier above; don't run it on an
+ordinary feature or bugfix.
+
 ## Report
 
 List what you checked from the sections above that were actually relevant to

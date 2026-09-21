@@ -59,6 +59,13 @@ this file's *how to work* so neither grows into doing the other's job.
 Read it early for orientation, keep it current per its own "Keeping this
 current" section, and see `update-docs` for the trigger.
 
+`docs/capability-map.md` sits outside the numbering the same way: not a
+requirements source, a strategic map of engineering maturity (security,
+testing, backend, frontend, product, the `.claude/` system itself) —
+what's strong, weak, or missing, and the resulting backlog. It's updated
+by `improve-app` (after a full audit) and `feature-development` Step 7
+(a "valuable but separate" finding), not rewritten by hand each session.
+
 Within layers 2 and 4, some files are **point-in-time records** — never
 edit their substance to match newer code, only fix an actual error:
 `docs/intent-and-change.md` (the Project Frame) and `docs/specification-
@@ -93,6 +100,7 @@ table is how a short prompt actually finds one.
 | "přidej X" / "add X" / "improve reservations" | `.claude/workflows/feature.md` |
 | "oprav X" / "fix X" | `.claude/workflows/bug-fix.md` |
 | "vylepši aplikaci" / "improve the app" / "find weaknesses" | `.claude/workflows/improve-app.md` |
+| "kde jsme silní/slabí" / "what's our capability gap" / audit the engineering system itself | `docs/capability-map.md` first (current status + backlog), then `.claude/workflows/improve-app.md` if a fresh full audit is actually needed |
 | preparing a hand-in, cutting a release | `.claude/workflows/release.md` |
 
 A workflow orchestrates *order*; the skills table further down still does
@@ -105,6 +113,7 @@ sweeping multi-file edits, whichever workflow applies.
 
 ```
 docs/codebase-map.md                where modules/pages live and what they're responsible for — not a source-of-truth layer, a navigation aid (see below)
+docs/capability-map.md              engineering maturity map + backlog — strong/weak/missing across security/testing/backend/frontend/product; not a source-of-truth layer either
 docs/course/                        the course assignments, verbatim (C01.md, C02.md, ...) — layer 1
 docs/project-state.md               current phase, gates, drivers — layer 3
 docs/definition-of-done.md          the evidence-backed-completion rule (not a checklist)
