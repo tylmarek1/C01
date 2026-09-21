@@ -561,7 +561,8 @@ const en = {
   "weekday.6": "Sun",
 
   "admin.overview.totalReservations": "total reservations",
-  "admin.overview.last30Days": "last 30 days",
+  "admin.overview.reservationsInWindow": "in the last {days} days",
+  "admin.overview.windowDays": "{days}d",
   "admin.overview.noShowRate": "no-show rate",
   "admin.overview.players": "players",
   "admin.overview.courts": "courts",

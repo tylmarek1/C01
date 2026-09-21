@@ -563,7 +563,8 @@ const cs: Record<TranslationKey, string> = {
   "weekday.6": "Ne",
 
   "admin.overview.totalReservations": "celkem rezervací",
-  "admin.overview.last30Days": "za posledních 30 dní",
+  "admin.overview.reservationsInWindow": "za posledních {days} dní",
+  "admin.overview.windowDays": "{days}d",
   "admin.overview.noShowRate": "míra nedostavení se",
   "admin.overview.players": "hráčů",
   "admin.overview.courts": "kurtů",

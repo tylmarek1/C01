@@ -285,14 +285,16 @@ export const api = {
   listSharedWithMe: (token: string) => request<Reservation[]>("/reservations/shared-with-me", {}, token),
 
   // Admin analytics + user management
-  getAdminStats: (token: string) => request<AdminStats>("/admin/stats", {}, token),
+  getAdminStats: (token: string, days?: number) =>
+    request<AdminStats>(`/admin/stats${buildQuery({ days })}`, {}, token),
 
   listAdminUsers: (token: string) => request<UserAdmin[]>("/admin/users", {}, token),
 
   updateUserRole: (token: string, userId: string, role: UserRole) =>
     request<UserAdmin>(`/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) }, token),
 
-  exportReservationsCsv: (token: string) => downloadAuthedFile("/admin/reservations/export.csv", token, "reservations.csv"),
+  exportReservationsCsv: (token: string, status?: ReservationStatus) =>
+    downloadAuthedFile(`/admin/reservations/export.csv${buildQuery({ status })}`, token, "reservations.csv"),
 
   getCourtUtilization: (token: string, courtId: string, days?: number) =>
     request<CourtUtilization>(`/admin/courts/${courtId}/utilization${buildQuery({ days })}`, {}, token),
