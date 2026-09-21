@@ -44,7 +44,7 @@ here just because it exists, only ones worth tracking status on.
 |---|---|---|---|
 | Authentication (JWT + bcrypt) | Strong | ADR-003, `security.py`, `security-review` | 2026-09-22 |
 | Authorization (ownership/role checks) | Strong | Three clean dependency tiers (`get_current_user`/`_manager`/`_admin`); no missing ownership check found in an `auth.py`/`deps.py` audit | 2026-09-22 |
-| Auth abuse-resistance (brute-force/rate-limit) | **Missing** | No throttle/lockout on `/auth/login`, `/auth/register` — see Backlog | 2026-09-22 |
+| Auth abuse-resistance (brute-force/rate-limit) | Adequate | In-memory per-process throttle on `/auth/login` (per-email, 10/5min, resets on success) and `/auth/register` (per-IP, 10/hr) — `rate_limit.py`, tested in `test_auth.py`. Adequate not Strong: single-process only, no shared store if ever scaled | 2026-09-22 |
 | Input validation / injection | Strong | Pydantic + ORM-first, `security-review` | 2026-09-22 |
 | File upload handling | Strong | Server-generated filenames; decode+re-encode defeats polyglot files. Pixel-dimension cap relies on Pillow's implicit default — minor sub-item, see Backlog | 2026-09-22 |
 | Dependency/supply-chain audit | **Missing** | No `pip-audit`/`npm audit` practice anywhere | 2026-09-22 |
@@ -109,7 +109,6 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 `improve-app`'s existing vocabulary — not a new scheme.
 
 ### Security / reliability
-- **[High]** No rate-limit/lockout on `/auth/login`, `/auth/register` (`backend/src/reservations/api/auth.py`) — code change, small.
 - **[High]** Worker: one failing sub-task silently blocks all 5 housekeeping tasks every tick (`worker.py`) — per-subtask try/except+commit, plus a regression test.
 - **[High]** Run `pip-audit`/`npm audit` once to baseline dependency vulnerabilities — one-off check, then a recurring `security-review` line.
 - **[Med]** Inconsistent row-locking across the worker's 5 sub-tasks (2 of 5 use `skip_locked`, 3 don't) — code change; dormant risk until the app is ever horizontally scaled.
@@ -131,7 +130,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
-*(empty)*
+- Auth rate-limiting on `/auth/login`/`/auth/register` — `rate_limit.py`, PR merging `security/auth-rate-limit`.
 
 ## Rejected (external skills evaluated, 2026-09-22)
 

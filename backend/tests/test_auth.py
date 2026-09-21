@@ -21,7 +21,9 @@ def test_register_then_me(session_factory: sessionmaker) -> None:
     assert body["user"]["email"] == "alice@example.com"
     assert body["user"]["role"] == "PLAYER"
 
-    me = client.get("/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})
+    me = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"}
+    )
     assert me.status_code == 200
     assert me.json()["email"] == "alice@example.com"
 
@@ -46,7 +48,9 @@ def test_login_wrong_password_rejected(session_factory: sessionmaker) -> None:
         json={"name": "Carl", "email": "carl@example.com", "password": "supersecret"},
     )
 
-    response = client.post("/auth/login", json={"email": "carl@example.com", "password": "wrong-password"})
+    response = client.post(
+        "/auth/login", json={"email": "carl@example.com", "password": "wrong-password"}
+    )
 
     assert response.status_code == 401
 
@@ -58,7 +62,9 @@ def test_login_success_returns_token(session_factory: sessionmaker) -> None:
         json={"name": "Dana", "email": "dana@example.com", "password": "supersecret"},
     )
 
-    response = client.post("/auth/login", json={"email": "dana@example.com", "password": "supersecret"})
+    response = client.post(
+        "/auth/login", json={"email": "dana@example.com", "password": "supersecret"}
+    )
 
     assert response.status_code == 200
     assert response.json()["access_token"]
@@ -77,7 +83,9 @@ def test_update_profile_changes_name(session_factory: sessionmaker) -> None:
     token = _register(client, "liam@example.com")
 
     response = client.patch(
-        "/auth/me", json={"name": "Liam Updated"}, headers={"Authorization": f"Bearer {token}"}
+        "/auth/me",
+        json={"name": "Liam Updated"},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 200
@@ -114,6 +122,89 @@ def test_upload_avatar_compresses_and_stores_image(
     assert stored_file.exists()
     with Image.open(stored_file) as stored_image:
         assert stored_image.size == (512, 512)
+
+
+def test_login_is_rate_limited_after_repeated_failures(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    client.post(
+        "/auth/register",
+        json={"name": "Eve", "email": "eve@example.com", "password": "supersecret"},
+    )
+
+    for _ in range(10):
+        response = client.post(
+            "/auth/login",
+            json={"email": "eve@example.com", "password": "wrong-password"},
+        )
+        assert response.status_code == 401
+
+    limited = client.post(
+        "/auth/login", json={"email": "eve@example.com", "password": "wrong-password"}
+    )
+    assert limited.status_code == 429
+
+    # A correct password is blocked too while the window is exhausted —
+    # the limiter can't tell "attacker" from "user who forgot" apart.
+    still_limited = client.post(
+        "/auth/login", json={"email": "eve@example.com", "password": "supersecret"}
+    )
+    assert still_limited.status_code == 429
+
+
+def test_login_success_resets_the_rate_limit(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    client.post(
+        "/auth/register",
+        json={"name": "Frank", "email": "frank@example.com", "password": "supersecret"},
+    )
+
+    for _ in range(5):
+        assert (
+            client.post(
+                "/auth/login",
+                json={"email": "frank@example.com", "password": "wrong-password"},
+            ).status_code
+            == 401
+        )
+
+    success = client.post(
+        "/auth/login", json={"email": "frank@example.com", "password": "supersecret"}
+    )
+    assert success.status_code == 200
+
+    # The successful login reset the window, so a fresh mistake right after
+    # isn't treated as the 7th attempt in the same window.
+    retry = client.post(
+        "/auth/login", json={"email": "frank@example.com", "password": "wrong-password"}
+    )
+    assert retry.status_code == 401
+
+
+def test_register_is_rate_limited_per_ip(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+
+    for i in range(10):
+        response = client.post(
+            "/auth/register",
+            json={
+                "name": "Bot",
+                "email": f"bot{i}@example.com",
+                "password": "supersecret",
+            },
+        )
+        assert response.status_code == 201
+
+    limited = client.post(
+        "/auth/register",
+        json={
+            "name": "Bot",
+            "email": "bot-overflow@example.com",
+            "password": "supersecret",
+        },
+    )
+    assert limited.status_code == 429
 
 
 def test_upload_avatar_rejects_non_image(
