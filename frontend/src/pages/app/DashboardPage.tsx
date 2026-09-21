@@ -118,8 +118,8 @@ function DashboardPage() {
 
   const confirmMutation = useMutation({
     mutationFn: (reservation: Reservation) => api.confirmReservation(token!, reservation.id),
-    onSuccess: () => {
-      toast.success(t("dashboard.toast.confirmed"))
+    onSuccess: (confirmed) => {
+      toast.success(t(confirmed.status === "PENDING_APPROVAL" ? "dashboard.toast.submitted" : "dashboard.toast.confirmed"))
       invalidate()
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("dashboard.error.confirm")),

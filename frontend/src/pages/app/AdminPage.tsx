@@ -57,6 +57,7 @@ interface CourtFormValues {
   name: string
   sport_type: SportType
   indoor: boolean
+  requires_approval: boolean
   description: string
   amenities: Amenity[]
   price_per_hour: string
@@ -66,6 +67,7 @@ const EMPTY_FORM: CourtFormValues = {
   name: "",
   sport_type: "TENNIS",
   indoor: false,
+  requires_approval: false,
   description: "",
   amenities: [],
   price_per_hour: "",
@@ -77,6 +79,7 @@ function formValuesFromCourt(court?: Court): CourtFormValues {
     name: court.name,
     sport_type: court.sport_type,
     indoor: court.indoor,
+    requires_approval: court.requires_approval,
     description: court.description ?? "",
     amenities: court.amenities,
     price_per_hour: court.price_per_hour !== null ? String(court.price_per_hour) : "",
@@ -209,6 +212,17 @@ function CourtFormDialog({
                   {values.indoor ? t("admin.court.indoorCourt") : t("admin.court.outdoorCourt")}
                 </span>
               </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>{t("admin.court.requiresApproval")}</Label>
+            <div className="flex items-center gap-2.5">
+              <Switch
+                checked={values.requires_approval}
+                onCheckedChange={(checked) => setValues((v) => ({ ...v, requires_approval: checked }))}
+              />
+              <span className="text-sm text-slate-gray">{t("admin.court.requiresApprovalHint")}</span>
             </div>
           </div>
 
@@ -376,6 +390,7 @@ function CourtsTab() {
         name: values.name,
         sport_type: values.sport_type,
         indoor: values.indoor,
+        requires_approval: values.requires_approval,
         description: values.description || undefined,
         amenities: values.amenities,
         price_per_hour: values.price_per_hour === "" ? undefined : Number(values.price_per_hour),
@@ -444,6 +459,7 @@ function CourtsTab() {
                           name: values.name,
                           sport_type: values.sport_type,
                           indoor: values.indoor,
+                          requires_approval: values.requires_approval,
                           description: values.description || undefined,
                           amenities: values.amenities,
                           price_per_hour: values.price_per_hour === "" ? null : Number(values.price_per_hour),
@@ -460,7 +476,10 @@ function CourtsTab() {
                 </div>
               </div>
               <div className="flex items-center justify-between border-t border-hairline pt-3">
-                <span className="text-sm text-slate-gray">{court.active ? t("admin.court.visible") : t("admin.court.hidden")}</span>
+                <span className="flex flex-wrap items-center gap-2 text-sm text-slate-gray">
+                  {court.active ? t("admin.court.visible") : t("admin.court.hidden")}
+                  {court.requires_approval && <Badge variant="warning">{t("courts.requiresApproval")}</Badge>}
+                </span>
                 <Switch
                   checked={court.active}
                   onCheckedChange={(checked) => updateMutation.mutate({ id: court.id, values: { active: checked } })}
@@ -477,15 +496,17 @@ function CourtsTab() {
 const STATUS_FILTERS: (ReservationStatus | "ALL")[] = [
   "ALL",
   "PENDING",
+  "PENDING_APPROVAL",
   "CONFIRMED",
   "CHECKED_IN",
   "COMPLETED",
   "CANCELLED",
   "EXPIRED",
+  "REJECTED",
   "NO_SHOW",
 ]
 
-const CANCELLABLE_STATUSES: ReservationStatus[] = ["PENDING", "CONFIRMED"]
+const CANCELLABLE_STATUSES: ReservationStatus[] = ["PENDING", "PENDING_APPROVAL", "CONFIRMED"]
 
 function ReservationHistoryDialog({ reservation, trigger }: { reservation: ReservationAdmin; trigger: ReactNode }) {
   const { token } = useAuth()
@@ -532,6 +553,7 @@ function ReservationsTab() {
   const queryClient = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "ALL">("ALL")
   const [cancelTarget, setCancelTarget] = useState<ReservationAdmin | null>(null)
+  const [rejectTarget, setRejectTarget] = useState<ReservationAdmin | null>(null)
 
   const { data: reservations, isLoading } = useQuery({
     queryKey: ["admin-reservations", statusFilter],
@@ -552,11 +574,32 @@ function ReservationsTab() {
 
   const confirmMutation = useMutation({
     mutationFn: (reservation: ReservationAdmin) => api.confirmReservation(token!, reservation.id),
-    onSuccess: () => {
-      toast.success(t("admin.toast.reservationConfirmed"))
+    onSuccess: (confirmed) => {
+      toast.success(
+        t(confirmed.status === "PENDING_APPROVAL" ? "admin.toast.reservationSubmitted" : "admin.toast.reservationConfirmed"),
+      )
       invalidate()
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationConfirm")),
+  })
+
+  const approveMutation = useMutation({
+    mutationFn: (reservation: ReservationAdmin) => api.approveReservation(token!, reservation.id),
+    onSuccess: () => {
+      toast.success(t("admin.toast.reservationApproved"))
+      invalidate()
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationApprove")),
+  })
+
+  const rejectMutation = useMutation({
+    mutationFn: (reservation: ReservationAdmin) => api.rejectReservation(token!, reservation.id),
+    onSuccess: () => {
+      toast.success(t("admin.toast.reservationRejected"))
+      setRejectTarget(null)
+      invalidate()
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationReject")),
   })
 
   const checkInMutation = useMutation({
@@ -568,7 +611,12 @@ function ReservationsTab() {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationCheckIn")),
   })
 
-  const isBusy = cancelMutation.isPending || confirmMutation.isPending || checkInMutation.isPending
+  const isBusy =
+    cancelMutation.isPending ||
+    confirmMutation.isPending ||
+    checkInMutation.isPending ||
+    approveMutation.isPending ||
+    rejectMutation.isPending
 
   const exportMutation = useMutation({
     mutationFn: () => api.exportReservationsCsv(token!),
@@ -626,6 +674,16 @@ function ReservationsTab() {
                   {t("admin.reservations.confirm")}
                 </Button>
               )}
+              {reservation.status === "PENDING_APPROVAL" && (
+                <>
+                  <Button size="sm" disabled={isBusy} onClick={() => approveMutation.mutate(reservation)}>
+                    {t("admin.reservations.approve")}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={isBusy} onClick={() => setRejectTarget(reservation)}>
+                    {t("admin.reservations.reject")}
+                  </Button>
+                </>
+              )}
               {reservation.status === "CONFIRMED" && (
                 <Button size="sm" variant="dark" disabled={isBusy} onClick={() => checkInMutation.mutate(reservation)}>
                   {t("admin.reservations.checkIn")}
@@ -657,6 +715,16 @@ function ReservationsTab() {
         confirmLabel={t("confirmDialog.cancelReservation.confirm")}
         isLoading={cancelMutation.isPending}
         onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(rejectTarget)}
+        onOpenChange={(open) => !open && setRejectTarget(null)}
+        title={t("confirmDialog.rejectReservation.title")}
+        description={t("confirmDialog.rejectReservation.description")}
+        confirmLabel={t("confirmDialog.rejectReservation.confirm")}
+        isLoading={rejectMutation.isPending}
+        onConfirm={() => rejectTarget && rejectMutation.mutate(rejectTarget)}
       />
     </div>
   )
@@ -812,7 +880,17 @@ function AvailabilityTab() {
   )
 }
 
-const STATUS_ORDER: ReservationStatus[] = ["PENDING", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED", "EXPIRED", "NO_SHOW"]
+const STATUS_ORDER: ReservationStatus[] = [
+  "PENDING",
+  "PENDING_APPROVAL",
+  "CONFIRMED",
+  "CHECKED_IN",
+  "COMPLETED",
+  "CANCELLED",
+  "EXPIRED",
+  "REJECTED",
+  "NO_SHOW",
+]
 
 function BarRow({ label, value, max, suffix = "" }: { label: string; value: number; max: number; suffix?: string }) {
   const width = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0

@@ -221,6 +221,12 @@ function BookCourtPage() {
               />
             </div>
 
+            {selectedCourt?.requires_approval && (
+              <p className="rounded-xl border border-hairline bg-pebble p-3 text-sm text-slate-gray">
+                {t("book.requiresApprovalNote")}
+              </p>
+            )}
+
             {selectedCourt && availability && (
               <div className="flex flex-col gap-2">
                 <Label>{t("book.occupancyTitle", { court: selectedCourt.name })}</Label>

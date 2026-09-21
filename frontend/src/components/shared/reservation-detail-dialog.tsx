@@ -18,11 +18,13 @@ import type { Reservation, ReservationEventType, ReservationGuest } from "@/type
 
 const EVENT_KEYS: Record<ReservationEventType, TranslationKey> = {
   CREATED: "event.CREATED",
+  SUBMITTED: "event.SUBMITTED",
   CONFIRMED: "event.CONFIRMED",
   CHECKED_IN: "event.CHECKED_IN",
   COMPLETED: "event.COMPLETED",
   CANCELLED: "event.CANCELLED",
   EXPIRED: "event.EXPIRED",
+  REJECTED: "event.REJECTED",
   NO_SHOW: "event.NO_SHOW",
   TIME_CHANGED: "event.TIME_CHANGED",
 } as const
@@ -120,6 +122,19 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                 <p className="text-xs font-medium text-amber-600">
                   {t("reservationCard.holdExpires", {
                     time: new Date(reservation.hold_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  })}
+                </p>
+              )}
+
+              {reservation.status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
+                <p className="text-xs font-medium text-amber-600">
+                  {t("reservationCard.approvalExpires", {
+                    time: new Date(reservation.approval_expires_at).toLocaleString([], {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
                   })}
                 </p>
               )}

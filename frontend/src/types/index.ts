@@ -1,6 +1,15 @@
 export type UserRole = "PLAYER" | "VENUE_MANAGER"
 export type SportType = "TENNIS" | "VOLLEYBALL" | "BADMINTON"
-export type ReservationStatus = "PENDING" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "NO_SHOW"
+export type ReservationStatus =
+  | "PENDING"
+  | "PENDING_APPROVAL"
+  | "CONFIRMED"
+  | "CHECKED_IN"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "EXPIRED"
+  | "REJECTED"
+  | "NO_SHOW"
 export type WaitlistStatus = "WAITING" | "OFFERED" | "ACCEPTED" | "EXPIRED" | "CANCELLED"
 export type JoinRequestStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED"
 export type Amenity =
@@ -19,6 +28,8 @@ export type NotificationType =
   | "RESERVATION_CHANGED"
   | "RESERVATION_REMINDER"
   | "RESERVATION_EXPIRED"
+  | "RESERVATION_REJECTED"
+  | "APPROVAL_REQUESTED"
   | "FACILITY_UNAVAILABLE"
   | "WAITLIST_JOINED"
   | "WAITLIST_SLOT_OFFERED"
@@ -28,11 +39,13 @@ export type NotificationType =
   | "JOIN_REQUEST_DECLINED"
 export type ReservationEventType =
   | "CREATED"
+  | "SUBMITTED"
   | "CONFIRMED"
   | "CHECKED_IN"
   | "COMPLETED"
   | "CANCELLED"
   | "EXPIRED"
+  | "REJECTED"
   | "NO_SHOW"
   | "TIME_CHANGED"
 
@@ -56,6 +69,7 @@ export interface Court {
   sport_type: SportType
   indoor: boolean
   active: boolean
+  requires_approval: boolean
   description: string | null
   image_url: string | null
   amenities: Amenity[]
@@ -71,6 +85,7 @@ export interface Reservation {
   end_time: string
   status: ReservationStatus
   hold_expires_at: string | null
+  approval_expires_at: string | null
   series_id: string | null
   open_to_join: boolean
   open_note: string | null

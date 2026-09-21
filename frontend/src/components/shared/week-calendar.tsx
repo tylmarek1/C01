@@ -36,6 +36,7 @@ function isSameDay(a: Date, b: Date): boolean {
 function blockStyle(status: Reservation["status"]): string {
   switch (status) {
     case "PENDING":
+    case "PENDING_APPROVAL":
       return "bg-signal-blue/50 text-ink-navy"
     case "CONFIRMED":
     case "CHECKED_IN":

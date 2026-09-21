@@ -70,6 +70,11 @@ function CourtCard({
             <span className="font-semibold text-ink-navy">{court.name}</span>
             <Badge variant="secondary">{sportLabels[court.sport_type]}</Badge>
           </div>
+          {court.requires_approval && (
+            <Badge variant="warning" className="w-fit">
+              {t("courts.requiresApproval")}
+            </Badge>
+          )}
           {court.review_count > 0 && (
             <div className="flex items-center gap-1.5">
               <StarRating value={court.average_rating ?? 0} />
