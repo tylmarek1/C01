@@ -8,7 +8,8 @@ description: Decide whether a SQLAlchemy model change on Courtly's backend is sa
 `backend/src/reservations/db.py` only has `create_schema`/`drop_schema`
 (`Base.metadata.create_all`/`drop_all`). There is no Alembic, and none
 should be added incidentally — this is a known, deliberate, already-flagged
-gap (`cviko1/todo.md` names it), not an oversight to silently fix mid-task.
+gap (root `CLAUDE.md`'s "Known gaps"), not an oversight to silently fix
+mid-task.
 
 ## Is this change safe with just a reseed, or does it need the recreation cycle?
 

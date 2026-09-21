@@ -15,15 +15,16 @@ update this file, the next session will start from a wrong premise.
 
 ## Current phase
 
-**C02, baseline v0.2 (approval process) — behaviorally complete, formal
-sign-off outstanding.** C03 has not started.
+**C01: DONE.** **C02: engineering complete, formal team sign-off
+outstanding** (the one gate this repository's tooling cannot close
+itself — see "Pending / open gates"). C03 has not started.
 
 | | |
 |---|---|
-| Course phase | C02 (`docs/course/C02.md`) |
+| C01 | **DONE** — all 15 `docs/course/C01.md` §10 items evidence-backed complete |
+| C02 | Baseline v0.1 and the "approval process" change (v0.2) are both engineering-complete and evidenced; **team approval of both specification baselines is the one item still open** |
 | Specification baseline | v0.2 — `docs/specification.md` (v0.1 frozen in `docs/specification-v0.1.md`) |
-| Active change | C02 §B "approval process" — **implemented**, not yet formally approved (see Gates) |
-| Next phase | C03 (architecture) — not started; no `docs/course/C03.md` yet |
+| Next phase | C03 (architecture) — not started; no `docs/course/C03.md` yet. This repository is otherwise ready for it to be added (see "How to add C03" below) |
 
 ## Completed gates
 
@@ -109,9 +110,26 @@ section just points to it.
 
 ## Latest relevant commit
 
-`456ba82` — `chore: repository governance pass — fix Claude context drift
-(#10)`, merged to `main`. Before that, the C02 work itself landed via PR
-[#9](https://github.com/tylmarek1/C01/pull/9) (merge commit `ede421d`).
+`cf5df74` — `fix: make review scale with risk, not with how many skills
+exist (#12)`, merged to `main`. The C02 engineering work itself landed via
+PR [#9](https://github.com/tylmarek1/C01/pull/9) (merge commit `ede421d`).
+
+---
+
+## How to add C03
+
+Nothing here invents C03's content — the course hasn't handed it out yet.
+When it does: paste it verbatim into `docs/course/C03.md`, the same way
+`docs/course/C01.md`/`C02.md` were added (root `CLAUDE.md` §0's rule
+against copying course text applies to every other file, not this one).
+Everything else already points at it once it exists: root `CLAUDE.md`'s
+routing table, and this file's "Architectural drivers carried into C03"
+section is exactly the input C03 is meant to start from (it's the record
+of what C02 already flagged as an open architectural question — read it
+before designing anything, don't re-derive it). A `.claude/workflows/
+c03.md` can be added then, following the same shape as `c01.md`/
+`c02-baseline.md`; there's nothing to add speculatively before the actual
+assignment exists.
 
 ---
 

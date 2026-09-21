@@ -118,9 +118,9 @@ skill.)
   schema change; you still owe it the manual cycle above if you want to
   browse/demo afterward.)
 
-This is a deliberate, known, already-flagged gap (`cviko1/todo.md` names
-Alembic as a "next" item) — don't introduce Alembic unprompted as a fix; if
-a task would genuinely benefit from it, say so and let the user decide.
+This is a deliberate, known, already-flagged gap (root `CLAUDE.md`'s
+"Known gaps") — don't introduce Alembic unprompted as a fix; if a task
+would genuinely benefit from it, say so and let the user decide.
 
 ## Concurrency correctness — don't touch this without extra care
 

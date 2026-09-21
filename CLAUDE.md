@@ -54,8 +54,8 @@ table is the worked example of doing this right, including cases where the
 
 Within layers 2 and 4, some files are **point-in-time records** — never
 edit their substance to match newer code, only fix an actual error:
-`docs/intent-and-change.md` (the Project Frame), `docs/specification-
-v0.1.md`, and `cviko1/todo.md` are graded snapshots.
+`docs/intent-and-change.md` (the Project Frame) and `docs/specification-
+v0.1.md` are graded snapshots.
 `docs/evidence-and-evolution.md` is append-only. `docs/change-c02-
 impact.md` is a decision trail, not a description of today.
 `docs/architecture-and-decisions.md` is append-only too: a changed
@@ -109,7 +109,6 @@ docs/change-c02-impact.md           impact analysis of the C02 change + architec
 .claude/scripts/check-project-state.sh   structural check for this system — see "Mechanical checks" below
 backend/                            FastAPI app — see backend/CLAUDE.md
 frontend/                           React app — see frontend/CLAUDE.md
-cviko1/todo.md                      historical C01 Definition-of-Done checklist, not an active backlog
 docker-compose.yml                  single `db` service (Postgres 16) shared by both apps
 ```
 
@@ -386,8 +385,7 @@ tokens, passwords, or password hashes.
 ## Known gaps — flag, don't silently fix
 
 No CI, no Alembic, no generated frontend API types, no frontend test suite.
-These are real, current, and known (several are explicitly named in
-`cviko1/todo.md`'s own "nice to have" list). If closing one of these would
+These are real, current, and known. If closing one of these would
 genuinely help the task you're doing, propose it and say why — don't
 silently add a new dependency, config file, or pipeline as a side effect of
 an unrelated change.
