@@ -4,7 +4,21 @@ import pytest
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import sessionmaker
 
-from reservations.db import create_schema, drop_schema, make_engine, make_session_factory
+from reservations.db import (
+    create_schema,
+    drop_schema,
+    make_engine,
+    make_session_factory,
+)
+from reservations.rate_limit import reset_all as reset_rate_limits
+
+
+@pytest.fixture(autouse=True)
+def _clean_rate_limits() -> None:
+    """The rate limiter is in-process, module-level state — not reset by
+    the DB truncation below. Without this, an earlier test's login/register
+    attempts against a reused email/IP could spuriously 429 a later test."""
+    reset_rate_limits()
 
 
 @pytest.fixture(scope="session")
