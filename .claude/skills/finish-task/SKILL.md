@@ -107,8 +107,9 @@ sections that have nothing to say.
 ## Step 9 — Merge and clean up
 
 If nothing blocks it — verification passed, self-review found nothing
-left unfixed in scope, and (when practical) `/code-review` or another
-reviewer has looked at it — merge with `gh pr merge --delete-branch`
+left unfixed in scope, and (for anything root `CLAUDE.md`'s "Review depth
+matches risk" table calls high-risk or above) a deeper review has actually
+happened — merge with `gh pr merge --delete-branch`
 and sync local `main` (`git checkout main && git pull`). If something
 does block it (a finding you can't safely fix now, a decision only the
 user can make), stop and say so instead of merging past it — don't merge

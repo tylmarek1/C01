@@ -47,8 +47,8 @@ before any edit to code.
      expiry, or whatever the change introduces) actually be verified?
    - **Architecture** — does this need a new architectural driver
      (persistence, async process, timer, external boundary)? Record it,
-     don't solve it now (C03's job — see root `CLAUDE.md`'s C01–C03
-     boundary rule).
+     don't solve it now (C03's job — see root `CLAUDE.md`'s
+     "Cross-cutting architectural rules" / C01–C03 boundary).
    If an area is **genuinely unaffected**, say so explicitly and why —
    `docs/change-c02-impact.md` §4's "Unaffected requirements" block is the
    template; an area silently skipped is indistinguishable from one nobody

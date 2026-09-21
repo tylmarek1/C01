@@ -149,6 +149,14 @@ post-edit hook — neither is a substitute for CI.
   `create_all`/`drop_all`. This has a specific, easy-to-miss failure mode —
   full details and the exact recovery command are in `backend/CLAUDE.md`;
   read it before changing an existing model.
+- **C01–C03 boundary.** C01/C02 own requirements, domain behavior,
+  evidence, and a working (not necessarily well-architected) walking
+  skeleton; C03 owns architecture — `docs/course/C02.md`'s introduction
+  says this directly (don't quote it here, read it there). If C02-phase
+  work surfaces a real architectural question, record it as a driver in
+  `docs/project-state.md` (see `docs/change-c02-impact.md`'s AD-1…AD-6 for
+  the pattern) — don't solve it with premature structure unless the
+  current requirement genuinely can't be met without it.
 
 Find the real current code before proposing a change — don't assume a
 README describes it (see §0). Look for an existing analogous pattern
@@ -174,10 +182,45 @@ Two distinct passes, both before calling non-trivial work done:
   architecture fit, security, performance, tests, UX, docs, and unnecessary
   changes.
 
-For a review beyond your own, the built-in `/code-review` skill also works;
-point it at the same risk areas `self-review` covers (the reservation state
-machine, the exclusion constraint, timezone comparisons, hand-written
-frontend types drifting from backend schemas, incomplete i18n).
+### Review depth matches risk, not the number of skills available
+
+Optimize for **engineering quality *and* low unnecessary token/session
+spend** — not for maximum possible analysis. `self-review` (you, reading
+the diff once) is the default and is usually the *entire* review; most
+changes need nothing beyond it plus `finish-task`'s checks. Don't reach
+for the built-in `/code-review` skill reflexively, and when you do use it,
+**always pass an explicit level** (`/code-review low`, `medium`, …) —
+invoking it bare silently reuses whichever level was last used in the
+session, and `high`/`ultra` fan out into several parallel subagents, which
+is real budget for a change that doesn't need it (this has actually
+happened: a docs-only PR here once triggered a full multi-agent
+`/code-review` at an inherited `ultra` level and burned a meaningful
+fraction of a weekly budget for a change `self-review` alone was enough
+for).
+
+| Risk | Example here | Review |
+|---|---|---|
+| **Low** | UI copy, styling, a small component, docs, a small refactor | `self-review` only, then stop |
+| **Medium** | a typical feature, an API change, a multi-component change, ordinary business logic | `self-review` + `finish-task`'s checks; `/code-review low`/`medium` only if nothing else can review it |
+| **High** | reservation concurrency / the exclusion constraint, auth/authorization, a `lifecycle.py` transition, a database schema change, a large cross-layer change | `self-review` plus a targeted read of the specific risk area (the relevant "Known pitfalls" entry, `security-review`/`database-evolution` as applicable); `/code-review high` is reasonable |
+| **Explicit / architectural full audit** | only when actually asked for one, or a change genuinely too broad to scope narrower | the full multi-angle `/code-review ultra`, or `improve-app`'s full audit mode |
+
+Prefer a **targeted test over another review pass** wherever the risk is
+mechanically verifiable — a business rule gets a test, not a second
+read-through; a state transition gets a `lifecycle.py` test; a database
+constraint gets the concurrency-style pattern already in
+`test_persistence_spike.py`. A passing, meaningful test is stronger
+evidence than another pass of eyes.
+
+Don't run every skill for every change — `feature-development`'s Step 0
+scopes which skills actually apply; a low-risk change doesn't need
+`security-review`, `performance-review`, `architecture-review` and
+`production-readiness` all run "just in case." Each already states when
+it applies (that's the trigger, not "always run me"); trust it. And don't
+loop: `change → verify → review → fix if needed → verify → stop` — once
+the change does what was asked, the relevant checks pass, and one review
+pass found nothing left unfixed in scope, that's done; don't chain another
+audit looking for more to find.
 
 **If a review step finds a problem within the current task's scope, fix it
 before reporting done — don't just list it.** "I found this but left it" is
@@ -309,9 +352,12 @@ implementation. Details:
   the tool, not `git push` alone. PR description: what changed, why,
   affected areas, tests/validation run, notable decisions, risks — see
   `finish-task` for the exact template.
-- **Author ≠ reviewer** in spirit — if nothing else can review it, run the
-  built-in `/code-review` skill against the branch before merging, don't
-  self-certify silently.
+- **Author ≠ reviewer** in spirit — `self-review` (part of "Definition of
+  done" above) is what satisfies this for most changes; it's you reading
+  your own diff as if it were someone else's, not a rubber stamp. Escalate
+  to the built-in `/code-review` skill only per "Review depth matches
+  risk" above, with an explicit level — not reflexively before every
+  merge.
 - **Merge** with `gh pr merge` once checks/review are satisfied. This repo
   has no CI, so "checks satisfied" means `finish-task`'s own verification
   already passed on the branch — don't treat the absence of CI as license
