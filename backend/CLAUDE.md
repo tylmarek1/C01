@@ -1,18 +1,10 @@
 # Backend — CLAUDE.md
 
 FastAPI + SQLAlchemy 2 + PostgreSQL 16, managed with `uv`. Read the root
-`CLAUDE.md` first — this file only covers backend-specific rules.
-
-```
-React SPA ──fetch, JWT bearer──► FastAPI (src/reservations/main.py)
-                                     │  api/*.py — one thin APIRouter per resource
-                                     ▼
-                                  lifecycle.py / rules.py / booking_validation.py
-                                  achievements.py / waitlist_service.py / worker.py
-                                     │  (real business logic lives here, not in routers)
-                                     ▼
-                                  SQLAlchemy models/ ──► PostgreSQL 16
-```
+`CLAUDE.md` first — this file only covers backend-specific rules. For where
+modules live and what each one owns (architecture diagram, `api/`/`models/`/
+service-module map), see `docs/codebase-map.md` — don't duplicate that
+here, extend it if something there goes stale.
 
 ## Commands
 
@@ -41,39 +33,17 @@ reformatted beyond the lines you touched; that's expected, not a bug.
 
 ## Module layout
 
-- `models/` — one SQLAlchemy model per file, one concept per model (`Court`,
-  `User`, `Reservation`, `ReservationEvent`, `ReservationGuest`,
-  `ReservationSeries`, `Favorite`, `Review`, `ReviewVote`, `Notification`,
-  `FacilityBlock`, `Waitlist`, `Achievement`, `JoinRequest`).
-- `schemas/` — Pydantic request/response schemas, mirroring `models/`
-  roughly 1:1.
-- `api/` — one `APIRouter` per resource (`auth`, `courts`, `reservations`,
-  `admin`, `facility_blocks`, `favorites`, `notifications`, `reviews`,
-  `stats`, `waitlist`). Keep these thin: parse/validate input, call into a
-  service/logic module, translate the result to a response schema. Real
-  business logic belongs in a dedicated module, not inline in a route
-  handler — follow the existing split.
-- `lifecycle.py` — the reservation state machine
-  (`PENDING → CONFIRMED → CHECKED_IN → COMPLETED`, or
-  `→ CANCELLED/EXPIRED/NO_SHOW`; on courts with `requires_approval`,
-  `PENDING → PENDING_APPROVAL → CONFIRMED/REJECTED/CANCELLED/EXPIRED`). Any
-  change to what transitions are legal — and the guards on them (hold not
-  expired, court active, approval required) — belongs here, not scattered
-  across routers. Never construct a `Reservation` with `status=CONFIRMED`
-  around `transition()`: the waitlist-accept path did, and it would have
+See `docs/codebase-map.md` for the full `models/`/`schemas/`/`api/`/
+service-module map. Two rules that aren't just "where" but genuinely
+change behavior if missed, so they stay here rather than in the map:
+
+- `lifecycle.py` is the *only* place a reservation's status should change.
+  Never construct a `Reservation` with `status=CONFIRMED` around
+  `transition()`: the waitlist-accept path did, and it would have
   bypassed the approval rule.
-- `rules.py` / `booking_validation.py` — booking business rules (lead time,
-  max advance, slot length/alignment, opening hours, facility-block
-  conflicts). New booking constraints go here.
-- `achievements.py`, `approval_service.py`, `calendar_export.py`,
-  `waitlist_service.py`, `notifications.py`, `images.py` — feature-specific service modules; these
-  hold real logic, not thin wrappers.
-- `worker.py` — an in-process asyncio background task (hold-expiry,
-  reminders, auto-complete, waitlist cascade). If you add a time-based side
-  effect, it almost certainly belongs here, following the existing tick
-  pattern, not as an ad hoc call from a route handler.
-- `seed.py` — idempotent demo-data seeder; update it when a new
-  user-visible concept needs demo data to be useful to click through.
+- `worker.py` is the *only* place a time-based side effect belongs
+  (hold-expiry, reminders, auto-complete, waitlist cascade), following its
+  existing tick pattern — not an ad hoc call from a route handler.
 
 ## Business rule values — read the code, don't trust a restated number
 

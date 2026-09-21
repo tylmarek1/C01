@@ -18,22 +18,12 @@ code, as a side effect of an unrelated change.
 
 ## Directory layout
 
-```
-src/
-├── components/shared/   the single reuse layer — shadcn-style primitives (button, card, dialog, ...)
-│                        + composite components (week-calendar, reservation-detail-dialog, ...)
-├── pages/{landing,auth,app,courts}/   page-level composition, built from components/shared
-├── lib/                  api.ts (fetch wrapper), auth-context.tsx, i18n.tsx, query-client.ts,
-│                        reservation-status.ts, amenities.ts, format.ts, image.ts, utils.ts
-├── locales/              en.ts (source of truth for TranslationKey), cs.ts (typed against it)
-└── types/                hand-maintained TS types mirroring backend Pydantic schemas — no codegen
-```
-
-Before adding a new primitive, check `components/shared/index.ts` — it's
-very likely something close already exists (button/card/badge/dialog/
-tabs/select/etc.). New page-specific composition goes under `pages/<area>/`;
-new genuinely-reusable UI goes in `components/shared/`, not duplicated
-inline in a page.
+See `docs/codebase-map.md` for the full `components/shared/`/`pages/`/
+`lib/` map. Before adding a new primitive, check `components/shared/index.ts`
+— it's very likely something close already exists (button/card/badge/
+dialog/tabs/select/etc.). New page-specific composition goes under
+`pages/<area>/`; new genuinely-reusable UI goes in `components/shared/`,
+not duplicated inline in a page.
 
 ## Design system — extend it, don't redesign it
 

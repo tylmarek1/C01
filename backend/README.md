@@ -100,5 +100,5 @@ tests/            pytest suite (runs against the real database)
 ```
 
 For the current, exact list of models/routers/service modules — this
-README intentionally doesn't duplicate it, see `backend/CLAUDE.md`'s
-"Module layout" section instead.
+README intentionally doesn't duplicate it, see
+[`docs/codebase-map.md`](../docs/codebase-map.md) instead.

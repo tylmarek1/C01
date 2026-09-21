@@ -42,6 +42,10 @@ at Step 5 carries it through commit/push/PR/merge.
 
 ## Step 1 — Understand
 
+- Read `docs/codebase-map.md` first for fast orientation — where the
+  relevant modules/pages already live and what owns them — then confirm
+  specifics against the actual source below; the map is a starting point,
+  not a substitute for reading the code you're about to change.
 - Grep `backend/src/reservations/` for anything resembling the feature
   already (a partial version, a similar pattern in a neighboring module).
 - Check `backend/src/reservations/models/` and `schemas/` for entities the
@@ -125,7 +129,9 @@ Go through the real list for your feature:
 - **Notifications/worker** — new `NotificationType`, or a periodic check in
   `worker.py`'s tick?
 - **Tests** — which existing file extends, or a new `test_<feature>_api.py`?
-- **Docs** — will this make README/`docs/*.md` more wrong? Note for Step 7.
+- **Docs** — will this make README/`docs/*.md` more wrong, or move/rename/
+  add a module in a way that makes `docs/codebase-map.md` stale? Note for
+  Step 7 (`update-docs` has the trigger table).
 
 ## Step 3 — Design the smallest fit
 

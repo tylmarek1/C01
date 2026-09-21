@@ -52,6 +52,13 @@ table is the worked example of doing this right, including cases where the
    `.claude/workflows/`, and skills** — *how* to work here: process and
    convention, never a business rule that belongs in layer 2.
 
+`docs/codebase-map.md` sits outside this numbering on purpose: it isn't a
+source of truth for requirements or state, it's a navigation aid for
+*where* things live and what they're responsible for — kept separate from
+this file's *how to work* so neither grows into doing the other's job.
+Read it early for orientation, keep it current per its own "Keeping this
+current" section, and see `update-docs` for the trigger.
+
 Within layers 2 and 4, some files are **point-in-time records** — never
 edit their substance to match newer code, only fix an actual error:
 `docs/intent-and-change.md` (the Project Frame) and `docs/specification-
@@ -97,6 +104,7 @@ sweeping multi-file edits, whichever workflow applies.
 ## Repository layout
 
 ```
+docs/codebase-map.md                where modules/pages live and what they're responsible for — not a source-of-truth layer, a navigation aid (see below)
 docs/course/                        the course assignments, verbatim (C01.md, C02.md, ...) — layer 1
 docs/project-state.md               current phase, gates, drivers — layer 3
 docs/definition-of-done.md          the evidence-backed-completion rule (not a checklist)

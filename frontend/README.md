@@ -63,7 +63,7 @@ src/
 ```
 
 For the current, exact file list — this README intentionally doesn't
-duplicate it, see `frontend/CLAUDE.md`'s "Directory layout" section instead.
+duplicate it, see [`docs/codebase-map.md`](../docs/codebase-map.md) instead.
 
 Every page is composed from `@/components/shared` — if a page needs a new
 piece of UI, add it there first rather than writing one-off markup inline.
