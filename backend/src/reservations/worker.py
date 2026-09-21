@@ -3,6 +3,7 @@ One asyncio task, woken every TICK_SECONDS, does all the housekeeping a real
 reservation engine needs on its own:
 
 - expire PENDING holds nobody confirmed in time
+- expire PENDING_APPROVAL requests no venue manager decided in time
 - send a one-time reminder ~2h before a confirmed slot starts
 - auto-complete reservations whose slot has passed
 - expire unanswered waitlist offers and cascade to the next person
@@ -38,6 +39,9 @@ def _expire_stale_holds(db) -> None:
         .where(Reservation.status == ReservationStatus.PENDING)
         .where(Reservation.hold_expires_at.is_not(None))
         .where(Reservation.hold_expires_at < now)
+        # Skip rows a Confirm/Cancel holds locked right now (REQ-07); a still
+        # expired hold is simply picked up again on the next tick.
+        .with_for_update(skip_locked=True)
     )
     for reservation in db.scalars(stmt):
         transition(db, reservation, ReservationStatus.EXPIRED, note="Hold expired unconfirmed")
@@ -47,6 +51,28 @@ def _expire_stale_holds(db) -> None:
             NotificationType.RESERVATION_EXPIRED,
             "Your hold expired",
             f"Your {rules.HOLD_MINUTES}-minute hold on {reservation.court.name} expired before you confirmed it.",
+        )
+        waitlist_service.offer_next(db, reservation.court_id, reservation.start_time, reservation.end_time)
+
+
+def _expire_stale_approvals(db) -> None:
+    now = datetime.now(timezone.utc)
+    stmt = (
+        select(Reservation)
+        .where(Reservation.status == ReservationStatus.PENDING_APPROVAL)
+        .where(Reservation.approval_expires_at.is_not(None))
+        .where(Reservation.approval_expires_at < now)
+        # Skip rows an Approve/Reject/Cancel holds locked right now (REQ-07).
+        .with_for_update(skip_locked=True)
+    )
+    for reservation in db.scalars(stmt):
+        transition(db, reservation, ReservationStatus.EXPIRED, note="Approval request expired undecided")
+        notify(
+            db,
+            reservation.user_id,
+            NotificationType.RESERVATION_EXPIRED,
+            "Your request expired",
+            f"No venue manager decided on your {reservation.court.name} request in time, so it was released.",
         )
         waitlist_service.offer_next(db, reservation.court_id, reservation.start_time, reservation.end_time)
 
@@ -107,6 +133,7 @@ def _expire_waitlist_offers(db) -> None:
 def tick(session_factory: sessionmaker) -> None:
     with session_factory() as db:
         _expire_stale_holds(db)
+        _expire_stale_approvals(db)
         _send_reminders(db)
         _auto_complete(db)
         _expire_waitlist_offers(db)

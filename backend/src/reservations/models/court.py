@@ -33,6 +33,10 @@ class Court(Base):
     sport_type: Mapped[SportType] = mapped_column(Enum(SportType, name="sport_type"))
     indoor: Mapped[bool] = mapped_column(default=False)
     active: Mapped[bool] = mapped_column(default=True)
+    # When set, a player's Confirm only submits the reservation for a venue
+    # manager's approval (PENDING_APPROVAL); CONFIRMED is reachable only via
+    # Approve (BR-11 in docs/specification.md).
+    requires_approval: Mapped[bool] = mapped_column(default=False)
     description: Mapped[str | None] = mapped_column(String(500), default=None)
     # Optional override photo; when unset the frontend renders a branded
     # illustration for the court's sport_type instead.

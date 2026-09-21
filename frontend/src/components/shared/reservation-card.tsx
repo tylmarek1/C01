@@ -201,13 +201,19 @@ function ReservationCard({
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationCard.error.icsDownload")),
   })
 
-  const canReschedule = (status === "PENDING" || status === "CONFIRMED") && Boolean(onReschedule)
-  const canCancel = (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onCancel)
+  // BR-11: an approved booking on an approval-required court can't be moved without a new request.
+  const canReschedule =
+    (status === "PENDING" || (status === "CONFIRMED" && !court.requires_approval)) && Boolean(onReschedule)
+  // Mirrors BR-03: only a pending/confirmed reservation that has not started yet can be cancelled.
+  const canCancel =
+    (status === "PENDING" || status === "PENDING_APPROVAL" || status === "CONFIRMED") &&
+    start.getTime() > new Date().getTime() &&
+    Boolean(onCancel)
   const canInviteGuest =
     (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onInviteGuest)
   const canReview = status === "COMPLETED" && !hasReview && Boolean(onSubmitReview)
   const canOpenToJoin = status === "CONFIRMED" && Boolean(onSetOpen)
-  const canSplit = status !== "CANCELLED" && status !== "EXPIRED"
+  const canSplit = status !== "CANCELLED" && status !== "EXPIRED" && status !== "REJECTED"
 
   function submitReschedule() {
     const newStart = new Date(`${date}T${time}:00`)
@@ -253,6 +259,19 @@ function ReservationCard({
               {t("reservationCard.holdExpires", { time: timeFormatter.format(new Date(reservation.hold_expires_at)) })}
             </span>
           )}
+          {status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600">
+              <Clock3 className="size-3.5" />
+              {t("reservationCard.approvalExpires", {
+                time: new Date(reservation.approval_expires_at).toLocaleString([], {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              })}
+            </span>
+          )}
         </div>
       </button>
 
@@ -261,7 +280,7 @@ function ReservationCard({
 
         {status === "PENDING" && onConfirm && (
           <Button size="sm" disabled={isBusy} onClick={() => onConfirm(reservation)}>
-            {t("reservationCard.confirm")}
+            {court.requires_approval ? t("reservationCard.requestApproval") : t("reservationCard.confirm")}
           </Button>
         )}
 

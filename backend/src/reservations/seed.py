@@ -44,6 +44,7 @@ DEMO_COURTS = [
         name="Tennis Court 2",
         sport_type=SportType.TENNIS,
         indoor=True,
+        requires_approval=True,
         description="Climate-controlled indoor hard court, open year-round.",
         amenities=["LOCKERS", "SHOWERS", "EQUIPMENT_RENTAL"],
         price_per_hour=480,

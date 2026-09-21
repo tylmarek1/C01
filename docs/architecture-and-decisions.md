@@ -38,6 +38,7 @@ React SPA (frontend/) ──fetch, JWT bearer──► FastAPI (backend/src/rese
   - Half-open ranges allow back-to-back slots. DRAFT and CANCELLED rows do not block a slot.
   - The API must translate `ExclusionViolation` into HTTP 409 Conflict.
   - The project is tied to PostgreSQL, and tests must run against PostgreSQL rather than SQLite.
+- **Amendment (C02, 2026-09-21):** the constraint now covers every state that holds a court — `WHERE status IN ('PENDING', 'PENDING_APPROVAL', 'CONFIRMED', 'CHECKED_IN')` (constraint name `no_overlapping_active_reservations`) — because a `PENDING` hold blocks a slot from Create onwards (the first consequence above, "DRAFT … do not block", no longer holds) and a request awaiting approval blocks too. A test fails if the constraint and `ACTIVE_RESERVATION_STATUSES` drift apart. The mechanism of ADR-001 is unchanged; see `specification.md` BR-02 and `change-c02-impact.md` driver AD-2.
 
 ### ADR-002: Split the repository into `backend/` and `frontend/`
 - **Status:** accepted (post-C01, adding the walking-skeleton UI)

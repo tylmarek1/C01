@@ -54,3 +54,9 @@ Category: **Q**
 Concrete pressure: when next week's slots open (Friday 18:00), booking attempts on the same popular courts rise about 10×. Many players try to confirm the same evening slot within a few seconds.
 
 Why it is relevant to our reservation system: prime-time court slots are scarce and contested. If the overlap rule is checked in application code (SELECT, then INSERT/UPDATE), two concurrent requests can both pass the check, which creates two CONFIRMED overlapping reservations. That is exactly the common business rule breaking under load.
+
+## Update after C02 (2026-09-21)
+The frame above stays valid as the *decisions* of C01. C02 refined it, in detail, in [`specification-v0.1.md`](specification-v0.1.md) and [`specification.md`](specification.md):
+- `DRAFT` became `PENDING`, a 5-minute **hold that already blocks the court** (decision D-01); the common rule therefore covers `PENDING`, `CONFIRMED` (and `CHECKED_IN`, and later `PENDING_APPROVAL`) reservations, not only `CONFIRMED`.
+- The **Unknown** — "is confirmation automatic, or does it need venue-manager approval?" — is answered: **per court**. A court with `requires_approval` turns the player's Confirm into a request that a venue manager approves or rejects; it may also expire (`PENDING_APPROVAL`, `REJECTED`, `EXPIRED`).
+- The **Notification Service** boundary is still not implemented; notifications are in-app only.

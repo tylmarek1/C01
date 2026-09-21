@@ -10,11 +10,13 @@ from reservations.db import Base
 
 class ReservationEventType(enum.StrEnum):
     CREATED = "CREATED"
+    SUBMITTED = "SUBMITTED"  # PENDING -> PENDING_APPROVAL
     CONFIRMED = "CONFIRMED"
     CHECKED_IN = "CHECKED_IN"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
     EXPIRED = "EXPIRED"
+    REJECTED = "REJECTED"
     NO_SHOW = "NO_SHOW"
     TIME_CHANGED = "TIME_CHANGED"
 

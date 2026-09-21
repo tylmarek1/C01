@@ -13,6 +13,7 @@ class CourtOut(BaseModel):
     sport_type: SportType
     indoor: bool
     active: bool
+    requires_approval: bool = False
     description: str | None = None
     image_url: str | None = None
     amenities: list[str] = []
@@ -27,6 +28,7 @@ class CourtCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     sport_type: SportType
     indoor: bool = False
+    requires_approval: bool = False
     description: str | None = Field(default=None, max_length=500)
     image_url: str | None = Field(default=None, max_length=500)
     amenities: list[Amenity] = []
@@ -38,6 +40,7 @@ class CourtUpdate(BaseModel):
     sport_type: SportType | None = None
     indoor: bool | None = None
     active: bool | None = None
+    requires_approval: bool | None = None
     description: str | None = Field(default=None, max_length=500)
     image_url: str | None = Field(default=None, max_length=500)
     amenities: list[Amenity] | None = None

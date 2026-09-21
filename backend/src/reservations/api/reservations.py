@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from reservations import achievements, rules
+from reservations import achievements, approval_service, rules
 from reservations.booking_validation import (
     check_active_reservation_limit,
     check_facility_available,
@@ -15,7 +15,7 @@ from reservations.booking_validation import (
 )
 from reservations.calendar_export import build_calendar_feed_ics, build_single_event_ics
 from reservations.deps import get_current_manager, get_current_user, get_db
-from reservations.lifecycle import transition
+from reservations.lifecycle import check_cancellable, transition
 from reservations.models import (
     ACTIVE_RESERVATION_STATUSES,
     Court,
@@ -382,9 +382,17 @@ def create_reservation_series(
 
 
 def _get_owned_reservation(
-    db: Session, current_user: User, reservation_id: uuid.UUID
+    db: Session,
+    current_user: User,
+    reservation_id: uuid.UUID,
+    *,
+    lock: bool = False,
 ) -> Reservation:
-    reservation = db.get(Reservation, reservation_id)
+    # lock=True takes a row lock (SELECT ... FOR UPDATE) so concurrent
+    # state changes of the same reservation run one after the other and the
+    # later one sees the earlier one's result (REQ-07) — without it, a late
+    # Confirm could overwrite a just-committed Cancel.
+    reservation = db.get(Reservation, reservation_id, with_for_update=lock)
     if reservation is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Reservation not found")
     if (
@@ -416,15 +424,24 @@ def confirm_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Reservation:
-    reservation = _get_owned_reservation(db, current_user, reservation_id)
-    transition(db, reservation, ReservationStatus.CONFIRMED, actor_id=current_user.id)
-    notify(
-        db,
-        reservation.user_id,
-        NotificationType.RESERVATION_CONFIRMED,
-        "Reservation confirmed",
-        f"{reservation.court.name} is booked for you.",
-    )
+    reservation = _get_owned_reservation(db, current_user, reservation_id, lock=True)
+    if (
+        reservation.status == ReservationStatus.PENDING
+        and reservation.court.requires_approval
+    ):
+        # BR-11: on this court Confirm is a submission; only Approve confirms.
+        approval_service.submit_for_approval(db, reservation, actor_id=current_user.id)
+    else:
+        transition(
+            db, reservation, ReservationStatus.CONFIRMED, actor_id=current_user.id
+        )
+        notify(
+            db,
+            reservation.user_id,
+            NotificationType.RESERVATION_CONFIRMED,
+            "Reservation confirmed",
+            f"{reservation.court.name} is booked for you.",
+        )
     try:
         db.commit()
     except IntegrityError as exc:
@@ -432,6 +449,68 @@ def confirm_reservation(
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Slot was just taken by another reservation"
         ) from exc
+    db.refresh(reservation)
+    return reservation
+
+
+@router.post("/{reservation_id}/approve", response_model=ReservationOut)
+def approve_reservation(
+    reservation_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    manager: User = Depends(get_current_manager),
+) -> Reservation:
+    """OP-05 — a venue manager accepts a PENDING_APPROVAL request."""
+    reservation = _get_owned_reservation(db, manager, reservation_id, lock=True)
+    transition(
+        db,
+        reservation,
+        ReservationStatus.CONFIRMED,
+        actor_id=manager.id,
+        note="Approved",
+        approval_decision=True,
+    )
+    notify(
+        db,
+        reservation.user_id,
+        NotificationType.RESERVATION_CONFIRMED,
+        "Reservation approved",
+        f"{reservation.court.name} is booked for you — the venue approved your request.",
+    )
+    db.commit()
+    db.refresh(reservation)
+    return reservation
+
+
+@router.post("/{reservation_id}/reject", response_model=ReservationOut)
+def reject_reservation(
+    reservation_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    manager: User = Depends(get_current_manager),
+) -> Reservation:
+    """OP-06 — a venue manager declines a PENDING_APPROVAL request; the slot is released."""
+    reservation = _get_owned_reservation(db, manager, reservation_id, lock=True)
+    court_id, start_time, end_time = (
+        reservation.court_id,
+        reservation.start_time,
+        reservation.end_time,
+    )
+    transition(
+        db,
+        reservation,
+        ReservationStatus.REJECTED,
+        actor_id=manager.id,
+        note="Rejected",
+        approval_decision=True,
+    )
+    notify(
+        db,
+        reservation.user_id,
+        NotificationType.RESERVATION_REJECTED,
+        "Request rejected",
+        f"The venue declined your {reservation.court.name} request.",
+    )
+    offer_next(db, court_id, start_time, end_time)
+    db.commit()
     db.refresh(reservation)
     return reservation
 
@@ -455,7 +534,8 @@ def cancel_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Reservation:
-    reservation = _get_owned_reservation(db, current_user, reservation_id)
+    reservation = _get_owned_reservation(db, current_user, reservation_id, lock=True)
+    check_cancellable(reservation)
     court_id, start_time, end_time = (
         reservation.court_id,
         reservation.start_time,
@@ -483,7 +563,7 @@ def reschedule_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Reservation:
-    reservation = _get_owned_reservation(db, current_user, reservation_id)
+    reservation = _get_owned_reservation(db, current_user, reservation_id, lock=True)
     if reservation.status not in (
         ReservationStatus.PENDING,
         ReservationStatus.CONFIRMED,
@@ -491,6 +571,16 @@ def reschedule_reservation(
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Only pending or confirmed reservations can be rescheduled",
+        )
+
+    if (
+        reservation.status == ReservationStatus.CONFIRMED
+        and reservation.court.requires_approval
+    ):
+        # BR-11: the approval was for this slot; moving it needs a new request.
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This court requires approval — cancel this reservation and request the new time instead",
         )
 
     check_within_booking_window(payload.start_time)

@@ -13,11 +13,15 @@ from reservations.models.user import User
 
 class ReservationStatus(enum.StrEnum):
     PENDING = "PENDING"  # temporary hold; must be confirmed before it expires
+    # Submitted on a court that requires approval; waiting for a venue manager
+    # to approve or reject it before approval_expires_at.
+    PENDING_APPROVAL = "PENDING_APPROVAL"
     CONFIRMED = "CONFIRMED"
     CHECKED_IN = "CHECKED_IN"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
-    EXPIRED = "EXPIRED"  # a PENDING hold that timed out unconfirmed
+    EXPIRED = "EXPIRED"  # a PENDING hold or a PENDING_APPROVAL request that timed out
+    REJECTED = "REJECTED"  # a venue manager declined a PENDING_APPROVAL request
     NO_SHOW = "NO_SHOW"  # confirmed but never checked in before the slot ended
 
 
@@ -25,6 +29,7 @@ class ReservationStatus(enum.StrEnum):
 # every "is this slot free" check must agree on this set.
 ACTIVE_RESERVATION_STATUSES = (
     ReservationStatus.PENDING,
+    ReservationStatus.PENDING_APPROVAL,
     ReservationStatus.CONFIRMED,
     ReservationStatus.CHECKED_IN,
 )
@@ -42,7 +47,7 @@ class Reservation(Base):
             (literal_column("tstzrange(start_time, end_time, '[)')"), "&&"),
             name="no_overlapping_active_reservations",
             using="gist",
-            where=text("status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN')"),
+            where=text("status IN ('PENDING', 'PENDING_APPROVAL', 'CONFIRMED', 'CHECKED_IN')"),
         ),
     )
 
@@ -57,6 +62,9 @@ class Reservation(Base):
     # Set while PENDING; the background worker expires the hold once this
     # passes. Cleared (NULL) once confirmed.
     hold_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # Set while PENDING_APPROVAL: min(submission + APPROVAL_WINDOW, start_time).
+    # The worker expires the request once this passes; cleared when decided.
+    approval_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     series_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("reservation_series.id"), default=None)
     # "Find a partner": the booker can open their own slot up for other

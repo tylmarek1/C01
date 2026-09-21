@@ -149,6 +149,7 @@ export const api = {
       name: string
       sport_type: SportType
       indoor: boolean
+      requires_approval?: boolean
       description?: string
       image_url?: string
       amenities?: Amenity[]
@@ -187,6 +188,12 @@ export const api = {
 
   cancelReservation: (token: string, id: string) =>
     request<Reservation>(`/reservations/${id}/cancel`, { method: "POST" }, token),
+
+  approveReservation: (token: string, id: string) =>
+    request<Reservation>(`/reservations/${id}/approve`, { method: "POST" }, token),
+
+  rejectReservation: (token: string, id: string) =>
+    request<Reservation>(`/reservations/${id}/reject`, { method: "POST" }, token),
 
   checkInReservation: (token: string, id: string) =>
     request<Reservation>(`/reservations/${id}/check-in`, { method: "POST" }, token),
