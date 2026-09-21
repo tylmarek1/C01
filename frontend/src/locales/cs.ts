@@ -11,6 +11,8 @@ const cs: Record<TranslationKey, string> = {
   "nav.signup": "Registrovat",
   "nav.logout": "Odhlásit se",
   "nav.accountMenu": "Nabídka účtu",
+  "nav.menu.open": "Otevřít menu",
+  "nav.menu.close": "Zavřít menu",
 
   "hero.badge": "Rezervace kurtů jednoduše",
   "hero.title": "Zarezervujte si kurt. Nikdy dvakrát obsazený.",
@@ -297,6 +299,7 @@ const cs: Record<TranslationKey, string> = {
   "courts.search.placeholder": "Hledat kurty podle názvu…",
   "courts.search.clear": "Vymazat hledání",
   "courts.allSports": "Všechny sporty",
+  "courts.clearFilters": "Zrušit filtry",
   "courts.empty.title": "Žádné kurty neodpovídají filtru",
   "courts.empty.description": "Zkuste jiný sport, vybavení nebo hledaný výraz.",
   "courts.favorite.add": "Přidat mezi oblíbené",
@@ -311,6 +314,7 @@ const cs: Record<TranslationKey, string> = {
   "courts.pricePerHour": "{price}/hod",
   "courts.priceUnset": "Cena nenastavena",
 
+  "courtDetail.backToCourts": "Zpět na kurty",
   "courtDetail.notFound.title": "Kurt nenalezen",
   "courtDetail.notFound.description": "Možná byl odstraněn nebo už není aktivní.",
   "courtDetail.notFound.browse": "Procházet další kurty",
@@ -324,6 +328,9 @@ const cs: Record<TranslationKey, string> = {
   "courtDetail.reviews.count": "Počet recenzí: {count}",
   "courtDetail.reviews.helpful": "Užitečné",
   "courtDetail.reviews.helpfulCount": "Užitečné ({count})",
+  "starRating.ariaLabel": "Ohodnotit {count} z 5 hvězdiček",
+  "passwordInput.show": "Zobrazit heslo",
+  "passwordInput.hide": "Skrýt heslo",
   "courtDetail.reviews.helpfulError": "Hlas se nepodařilo aktualizovat",
   "courtDetail.facilityBlock": "Zavřeno {range}: {reason}",
 
@@ -338,6 +345,10 @@ const cs: Record<TranslationKey, string> = {
   "notifications.empty": "Máte vše přečteno.",
 
   "protectedRoute.forbidden": "K této stránce nemáte přístup",
+
+  "notFound.title": "Tato stránka neexistuje",
+  "notFound.description": "Stránka, kterou hledáte, byla přesunuta, přejmenována nebo nikdy neexistovala.",
+  "notFound.cta": "Zpět na hlavní stránku",
 
   "reservationCard.confirm": "Potvrdit",
   "reservationCard.checkIn": "Přihlásit se",
@@ -369,6 +380,7 @@ const cs: Record<TranslationKey, string> = {
   "reservationCard.openToJoin.notePlaceholder": "např. Potřebujeme jednoho na čtyřhru",
   "reservationCard.openToJoin.save": "Uložit",
   "reservationCard.split.button": "Rozdělit cenu",
+  "reservationCard.moreActions": "Další akce",
   "reservationCard.calendar.button": "Přidat do kalendáře",
   "reservationCard.toast.icsDownloaded": "Soubor kalendáře stažen",
   "reservationCard.error.icsDownload": "Soubor kalendáře se nepodařilo stáhnout",

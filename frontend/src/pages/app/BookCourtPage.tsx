@@ -211,7 +211,7 @@ function BookCourtPage() {
           ))}
         </div>
 
-        <Card className="h-fit gap-5">
+        <Card className="h-fit gap-5 lg:sticky lg:top-20">
           <CardHeader>
             <CardTitle>{t("book.step2")}</CardTitle>
           </CardHeader>

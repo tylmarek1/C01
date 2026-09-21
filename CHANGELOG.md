@@ -50,6 +50,22 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 - A reservation can only be cancelled before its start time, from `PENDING`,
   `PENDING_APPROVAL` or `CONFIRMED` (previously any time, and from `CHECKED_IN`);
   the UI only offers Cancel when it will work.
+- Whole-application UI/UX pass: `ReservationCard`'s up-to-six equal-weight
+  action buttons are now one primary action plus a "more actions" menu;
+  Dashboard reflows into a main column (reservations) and a secondary column
+  (teammates/waitlist/join requests/shared-with-you) instead of one long
+  single-column stack, with a shared `data-row.tsx`/`subsection-heading.tsx`
+  primitive replacing six ad hoc copies of the same row/heading markup
+  (also applied across Admin's reservations/users/availability tabs); the
+  authenticated `/app/*` shell now shows a slim footer instead of the full
+  marketing one; dialogs cap at 85vh with internal scroll so a long one
+  (the admin court form) never pushes its Save button off-screen; `Input`/
+  `Textarea` gained a shared `aria-invalid` styling hook; the booking-summary
+  card on Book a court/Court detail is sticky on desktop; Courts' filtered
+  empty state offers a "Clear filters" action; the 404 page has real (i18n'd)
+  copy instead of hardcoded English court-themed text, plus a second action;
+  a few remaining hardcoded `aria-label`s (star rating, password show/hide,
+  mobile nav toggle) are now translated.
 
 ### Fixed
 

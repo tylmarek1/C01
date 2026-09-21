@@ -9,9 +9,29 @@ interface FooterLink {
   to: string
 }
 
-function Footer() {
+function Footer({ variant = "full" }: { variant?: "full" | "minimal" }) {
   const { user } = useAuth()
   const { t } = useTranslation()
+
+  if (variant === "minimal") {
+    return (
+      <footer className="border-t border-hairline">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-6 text-sm text-slate-gray sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            &copy; {new Date().getFullYear()} Courtly. {t("footer.copyright")}
+          </span>
+          <div className="flex items-center gap-5">
+            <Link to="/help" className="font-medium text-ink-navy transition-colors hover:text-signal-blue">
+              {t("footer.help")}
+            </Link>
+            <Link to="/contact" className="font-medium text-ink-navy transition-colors hover:text-signal-blue">
+              {t("footer.contact")}
+            </Link>
+          </div>
+        </div>
+      </footer>
+    )
+  }
 
   const columns: { heading: string; links: FooterLink[] }[] = [
     {

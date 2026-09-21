@@ -22,6 +22,7 @@ import { Button } from "@/components/shared/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/shared/card"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { CourtArt } from "@/components/shared/court-art"
+import { DataRow } from "@/components/shared/data-row"
 import {
   Dialog,
   DialogContent,
@@ -681,10 +682,7 @@ function ReservationsTab() {
         )}
 
         {reservations?.map((reservation) => (
-          <div
-            key={reservation.id}
-            className="flex flex-col gap-3 rounded-2xl border border-hairline bg-card p-5 shadow-card sm:flex-row sm:items-center sm:justify-between"
-          >
+          <DataRow key={reservation.id} className="p-5">
             <div className="flex flex-col gap-1">
               <span className="font-semibold text-ink-navy">{reservation.court.name}</span>
               <span className="text-sm text-slate-gray">{formatDateRange(reservation.start_time, reservation.end_time)}</span>
@@ -733,7 +731,7 @@ function ReservationsTab() {
                 </Button>
               )}
             </div>
-          </div>
+          </DataRow>
         ))}
       </div>
 
@@ -886,10 +884,7 @@ function AvailabilityTab() {
           <EmptyState title={t("admin.availability.empty.title")} description={t("admin.availability.empty.description")} />
         )}
         {blocks?.map((block) => (
-          <div
-            key={block.id}
-            className="flex flex-col gap-2 rounded-2xl border border-hairline bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
-          >
+          <DataRow key={block.id} className="gap-2 p-4">
             <div className="flex flex-col gap-1">
               <span className="font-medium text-ink-navy">{block.court.name}</span>
               <span className="text-sm text-slate-gray">{formatDateRange(block.start_time, block.end_time)}</span>
@@ -901,7 +896,7 @@ function AvailabilityTab() {
             <Button size="sm" variant="outline" onClick={() => setDeleteTarget(block)}>
               {t("admin.availability.remove")}
             </Button>
-          </div>
+          </DataRow>
         ))}
       </div>
 
@@ -1067,10 +1062,7 @@ function UsersTab() {
       )}
 
       {users?.map((user) => (
-        <div
-          key={user.id}
-          className="flex flex-col gap-3 rounded-2xl border border-hairline bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
-        >
+        <DataRow key={user.id}>
           <div className="flex items-center gap-3">
             <Avatar className="size-10">
               <AvatarImage src={assetUrl(user.avatar_url)} alt={user.name} className="object-cover" />
@@ -1117,7 +1109,7 @@ function UsersTab() {
                   : t("admin.users.promote")}
             </Button>
           </div>
-        </div>
+        </DataRow>
       ))}
     </div>
   )

@@ -1,7 +1,7 @@
 import { lazy } from "react"
 import { Route, Routes } from "react-router-dom"
 
-import { AppLayout } from "@/components/shared/app-layout"
+import { AppLayout, AppShellLayout } from "@/components/shared/app-layout"
 import { ProtectedRoute, RedirectIfAuthed } from "@/components/shared/protected-route"
 import { LandingPage } from "@/pages/landing/LandingPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
@@ -47,6 +47,9 @@ function App() {
         <Route path="help" element={<HelpPage />} />
         <Route path="courts" element={<CourtsPage />} />
         <Route path="courts/:id" element={<CourtDetailPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+      <Route element={<AppShellLayout />}>
         <Route
           path="app"
           element={
@@ -79,7 +82,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   )

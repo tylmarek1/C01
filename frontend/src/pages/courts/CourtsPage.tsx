@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
+import { Button } from "@/components/shared/button"
 import { CourtCard } from "@/components/shared/court-card"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ErrorState } from "@/components/shared/error-state"
@@ -103,6 +104,11 @@ function CourtsPage() {
       else next.set("amenity", value)
       return next
     })
+  }
+
+  function handleClearFilters() {
+    setSearchInput("")
+    setSearchParams(new URLSearchParams())
   }
 
   return (
@@ -215,7 +221,18 @@ function CourtsPage() {
         )}
 
         {!isLoading && !isError && courts?.length === 0 && (
-          <EmptyState title={t("courts.empty.title")} description={t("courts.empty.description")} className="col-span-full" />
+          <EmptyState
+            title={t("courts.empty.title")}
+            description={t("courts.empty.description")}
+            action={
+              hasFilters && (
+                <Button variant="outline" size="sm" onClick={handleClearFilters} className="mt-1">
+                  {t("courts.clearFilters")}
+                </Button>
+              )
+            }
+            className="col-span-full"
+          />
         )}
 
         {courts?.map((court) => (

@@ -9,6 +9,8 @@ const en = {
   "nav.signup": "Sign up",
   "nav.logout": "Log out",
   "nav.accountMenu": "Account menu",
+  "nav.menu.open": "Open menu",
+  "nav.menu.close": "Close menu",
 
   "hero.badge": "Court booking, simplified",
   "hero.title": "Book a court. Never double-booked.",
@@ -295,6 +297,7 @@ const en = {
   "courts.search.placeholder": "Search courts by name…",
   "courts.search.clear": "Clear search",
   "courts.allSports": "All sports",
+  "courts.clearFilters": "Clear filters",
   "courts.empty.title": "No courts match this filter",
   "courts.empty.description": "Try another sport, amenity, or search term.",
   "courts.favorite.add": "Add to favorites",
@@ -309,6 +312,7 @@ const en = {
   "courts.pricePerHour": "{price}/hr",
   "courts.priceUnset": "Price not set",
 
+  "courtDetail.backToCourts": "Back to courts",
   "courtDetail.notFound.title": "Court not found",
   "courtDetail.notFound.description": "It may have been removed or is no longer active.",
   "courtDetail.notFound.browse": "Browse other courts",
@@ -322,6 +326,9 @@ const en = {
   "courtDetail.reviews.count": "{count} reviews",
   "courtDetail.reviews.helpful": "Helpful",
   "courtDetail.reviews.helpfulCount": "Helpful ({count})",
+  "starRating.ariaLabel": "Rate {count} out of 5 stars",
+  "passwordInput.show": "Show password",
+  "passwordInput.hide": "Hide password",
   "courtDetail.reviews.helpfulError": "Could not update your vote",
   "courtDetail.facilityBlock": "Closed {range}: {reason}",
 
@@ -336,6 +343,10 @@ const en = {
   "notifications.empty": "You're all caught up.",
 
   "protectedRoute.forbidden": "You don't have access to that page",
+
+  "notFound.title": "This page doesn't exist",
+  "notFound.description": "The page you're looking for was moved, renamed, or never existed.",
+  "notFound.cta": "Back to home",
 
   "reservationCard.confirm": "Confirm",
   "reservationCard.checkIn": "Check in",
@@ -367,6 +378,7 @@ const en = {
   "reservationCard.openToJoin.notePlaceholder": "e.g. Need one more for doubles",
   "reservationCard.openToJoin.save": "Save",
   "reservationCard.split.button": "Split cost",
+  "reservationCard.moreActions": "More actions",
   "reservationCard.calendar.button": "Add to calendar",
   "reservationCard.toast.icsDownloaded": "Calendar file downloaded",
   "reservationCard.error.icsDownload": "Could not download the calendar file",

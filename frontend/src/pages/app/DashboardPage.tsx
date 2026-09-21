@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { DataRow, DataRowButton } from "@/components/shared/data-row"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/shared/dialog"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ErrorState } from "@/components/shared/error-state"
@@ -26,6 +27,7 @@ import { ReservationDetailDialog } from "@/components/shared/reservation-detail-
 import { SectionHeader } from "@/components/shared/section-header"
 import { Skeleton } from "@/components/shared/skeleton"
 import { StatTile } from "@/components/shared/stat-tile"
+import { SubsectionHeading } from "@/components/shared/subsection-heading"
 import { Textarea } from "@/components/shared/textarea"
 import { WeekCalendar } from "@/components/shared/week-calendar"
 import { ApiError, api, assetUrl } from "@/lib/api"
@@ -210,7 +212,7 @@ function DashboardPage() {
   const activeWaitlist = waitlist?.filter((entry) => entry.status === "WAITING" || entry.status === "OFFERED") ?? []
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-16">
       <SectionHeader
         align="left"
         title={t("dashboard.welcome", { name: user?.name.split(" ")[0] ?? "" })}
@@ -237,80 +239,18 @@ function DashboardPage() {
         />
       </div>
 
-      {teammates && teammates.length > 0 && (
-        <div className="mt-10 flex flex-col gap-3">
-          <span className="text-sm font-semibold text-ink-navy">{t("dashboard.teammates.title")}</span>
-          <div className="flex flex-wrap gap-3">
-            {teammates.map((teammate) => (
-              <div key={teammate.user.id} className="flex items-center gap-2.5 rounded-2xl border border-hairline bg-card px-3 py-2 shadow-card">
-                <Avatar className="size-8">
-                  <AvatarImage src={assetUrl(teammate.user.avatar_url)} alt={teammate.user.name} className="object-cover" />
-                  <AvatarFallback className="text-xs">
-                    {teammate.user.name
-                      .split(" ")
-                      .map((part) => part[0])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-ink-navy">{teammate.user.name}</span>
-                  <span className="text-xs text-slate-gray">{t("dashboard.teammates.gamesTogether", { count: teammate.games_together })}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeWaitlist.length > 0 && (
-        <div className="mt-10 flex flex-col gap-3">
-          <span className="text-sm font-semibold text-ink-navy">{t("dashboard.waitlist.title")}</span>
-          {activeWaitlist.map((entry) => (
-            <div
-              key={entry.id}
-              className="flex flex-col gap-3 rounded-2xl border border-hairline bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex flex-col gap-1">
-                <span className="font-medium text-ink-navy">{entry.court.name}</span>
-                <span className="text-sm text-slate-gray">{formatDateRange(entry.start_time, entry.end_time)}</span>
-                {entry.status === "OFFERED" && entry.offer_expires_at && (
-                  <span className="text-xs font-medium text-amber-600">
-                    {t("reservationCard.holdExpires", {
-                      time: new Date(entry.offer_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                    })}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Badge variant={entry.status === "OFFERED" ? "success" : "secondary"}>
-                  {entry.status === "OFFERED" ? t("waitlist.offered") : t("waitlist.waiting")}
-                </Badge>
-                {entry.status === "OFFERED" && (
-                  <Button size="sm" onClick={() => acceptWaitlistMutation.mutate(entry.id)}>
-                    {t("waitlist.bookIt")}
-                  </Button>
-                )}
-                <Button size="sm" variant="outline" onClick={() => setLeaveWaitlistTarget(entry.id)}>
-                  {t("waitlist.leave")}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-6">
 
       {isError && (
         <ErrorState
-          className="mt-10"
           title={t("common.error.title")}
           description={t("common.error.description")}
           onRetry={() => refetch()}
         />
       )}
 
-      <div className="mt-10 flex items-center justify-end gap-1 rounded-xl border border-hairline bg-card p-1 shadow-sm w-fit ml-auto">
+      <div className="flex items-center justify-end gap-1 rounded-xl border border-hairline bg-card p-1 shadow-sm w-fit ml-auto">
         <button
           type="button"
           onClick={() => setViewMode("list")}
@@ -347,13 +287,13 @@ function DashboardPage() {
       </div>
 
       {viewMode === "calendar" && (
-        <div className="mt-4">
+        <div>
           <WeekCalendar reservations={reservations ?? []} onSelectReservation={setDetailReservation} />
         </div>
       )}
 
       {viewMode === "list" && (
-        <div className="mt-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-24 w-full" />)}
 
           {!isLoading && reservations?.length === 0 && (
@@ -389,7 +329,7 @@ function DashboardPage() {
       )}
 
       {viewMode === "open" && (
-        <div className="mt-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           {!openGames && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-24 w-full" />)}
 
           {openGames?.length === 0 && (
@@ -399,10 +339,7 @@ function DashboardPage() {
           {openGames?.map((game) => {
             const alreadyRequested = myJoinRequests?.some((request) => request.reservation_id === game.id)
             return (
-              <div
-                key={game.id}
-                className="flex flex-col gap-3 rounded-2xl border border-hairline bg-card p-5 shadow-card sm:flex-row sm:items-center sm:justify-between"
-              >
+              <DataRow key={game.id} className="p-5">
                 <div className="flex flex-col gap-1">
                   <span className="font-semibold text-ink-navy">{game.court.name}</span>
                   <span className="text-sm text-slate-gray">{formatDateRange(game.start_time, game.end_time)}</span>
@@ -422,20 +359,83 @@ function DashboardPage() {
                     {alreadyRequested ? t("joinRequestStatus.PENDING") : t("dashboard.openGames.request")}
                   </Button>
                 </div>
-              </div>
+              </DataRow>
             )
           })}
         </div>
       )}
 
+      </div>
+
+      <div className="flex flex-col gap-10">
+        {teammates && teammates.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <SubsectionHeading title={t("dashboard.teammates.title")} />
+            <div className="flex flex-wrap gap-3">
+              {teammates.map((teammate) => (
+                <div key={teammate.user.id} className="flex items-center gap-2.5 rounded-2xl border border-hairline bg-card px-3 py-2 shadow-card">
+                  <Avatar className="size-8">
+                    <AvatarImage src={assetUrl(teammate.user.avatar_url)} alt={teammate.user.name} className="object-cover" />
+                    <AvatarFallback className="text-xs">
+                      {teammate.user.name
+                        .split(" ")
+                        .map((part) => part[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-ink-navy">{teammate.user.name}</span>
+                    <span className="text-xs text-slate-gray">{t("dashboard.teammates.gamesTogether", { count: teammate.games_together })}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeWaitlist.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <SubsectionHeading title={t("dashboard.waitlist.title")} />
+            <div className="flex flex-col gap-3">
+              {activeWaitlist.map((entry) => (
+                <DataRow key={entry.id}>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-ink-navy">{entry.court.name}</span>
+                    <span className="text-sm text-slate-gray">{formatDateRange(entry.start_time, entry.end_time)}</span>
+                    {entry.status === "OFFERED" && entry.offer_expires_at && (
+                      <span className="text-xs font-medium text-amber-600">
+                        {t("reservationCard.holdExpires", {
+                          time: new Date(entry.offer_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Badge variant={entry.status === "OFFERED" ? "success" : "secondary"}>
+                      {entry.status === "OFFERED" ? t("waitlist.offered") : t("waitlist.waiting")}
+                    </Badge>
+                    {entry.status === "OFFERED" && (
+                      <Button size="sm" onClick={() => acceptWaitlistMutation.mutate(entry.id)}>
+                        {t("waitlist.bookIt")}
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => setLeaveWaitlistTarget(entry.id)}>
+                      {t("waitlist.leave")}
+                    </Button>
+                  </div>
+                </DataRow>
+              ))}
+            </div>
+          </div>
+        )}
+
       {myJoinRequests && myJoinRequests.length > 0 && (
-        <div className="mt-10 flex flex-col gap-3">
-          <span className="text-sm font-semibold text-ink-navy">{t("dashboard.myJoinRequests.title")}</span>
+        <div className="flex flex-col gap-3">
+          <SubsectionHeading title={t("dashboard.myJoinRequests.title")} />
           {myJoinRequests.map((request) => (
-            <div
-              key={request.id}
-              className="flex flex-col gap-2 rounded-2xl border border-hairline bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
-            >
+            <DataRow key={request.id}>
               <div className="flex flex-col gap-1">
                 <span className="font-medium text-ink-navy">{request.user.name}</span>
                 {request.note && <span className="text-sm text-slate-gray">{request.note}</span>}
@@ -447,7 +447,7 @@ function DashboardPage() {
               >
                 {t(`joinRequestStatus.${request.status}` as TranslationKey)}
               </Badge>
-            </div>
+            </DataRow>
           ))}
         </div>
       )}
@@ -488,24 +488,22 @@ function DashboardPage() {
       </Dialog>
 
       {sharedWithMe && sharedWithMe.length > 0 && (
-        <div className="mt-10 flex flex-col gap-3">
-          <span className="text-sm font-semibold text-ink-navy">{t("dashboard.sharedWithYou")}</span>
+        <div className="flex flex-col gap-3">
+          <SubsectionHeading title={t("dashboard.sharedWithYou")} />
           {sharedWithMe.map((reservation) => (
-            <button
-              key={reservation.id}
-              type="button"
-              onClick={() => setDetailReservation(reservation)}
-              className="flex flex-col gap-2 rounded-2xl border border-dashed border-hairline bg-cloud p-4 text-left transition-colors hover:border-slate-gray/40 sm:flex-row sm:items-center sm:justify-between"
-            >
+            <DataRowButton key={reservation.id} variant="dashed" onClick={() => setDetailReservation(reservation)}>
               <div className="flex flex-col gap-1">
                 <span className="font-medium text-ink-navy">{reservation.court.name}</span>
                 <span className="text-sm text-slate-gray">{formatDateRange(reservation.start_time, reservation.end_time)}</span>
               </div>
               <Badge variant={STATUS_VARIANT[reservation.status]}>{statusLabels[reservation.status]}</Badge>
-            </button>
+            </DataRowButton>
           ))}
         </div>
       )}
+
+      </div>
+      </div>
 
       <ReservationDetailDialog reservation={detailReservation} onClose={() => setDetailReservation(null)} />
 
