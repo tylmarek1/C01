@@ -19,45 +19,94 @@ decide what's inferable from the codebase yourself; ask only when a
 decision is genuinely product-defining and the repository doesn't answer
 it (see `feature-development`'s Step 1 for the line between the two).
 
-## 0. Read this first: code is ground truth; most docs here are point-in-time records
+## 0. Source-of-truth hierarchy
 
-Docs drift behind code as work continues — expected, not a failure state.
-When a *living* doc (see below) states a fact about the current
-implementation and the code disagrees, the code is right; fix the doc
-opportunistically (see the `update-docs` skill) rather than trusting the
-doc's prose. Never re-quote a doc's number into another doc, a skill, or
-here — a second hardcoded copy of the same fact is exactly how two docs
-independently drift (this has already happened once: a skill's own "here's
-how stale the docs are" paragraph went stale itself by hardcoding numbers
-the code then outgrew).
+Six layers, strongest first for what each one owns. When two disagree,
+resolve it explicitly and say which source was wrong — never silently
+"fix" it by editing whichever file is easiest (`docs/definition-of-done.md`
+has the fuller rule; `docs/evidence-and-evolution.md`'s "Nalezený nesoulad"
+table is the worked example of doing this right, including cases where the
+*docs* turned out to be wrong, not the code).
 
-**Point-in-time records — never edit their substance to match newer code,
-only fix an actual error in them:** `docs/intent-and-change.md` (the
-Project Frame), `docs/specification-v0.1.md`, and `cviko1/todo.md` are
-graded snapshots. `docs/evidence-and-evolution.md` is a dated lab write-up
-(pinned commit SHAs, literal test-run transcripts) — new evidence gets a
-new dated entry, old ones are never rewritten to the present. `docs/change-
-c02-impact.md` is explicitly "written before `specification.md` v0.2 was
-touched, kept as the reasoning behind it" — a decision trail, not a
-description of today. `docs/architecture-and-decisions.md` is the same kind
-of record but append-only: a changed decision gets a new ADR or an explicit
-"Amendment" note below the original (see ADR-001's), never a rewrite of the
-original decision/context/consequences in place.
+1. **`docs/course/`** — what the course actually requires, pasted verbatim
+   from the assignment. Load the relevant `C0N.md` with the Read tool
+   before any course-phase request (see "How work gets routed" below) —
+   don't work from memory or from this file's summary of it. **Never**
+   copy course text into this file, a skill, or `docs/project-state.md` —
+   reference it by path.
+2. **`docs/specification.md`** (+ `docs/specification-v0.1.md`, frozen) —
+   the team's accepted behavioral baseline: operations, rules, states,
+   diagrams. This is the requirement for business behavior. Skills and
+   this file describe *how* to work, not *what the rules are* — don't
+   restate a business rule here or in a skill, reference it by ID (`BR-xx`,
+   `REQ-xx`).
+3. **`docs/project-state.md`** — where the project is *right now*: phase,
+   baseline version, completed/pending gates, architectural drivers,
+   latest verification. A stateful index, not a requirements source.
+4. **`docs/evidence-and-evolution.md`** — what was actually run and
+   observed, dated and append-only; never rewritten to the present.
+5. **`backend/src/`, `frontend/src/`, and the test suites** — what the
+   system actually does right now. For "does this behavior exist today,"
+   trust this over any doc.
+6. **This file, `backend/CLAUDE.md`/`frontend/CLAUDE.md`,
+   `.claude/workflows/`, and skills** — *how* to work here: process and
+   convention, never a business rule that belongs in layer 2.
 
-**Living — should track current code:** `docs/specification.md` (every
-verification example in it is executable — `backend/tests/
-test_spec_baseline.py`, `test_approval_api.py` — and must stay in sync with
-it), and root/`backend`/`frontend` `README.md`. A mismatch you find in one
-of these is a bug to fix via `update-docs`, not a documented permanent gap.
+Within layers 2 and 4, some files are **point-in-time records** — never
+edit their substance to match newer code, only fix an actual error:
+`docs/intent-and-change.md` (the Project Frame), `docs/specification-
+v0.1.md`, and `cviko1/todo.md` are graded snapshots.
+`docs/evidence-and-evolution.md` is append-only. `docs/change-c02-
+impact.md` is a decision trail, not a description of today.
+`docs/architecture-and-decisions.md` is append-only too: a changed
+decision gets a new ADR or an "Amendment" note below the original, never a
+rewrite in place. **Living** (should track current code):
+`docs/specification.md` and root/`backend`/`frontend` `README.md` — a
+mismatch you find there is a bug to fix via `update-docs`, not a
+documented permanent gap.
+
+Never re-quote a fact from one layer into another — a second hardcoded
+copy is exactly how two docs independently drift (this has already
+happened once: a skill's own "here's how stale the docs are" paragraph
+went stale itself by hardcoding numbers the code then outgrew).
+
+## How work gets routed
+
+A short, high-level request is normal, not underspecified — investigate
+before asking (see the Operating principle above). Match it to a workflow
+in `.claude/workflows/`: plain procedure files, not skills — Claude Code
+doesn't auto-discover them the way it discovers `.claude/skills/`, so this
+table is how a short prompt actually finds one.
+
+| Request looks like | Read |
+|---|---|
+| "dokonči C02" / "finish C02" / picking up course work | `docs/project-state.md` first (which phase, which gates are open), then whichever of `c01.md` / `c02-baseline.md` / `c02-change.md` that phase points to |
+| "implementuj change z C02" / a new requirement change | `.claude/workflows/c02-change.md` |
+| "připrav mě na C03" | `docs/course/C03.md` if it exists yet (load it the same way as C01/C02); if it doesn't, say so explicitly and work from `docs/project-state.md`'s architectural-drivers list instead of guessing at C03's scope |
+| "přidej X" / "add X" / "improve reservations" | `.claude/workflows/feature.md` |
+| "oprav X" / "fix X" | `.claude/workflows/bug-fix.md` |
+| "vylepši aplikaci" / "improve the app" / "find weaknesses" | `.claude/workflows/improve-app.md` |
+| preparing a hand-in, cutting a release | `.claude/workflows/release.md` |
+
+A workflow orchestrates *order*; the skills table further down still does
+the actual *how* for each step — a workflow names which skill applies
+where, it doesn't restate that skill's content. For a non-trivial or
+ambiguous request, briefly restate the scope you understood before making
+sweeping multi-file edits, whichever workflow applies.
 
 ## Repository layout
 
 ```
+docs/course/                        the course assignments, verbatim (C01.md, C02.md, ...) — layer 1
+docs/project-state.md               current phase, gates, drivers — layer 3
+docs/definition-of-done.md          the evidence-backed-completion rule (not a checklist)
 docs/intent-and-change.md           Project Frame (domain, states, rules) — graded, still accurate as decisions
 docs/architecture-and-decisions.md  ADR-000..003 — stack choice, exclusion-constraint design, repo split, JWT auth
 docs/evidence-and-evolution.md      the executed C01 spike write-up + the C02 evidence (spec -> running app)
 docs/specification.md               C02 specification, current version v0.2 (approval process); v0.1 frozen in specification-v0.1.md
 docs/change-c02-impact.md           impact analysis of the C02 change + architectural drivers handed to C03
+.claude/workflows/                  the process files "How work gets routed" (above) points into
+.claude/scripts/check-project-state.sh   structural check for this system — see "Mechanical checks" below
 backend/                            FastAPI app — see backend/CLAUDE.md
 frontend/                           React app — see frontend/CLAUDE.md
 cviko1/todo.md                      historical C01 Definition-of-Done checklist, not an active backlog
@@ -101,36 +150,18 @@ post-edit hook — neither is a substitute for CI.
   full details and the exact recovery command are in `backend/CLAUDE.md`;
   read it before changing an existing model.
 
-## How to approach a change
+Find the real current code before proposing a change — don't assume a
+README describes it (see §0). Look for an existing analogous pattern
+before introducing a new one (`architecture-review`) rather than inventing
+a parallel way to do something this codebase already does one way.
 
-1. **A high-level request ("add notifications," "improve reservations," "add
-   an admin module") is not an instruction to start editing files.** Use the
-   `feature-development` skill — it drives understand → impact → design →
-   implement → verify → review → improvement-check, and points to the more
-   specific skills below at each step. Investigate the repository yourself
-   before asking a clarifying question; only ask when a genuine product
-   decision can't be inferred from the codebase.
-2. **Find the real current code first**, don't assume a README describes it
-   (see §0). Look for an existing analogous pattern before introducing a new
-   one — use the `architecture-review` skill before adding a new
-   module/file. This codebase already has conventions for most things;
-   match them instead of inventing a parallel way to do the same thing.
-3. For a non-trivial or ambiguous request, briefly restate the scope you
-   understood before making sweeping multi-file edits.
-4. Implement, then verify — see "Definition of done" below. Never report a
-   change as complete with a failing test or a broken build.
-5. **A meaningful change owns its own Git lifecycle by default** — branch,
-   commit, push, PR, merge. You do not need to be asked for any of these
-   individually; see "Git workflow" below and `finish-task`, which drives
-   this lifecycle after implementation. The one thing that still needs an
-   explicit ask is a **destructive** git action (force-push, `reset --hard`,
-   deleting someone else's branch) — see the Environment's own Git Safety
-   Protocol for what counts.
-
-A request to *improve*, *audit*, or *find weaknesses in* the app (rather
-than build something specific) is a different workflow — use `improve-app`,
-which inspects the actual product/backend/frontend/engineering before
-reporting anything, rather than producing generic suggestions.
+**A meaningful change owns its own Git lifecycle by default** — branch,
+commit, push, PR, merge. You do not need to be asked for any of these
+individually; see "Git workflow" below and `finish-task`, which drives
+this lifecycle after implementation. The one thing that still needs an
+explicit ask is a **destructive** git action (force-push, `reset --hard`,
+deleting someone else's branch) — see the Environment's own Git Safety
+Protocol for what counts.
 
 ## Definition of done
 
@@ -153,6 +184,16 @@ before reporting done — don't just list it.** "I found this but left it" is
 only the right answer when the fix is genuinely out of scope, too large to
 do safely right now, or itself needs a product decision — say which, don't
 default to reporting over fixing.
+
+**"Done" means evidence-backed, not "looks complete."** A gate, a
+checklist item, or a feature is done only when you can point at a file, a
+passing test, a command's actual output, or a human sign-off that proves
+it — see `docs/definition-of-done.md` for the full rule, including the one
+class of gate (a team's own sign-off on a specification) that a session
+must *report as open*, never fabricate or silently mark closed. When a
+change closes or opens something tracked in `docs/project-state.md`,
+update it as part of finishing the change — don't leave the index
+describing a phase that already moved on.
 
 ## Known pitfalls (grounded in real bugs, not hypothetical ones)
 
@@ -217,6 +258,17 @@ enough that every session needs them regardless of task. Don't invent
 automation for its own sake — the `.claude/settings.json` ruff-format hook
 exists because it was cheap and genuinely useful, not because "more
 automation" is a goal in itself.
+
+**Mechanical checks that exist today:** the ruff-format post-edit hook and
+the `guard-main.sh` pre-commit/pre-push hook (both below); `finish-task`'s
+test/build/lint commands; `.claude/scripts/check-project-state.sh`, a
+structural check (not a content check) that `docs/course/`,
+`docs/project-state.md`, `docs/definition-of-done.md`, and every
+`.claude/workflows/*.md` this file's routing table points to actually
+exist, and that this file hasn't absorbed a copy of the course text — run
+it after touching any of those. None of this is CI (see "Known gaps") and
+none of it checks whether a requirement is actually satisfied — only
+reading `docs/course/` against `docs/project-state.md` does that.
 
 ## What belongs in CLAUDE.md (and what doesn't)
 
@@ -295,6 +347,13 @@ silently add a new dependency, config file, or pipeline as a side effect of
 an unrelated change.
 
 ## Skills available in this repo
+
+A skill is a competency — *how* to do one kind of thing well; a workflow
+(`.claude/workflows/`, "How work gets routed" above) is a process — *what
+order* to do things in for one kind of request, and which skills to use at
+each step. Don't fold a whole project lifecycle into a skill (that's what
+made `.claude/workflows/` necessary) and don't duplicate a workflow's
+ordering logic inside a skill.
 
 Skills live at three levels — Claude Code discovers them per-directory, most
 specific wins, so a skill under `backend/.claude/skills/` or
