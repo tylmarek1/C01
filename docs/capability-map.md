@@ -46,8 +46,8 @@ here just because it exists, only ones worth tracking status on.
 | Authorization (ownership/role checks) | Strong | Three clean dependency tiers (`get_current_user`/`_manager`/`_admin`); no missing ownership check found in an `auth.py`/`deps.py` audit | 2026-09-22 |
 | Auth abuse-resistance (brute-force/rate-limit) | Adequate | In-memory per-process throttle on `/auth/login` (per-email, 10/5min, resets on success) and `/auth/register` (per-IP, 10/hr) — `rate_limit.py`, tested in `test_auth.py`. Adequate not Strong: single-process only, no shared store if ever scaled | 2026-09-22 |
 | Input validation / injection | Strong | Pydantic + ORM-first, `security-review` | 2026-09-22 |
-| File upload handling | Strong | Server-generated filenames; decode+re-encode defeats polyglot files. Pixel-dimension cap relies on Pillow's implicit default — minor sub-item, see Backlog | 2026-09-22 |
-| Dependency/supply-chain audit | **Missing** | No `pip-audit`/`npm audit` practice anywhere | 2026-09-22 |
+| File upload handling | Strong | Server-generated filenames; decode+re-encode defeats polyglot files. Explicit 50MP pixel-dimension cap now asserted before decode (`images.py`), not just inherited from Pillow's default — tested | 2026-09-22 |
+| Dependency/supply-chain audit | Adequate | Baseline run 2026-09-22: `uvx pip-audit` (backend) and `npm audit` (frontend) both clean, 0 known vulnerabilities. `security-review` now has a recurring check step; still no CI automation of it | 2026-09-22 |
 | Account recovery (password reset) | **Missing** | No `/auth/forgot-password`; needs an email-delivery decision first | 2026-09-22 |
 | Secrets handling | Strong | `security-review`, ADR-003's documented dev fallback | 2026-09-22 |
 
@@ -64,11 +64,11 @@ here just because it exists, only ones worth tracking status on.
 
 | Capability | Status | Evidence | Last reviewed |
 |---|---|---|---|
-| Reservation state machine | Strong | Exhaustive `ALLOWED_TRANSITIONS`, centralized guards. Concurrency safety is an API-layer convention (`lock=True` at call sites), not enforced inside `lifecycle.py` itself — see Backlog | 2026-09-22 |
+| Reservation state machine | Strong | Exhaustive `ALLOWED_TRANSITIONS`, centralized guards. Concurrency safety is an API-layer convention (`lock=True` at call sites) — verified every call site follows it (`api/reservations.py`, `approval_service.py`, `facility_blocks.py`, `worker.py`), and `transition()`'s docstring now states the contract explicitly so a new call site can't miss it by accident | 2026-09-22 |
 | Double-booking guarantee | Strong | ADR-001, Postgres exclusion constraint, regression-tested | 2026-09-22 |
 | Background worker reliability | Strong | Each of the 5 housekeeping sub-tasks now runs in its own session/transaction (`worker.py`'s `_SUB_TASKS` loop) — one failing task is logged and skipped, the other 4 still commit. All 5 now consistently use `with_for_update(skip_locked=True)`. Regression-tested (`test_worker_tick_survives_one_failing_sub_task`) | 2026-09-22 |
 | API pagination | **Missing** | Every list endpoint is a full-table read — no `limit`/`offset` anywhere | 2026-09-22 |
-| Observability / logging | **Weak** | `import logging` appears in exactly one backend file (`worker.py`); no unhandled-exception logging anywhere in the API layer. No platform, by deliberate design (`production-readiness`) — but even the minimal level is missing | 2026-09-22 |
+| Observability / logging | Adequate | A global FastAPI exception handler (`main.py`) now logs any unhandled (non-`HTTPException`) exception with request context before returning a generic 500 — the minimal level `production-readiness` calls for, still deliberately not a platform. Tested (`test_error_handling.py`) | 2026-09-22 |
 | Migrations | **Missing** (deliberate) | No Alembic — known, documented gap (root `CLAUDE.md`) | 2026-09-22 |
 | CI/CD | **Missing** (deliberate) | Known, documented gap | 2026-09-22 |
 
@@ -109,14 +109,9 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 `improve-app`'s existing vocabulary — not a new scheme.
 
 ### Security / reliability
-- **[High]** Run `pip-audit`/`npm audit` once to baseline dependency vulnerabilities — one-off check, then a recurring `security-review` line.
-- **[Med]** No password-reset flow — needs an email-delivery decision first; a product decision, not silent scaffolding.
-- **[Med]** Reservation reschedule: unconfirmed whether it shares `ReservationCreate`'s slot/opening-hours validator, or has a drifted copy — verify first, add a test if it's a real gap.
-- **[Med]** Zero `logging` usage outside `worker.py` — a single unhandled-exception logging hook, not a platform.
-- **[Low]** No explicit pixel-dimension cap before Pillow decode in `images.py` (byte-size is capped; dimension relies on Pillow's implicit default) — one-line change.
+- **[Med]** No password-reset flow — needs an email-delivery decision first; a product decision, not silent scaffolding. **Not implementing autonomously** — needs the team to pick an email provider.
 
 ### Backend / architecture
-- **[Med]** `transition()`'s concurrency safety is an API-layer convention, not enforced inside `lifecycle.py` itself — make the locking contract an explicit docstring now; stronger enforcement only if it ever actually bites.
 - **[Med]** No pagination anywhere (`/reservations`, `/admin/reservations`, `/admin/users`, `/courts`) — full-stack feature; not urgent at current data scale.
 
 ### Product / UX
@@ -130,6 +125,8 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 - Auth rate-limiting on `/auth/login`/`/auth/register` — `rate_limit.py`, PR merging `security/auth-rate-limit`.
 - Worker reliability: per-subtask transaction isolation + consistent row-locking — `worker.py`, PR merging `reliability/worker-tick-isolation`.
+- Dependency-audit baseline run (`pip-audit`/`npm audit`, both clean), `images.py` pixel-dimension cap, `transition()`'s locking contract documented, unhandled-exception logging hook — one PR, `backend/architecture` hardening batch.
+- Reservation reschedule validation: verified `ReservationReschedule` already shares `validate_slot_shape()` with `ReservationCreate` (`schemas/reservation.py`) — not a drifted copy, no fix needed. Closing without a code change.
 
 ## Rejected (external skills evaluated, 2026-09-22)
 

@@ -1,10 +1,12 @@
 import asyncio
+import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from reservations.api import (
@@ -22,6 +24,8 @@ from reservations.api import (
 from reservations.config import settings
 from reservations.deps import session_factory
 from reservations.worker import run_forever
+
+logger = logging.getLogger("reservations.api")
 
 
 @asynccontextmanager
@@ -65,6 +69,17 @@ app.include_router(reviews.router)
 app.include_router(favorites.router)
 app.include_router(admin.router)
 app.include_router(stats.router)
+
+
+@app.exception_handler(Exception)
+async def log_unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+    """Routers raise HTTPException deliberately (handled by FastAPI's own
+    default handler, untouched by this); this only catches genuine bugs —
+    previously an unhandled exception produced no application-level log
+    line anywhere. Not a logging platform, just the minimum that makes an
+    unexpected 500 visible instead of silent."""
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.get("/health")
