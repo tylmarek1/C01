@@ -20,12 +20,19 @@ def future_date():
 
 def at(hour: int, minute: int = 0) -> str:
     day = future_date()
-    return datetime(day.year, day.month, day.day, hour, minute, tzinfo=PRAGUE).isoformat()
+    return datetime(
+        day.year, day.month, day.day, hour, minute, tzinfo=PRAGUE
+    ).isoformat()
 
 
 def register_and_login(client: TestClient, email: str) -> str:
-    client.post("/auth/register", json={"name": "Player", "email": email, "password": "supersecret"})
-    response = client.post("/auth/login", json={"email": email, "password": "supersecret"})
+    client.post(
+        "/auth/register",
+        json={"name": "Player", "email": email, "password": "supersecret"},
+    )
+    response = client.post(
+        "/auth/login", json={"email": email, "password": "supersecret"}
+    )
     return response.json()["access_token"]
 
 
@@ -55,7 +62,9 @@ def test_create_reservation_success(session_factory: sessionmaker) -> None:
     assert body["court"]["id"] == court_id
 
 
-def test_create_reservation_rejects_bad_slot_length(session_factory: sessionmaker) -> None:
+def test_create_reservation_rejects_bad_slot_length(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     token = register_and_login(client, "erin@example.com")
@@ -69,7 +78,9 @@ def test_create_reservation_rejects_bad_slot_length(session_factory: sessionmake
     assert response.status_code == 422
 
 
-def test_create_reservation_rejects_outside_opening_hours(session_factory: sessionmaker) -> None:
+def test_create_reservation_rejects_outside_opening_hours(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     token = register_and_login(client, "irene@example.com")
@@ -83,7 +94,9 @@ def test_create_reservation_rejects_outside_opening_hours(session_factory: sessi
     assert response.status_code == 422
 
 
-def test_create_reservation_uses_venue_local_time_not_utc(session_factory: sessionmaker) -> None:
+def test_create_reservation_uses_venue_local_time_not_utc(
+    session_factory: sessionmaker,
+) -> None:
     """07:00 Europe/Prague (summer, UTC+2) is 05:00 UTC — must be accepted, not rejected as pre-opening."""
     client = TestClient(app)
     court_id = seed_court(session_factory)
@@ -122,7 +135,9 @@ def test_create_reservation_rejects_too_soon(session_factory: sessionmaker) -> N
     # A fixed midday slot yesterday: always in the past (so always "too soon"
     # regardless of lead time) while still shaped like a valid slot, so this
     # exercises the lead-time rule specifically rather than opening hours.
-    yesterday_noon = (datetime.now(PRAGUE) - timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+    yesterday_noon = (datetime.now(PRAGUE) - timedelta(days=1)).replace(
+        hour=12, minute=0, second=0, microsecond=0
+    )
 
     response = client.post(
         "/reservations",
@@ -137,22 +152,32 @@ def test_create_reservation_rejects_too_soon(session_factory: sessionmaker) -> N
     assert response.status_code == 409
 
 
-def test_create_reservation_rejects_too_far_ahead(session_factory: sessionmaker) -> None:
+def test_create_reservation_rejects_too_far_ahead(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     token = register_and_login(client, "riley@example.com")
-    far = datetime.now(PRAGUE).replace(hour=18, minute=0, second=0, microsecond=0) + timedelta(days=30)
+    far = datetime.now(PRAGUE).replace(
+        hour=18, minute=0, second=0, microsecond=0
+    ) + timedelta(days=30)
 
     response = client.post(
         "/reservations",
-        json={"court_id": court_id, "start_time": far.isoformat(), "end_time": (far + timedelta(hours=1)).isoformat()},
+        json={
+            "court_id": court_id,
+            "start_time": far.isoformat(),
+            "end_time": (far + timedelta(hours=1)).isoformat(),
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 409
 
 
-def test_active_reservation_limit_enforced_for_players(session_factory: sessionmaker) -> None:
+def test_active_reservation_limit_enforced_for_players(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     token = register_and_login(client, "sam@example.com")
@@ -161,7 +186,11 @@ def test_active_reservation_limit_enforced_for_players(session_factory: sessionm
     for hour in (10, 12, 14):
         response = client.post(
             "/reservations",
-            json={"court_id": court_id, "start_time": at(hour), "end_time": at(hour + 1)},
+            json={
+                "court_id": court_id,
+                "start_time": at(hour),
+                "end_time": at(hour + 1),
+            },
             headers=headers,
         )
         assert response.status_code == 201
@@ -216,7 +245,9 @@ def test_confirm_then_cancel_reservation(session_factory: sessionmaker) -> None:
     assert cancelled.json()["status"] == "CANCELLED"
 
 
-def test_cannot_cancel_already_cancelled_reservation(session_factory: sessionmaker) -> None:
+def test_cannot_cancel_already_cancelled_reservation(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     token = register_and_login(client, "vera@example.com")
@@ -253,7 +284,9 @@ def test_check_in_requires_confirmed_first(session_factory: sessionmaker) -> Non
     assert checked_in.json()["status"] == "CHECKED_IN"
 
 
-def test_reschedule_moves_reservation_and_frees_old_slot(session_factory: sessionmaker) -> None:
+def test_reschedule_moves_reservation_and_frees_old_slot(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     token = register_and_login(client, "xena@example.com")
@@ -271,7 +304,9 @@ def test_reschedule_moves_reservation_and_frees_old_slot(session_factory: sessio
     )
 
     assert response.status_code == 200
-    assert datetime.fromisoformat(response.json()["start_time"]) == datetime.fromisoformat(at(20))
+    assert datetime.fromisoformat(
+        response.json()["start_time"]
+    ) == datetime.fromisoformat(at(20))
 
     history = client.get(f"/reservations/{created['id']}/history", headers=headers)
     event_types = [event["event_type"] for event in history.json()]
@@ -287,7 +322,9 @@ def test_reschedule_moves_reservation_and_frees_old_slot(session_factory: sessio
     assert reclaim.status_code == 201
 
 
-def test_cannot_confirm_someone_elses_reservation(session_factory: sessionmaker) -> None:
+def test_cannot_confirm_someone_elses_reservation(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     owner_token = register_and_login(client, "gina@example.com")
@@ -317,7 +354,9 @@ def test_list_my_reservations_only_returns_own(session_factory: sessionmaker) ->
         headers={"Authorization": f"Bearer {token_a}"},
     )
 
-    response = client.get("/reservations", headers={"Authorization": f"Bearer {token_b}"})
+    response = client.get(
+        "/reservations", headers={"Authorization": f"Bearer {token_b}"}
+    )
 
     assert response.status_code == 200
     assert response.json() == []
@@ -334,16 +373,22 @@ def test_list_courts_returns_active_courts(session_factory: sessionmaker) -> Non
     assert "Badminton 1" in names
 
 
-def test_non_manager_cannot_list_all_reservations(session_factory: sessionmaker) -> None:
+def test_non_manager_cannot_list_all_reservations(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     token = register_and_login(client, "logan@example.com")
 
-    response = client.get("/reservations/admin", headers={"Authorization": f"Bearer {token}"})
+    response = client.get(
+        "/reservations/admin", headers={"Authorization": f"Bearer {token}"}
+    )
 
     assert response.status_code == 403
 
 
-def test_manager_lists_all_reservations_with_booker(session_factory: sessionmaker) -> None:
+def test_manager_lists_all_reservations_with_booker(
+    session_factory: sessionmaker,
+) -> None:
     from reservations.models import User, UserRole
 
     client = TestClient(app)
@@ -361,7 +406,9 @@ def test_manager_lists_all_reservations_with_booker(session_factory: sessionmake
         manager.role = UserRole.VENUE_MANAGER
         session.commit()
 
-    response = client.get("/reservations/admin", headers={"Authorization": f"Bearer {manager_token}"})
+    response = client.get(
+        "/reservations/admin", headers={"Authorization": f"Bearer {manager_token}"}
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -388,7 +435,8 @@ def test_manager_can_cancel_any_reservation(session_factory: sessionmaker) -> No
         session.commit()
 
     response = client.post(
-        f"/reservations/{created['id']}/cancel", headers={"Authorization": f"Bearer {manager_token}"}
+        f"/reservations/{created['id']}/cancel",
+        headers={"Authorization": f"Bearer {manager_token}"},
     )
 
     assert response.status_code == 200
@@ -402,7 +450,12 @@ def test_reservation_series_books_multiple_weeks(session_factory: sessionmaker) 
 
     response = client.post(
         "/reservations/series",
-        json={"court_id": court_id, "start_time": at(18), "end_time": at(19), "weeks": 2},
+        json={
+            "court_id": court_id,
+            "start_time": at(18),
+            "end_time": at(19),
+            "weeks": 2,
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -411,3 +464,62 @@ def test_reservation_series_books_multiple_weeks(session_factory: sessionmaker) 
     assert len(body["booked"]) == 2
     assert body["failed_weeks"] == []
     assert all(r["series_id"] == body["series_id"] for r in body["booked"])
+
+
+def test_reservation_series_respects_active_reservation_limit(
+    session_factory: sessionmaker,
+) -> None:
+    """A player is capped at 3 active reservations — a series longer than
+    that must stop booking once the cap is hit instead of bypassing it."""
+    client = TestClient(app)
+    court_id = seed_court(session_factory)
+    token = register_and_login(client, "yusuf@example.com")
+
+    response = client.post(
+        "/reservations/series",
+        json={
+            "court_id": court_id,
+            "start_time": at(18),
+            "end_time": at(19),
+            "weeks": 5,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert len(body["booked"]) == 3
+    assert body["failed_weeks"] == [4, 5]
+
+
+def test_reservation_series_rejected_when_already_at_active_limit(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    court_id = seed_court(session_factory)
+    token = register_and_login(client, "xena@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    for hour in (9, 11, 13):
+        response = client.post(
+            "/reservations",
+            json={
+                "court_id": court_id,
+                "start_time": at(hour),
+                "end_time": at(hour + 1),
+            },
+            headers=headers,
+        )
+        assert response.status_code == 201
+
+    response = client.post(
+        "/reservations/series",
+        json={
+            "court_id": court_id,
+            "start_time": at(18),
+            "end_time": at(19),
+            "weeks": 2,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 409

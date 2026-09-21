@@ -22,7 +22,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/card"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { CourtCard } from "@/components/shared/court-card"
+import { EmptyState } from "@/components/shared/empty-state"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
 import { SectionHeader } from "@/components/shared/section-header"
@@ -35,7 +37,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 import { compressImageFile } from "@/lib/image"
 import { cn } from "@/lib/utils"
-import type { Court } from "@/types"
+import type { Court, Review } from "@/types"
 
 function initials(name: string) {
   return name
@@ -281,13 +283,15 @@ function FavoritesTab() {
 
   if (favorites?.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-hairline py-16 text-center">
-        <p className="font-medium text-ink-navy">{t("profile.favorites.empty.title")}</p>
-        <p className="max-w-xs text-sm text-slate-gray">{t("profile.favorites.empty.description")}</p>
-        <Button asChild size="sm" className="mt-2">
-          <Link to="/courts">{t("profile.favorites.browse")}</Link>
-        </Button>
-      </div>
+      <EmptyState
+        title={t("profile.favorites.empty.title")}
+        description={t("profile.favorites.empty.description")}
+        action={
+          <Button asChild size="sm" className="mt-2">
+            <Link to="/courts">{t("profile.favorites.browse")}</Link>
+          </Button>
+        }
+      />
     )
   }
 
@@ -319,10 +323,13 @@ function ReviewsTab() {
   const { data: courts } = useQuery({ queryKey: ["courts"], queryFn: () => api.listCourts() })
   const courtNameById = new Map(courts?.map((c) => [c.id, c.name]) ?? [])
 
+  const [deleteTarget, setDeleteTarget] = useState<Review | null>(null)
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteReview(token!, id),
     onSuccess: () => {
       toast.success(t("profile.toast.reviewDeleted"))
+      setDeleteTarget(null)
       queryClient.invalidateQueries({ queryKey: ["reviews-mine"] })
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.reviewDeleteFailed")),
@@ -339,12 +346,7 @@ function ReviewsTab() {
   }
 
   if (reviews?.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-hairline py-16 text-center">
-        <p className="font-medium text-ink-navy">{t("profile.reviews.empty.title")}</p>
-        <p className="max-w-xs text-sm text-slate-gray">{t("profile.reviews.empty.description")}</p>
-      </div>
-    )
+    return <EmptyState title={t("profile.reviews.empty.title")} description={t("profile.reviews.empty.description")} />
   }
 
   return (
@@ -370,12 +372,22 @@ function ReviewsTab() {
             variant="ghost"
             className="text-destructive hover:bg-red-50"
             disabled={deleteMutation.isPending}
-            onClick={() => deleteMutation.mutate(review.id)}
+            onClick={() => setDeleteTarget(review)}
           >
             <Trash2 className="size-3.5" /> {t("common.delete")}
           </Button>
         </div>
       ))}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={t("confirmDialog.deleteReview.title")}
+        description={t("confirmDialog.deleteReview.description")}
+        confirmLabel={t("common.delete")}
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
     </div>
   )
 }
@@ -449,11 +461,7 @@ function LeaderboardTab() {
   }
 
   if (leaderboard?.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-hairline py-16 text-center">
-        <p className="text-sm text-slate-gray">{t("leaderboard.empty")}</p>
-      </div>
-    )
+    return <EmptyState title={t("leaderboard.empty")} />
   }
 
   return (

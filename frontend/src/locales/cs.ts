@@ -203,6 +203,18 @@ const cs: Record<TranslationKey, string> = {
   "common.delete": "Smazat",
   "common.viewDetails": "Zobrazit detail",
 
+  "confirmDialog.cancelReservation.title": "Zrušit tuto rezervaci?",
+  "confirmDialog.cancelReservation.description": "Termín se uvolní a nabídne se prvnímu na čekací listině. Tuto akci nelze vrátit zpět.",
+  "confirmDialog.cancelReservation.confirm": "Ano, zrušit",
+  "confirmDialog.cancelWaitlist.title": "Opustit čekací listinu?",
+  "confirmDialog.cancelWaitlist.description": "Přijdete o své místo ve frontě na tento termín.",
+  "confirmDialog.removeGuest.title": "Odebrat uživatele {name} z rezervace?",
+  "confirmDialog.removeGuest.description": "Tato osoba už rezervaci neuvidí ani se na ni nebude moct přihlásit.",
+  "confirmDialog.deleteReview.title": "Smazat tuto recenzi?",
+  "confirmDialog.deleteReview.description": "Vaše hodnocení a komentář budou trvale odstraněny.",
+  "confirmDialog.deleteBlock.title": "Odebrat tuto blokaci dostupnosti?",
+  "confirmDialog.deleteBlock.description": "Kurt bude pro tento časový úsek okamžitě znovu rezervovatelný.",
+
   "sport.TENNIS": "Tenis",
   "sport.VOLLEYBALL": "Volejbal",
   "sport.BADMINTON": "Badminton",

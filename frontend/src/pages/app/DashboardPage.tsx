@@ -17,7 +17,9 @@ import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/shared/dialog"
+import { EmptyState } from "@/components/shared/empty-state"
 import { ReservationCard } from "@/components/shared/reservation-card"
 import { ReservationDetailDialog } from "@/components/shared/reservation-detail-dialog"
 import { SectionHeader } from "@/components/shared/section-header"
@@ -127,6 +129,7 @@ function DashboardPage() {
     mutationFn: (reservation: Reservation) => api.cancelReservation(token!, reservation.id),
     onSuccess: () => {
       toast.success(t("dashboard.toast.cancelled"))
+      setCancelTarget(null)
       invalidate()
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("dashboard.error.cancel")),
@@ -164,6 +167,7 @@ function DashboardPage() {
     mutationFn: (entryId: string) => api.cancelWaitlistEntry(token!, entryId),
     onSuccess: () => {
       toast.success(t("dashboard.toast.waitlistLeft"))
+      setLeaveWaitlistTarget(null)
       invalidate()
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("dashboard.error.waitlistLeave")),
@@ -189,6 +193,8 @@ function DashboardPage() {
   })
   const [joinTarget, setJoinTarget] = useState<OpenGame | null>(null)
   const [joinNote, setJoinNote] = useState("")
+  const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null)
+  const [leaveWaitlistTarget, setLeaveWaitlistTarget] = useState<string | null>(null)
 
   const confirmedCount = reservations?.filter((r) => r.status === "CONFIRMED").length ?? 0
   const pendingCount = reservations?.filter((r) => r.status === "PENDING").length ?? 0
@@ -280,7 +286,7 @@ function DashboardPage() {
                     {t("waitlist.bookIt")}
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={() => cancelWaitlistMutation.mutate(entry.id)}>
+                <Button size="sm" variant="outline" onClick={() => setLeaveWaitlistTarget(entry.id)}>
                   {t("waitlist.leave")}
                 </Button>
               </div>
@@ -336,13 +342,15 @@ function DashboardPage() {
           {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-24 w-full" />)}
 
           {!isLoading && reservations?.length === 0 && (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-hairline py-16 text-center">
-              <p className="font-medium text-ink-navy">{t("dashboard.empty.title")}</p>
-              <p className="max-w-xs text-sm text-slate-gray">{t("dashboard.empty.description")}</p>
-              <Button asChild size="sm" className="mt-2">
-                <Link to="/app/book">{t("nav.book")}</Link>
-              </Button>
-            </div>
+            <EmptyState
+              title={t("dashboard.empty.title")}
+              description={t("dashboard.empty.description")}
+              action={
+                <Button asChild size="sm" className="mt-2">
+                  <Link to="/app/book">{t("nav.book")}</Link>
+                </Button>
+              }
+            />
           )}
 
           {reservations?.map((reservation) => (
@@ -351,7 +359,7 @@ function DashboardPage() {
               reservation={reservation}
               isBusy={isBusy}
               onConfirm={(r) => confirmMutation.mutate(r)}
-              onCancel={(r) => cancelMutation.mutate(r)}
+              onCancel={(r) => setCancelTarget(r)}
               onCheckIn={(r) => checkInMutation.mutate(r)}
               onReschedule={(reservation, startTime, endTime) => rescheduleMutation.mutate({ reservation, startTime, endTime })}
               onOpenDetail={setDetailReservation}
@@ -370,10 +378,7 @@ function DashboardPage() {
           {!openGames && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-24 w-full" />)}
 
           {openGames?.length === 0 && (
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-hairline py-16 text-center">
-              <p className="font-medium text-ink-navy">{t("dashboard.openGames.empty.title")}</p>
-              <p className="max-w-xs text-sm text-slate-gray">{t("dashboard.openGames.empty.description")}</p>
-            </div>
+            <EmptyState title={t("dashboard.openGames.empty.title")} description={t("dashboard.openGames.empty.description")} />
           )}
 
           {openGames?.map((game) => {
@@ -488,6 +493,26 @@ function DashboardPage() {
       )}
 
       <ReservationDetailDialog reservation={detailReservation} onClose={() => setDetailReservation(null)} />
+
+      <ConfirmDialog
+        open={Boolean(cancelTarget)}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        title={t("confirmDialog.cancelReservation.title")}
+        description={t("confirmDialog.cancelReservation.description")}
+        confirmLabel={t("confirmDialog.cancelReservation.confirm")}
+        isLoading={cancelMutation.isPending}
+        onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(leaveWaitlistTarget)}
+        onOpenChange={(open) => !open && setLeaveWaitlistTarget(null)}
+        title={t("confirmDialog.cancelWaitlist.title")}
+        description={t("confirmDialog.cancelWaitlist.description")}
+        confirmLabel={t("waitlist.leave")}
+        isLoading={cancelWaitlistMutation.isPending}
+        onConfirm={() => leaveWaitlistTarget && cancelWaitlistMutation.mutate(leaveWaitlistTarget)}
+      />
     </div>
   )
 }

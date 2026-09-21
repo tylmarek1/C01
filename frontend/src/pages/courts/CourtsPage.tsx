@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { CourtCard } from "@/components/shared/court-card"
+import { EmptyState } from "@/components/shared/empty-state"
 import { Input } from "@/components/shared/input"
 import { SectionHeader } from "@/components/shared/section-header"
 import { Skeleton } from "@/components/shared/skeleton"
@@ -199,10 +200,7 @@ function CourtsPage() {
         {isLoading && Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="aspect-[16/10] w-full rounded-2xl" />)}
 
         {!isLoading && courts?.length === 0 && (
-          <div className="col-span-full flex flex-col items-center gap-2 rounded-2xl border border-dashed border-hairline py-16 text-center">
-            <p className="font-medium text-ink-navy">{t("courts.empty.title")}</p>
-            <p className="text-sm text-slate-gray">{t("courts.empty.description")}</p>
-          </div>
+          <EmptyState title={t("courts.empty.title")} description={t("courts.empty.description")} className="col-span-full" />
         )}
 
         {courts?.map((court) => (

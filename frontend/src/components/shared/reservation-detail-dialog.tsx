@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, X } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/shared/dialog"
 import { Skeleton } from "@/components/shared/skeleton"
 import { SportIcon } from "@/components/shared/sport-icon"
@@ -12,7 +14,7 @@ import { useAuth } from "@/lib/auth-context"
 import { formatDateRange } from "@/lib/format"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
-import type { Reservation, ReservationEventType } from "@/types"
+import type { Reservation, ReservationEventType, ReservationGuest } from "@/types"
 
 const EVENT_KEYS: Record<ReservationEventType, TranslationKey> = {
   CREATED: "event.CREATED",
@@ -48,9 +50,14 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
     enabled: Boolean(token && reservation),
   })
 
+  const [removeGuestTarget, setRemoveGuestTarget] = useState<ReservationGuest | null>(null)
+
   const removeGuestMutation = useMutation({
     mutationFn: (userId: string) => api.removeGuest(token!, reservation!.id, userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reservation-guests", reservation?.id] }),
+    onSuccess: () => {
+      setRemoveGuestTarget(null)
+      queryClient.invalidateQueries({ queryKey: ["reservation-guests", reservation?.id] })
+    },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationDetail.error.removeGuest")),
   })
 
@@ -84,8 +91,9 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
     reservation && (reservation.status === "PENDING" || reservation.status === "CONFIRMED" || reservation.status === "CHECKED_IN")
 
   return (
-    <Dialog open={Boolean(reservation)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+    <>
+      <Dialog open={Boolean(reservation)} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent>
         {reservation && (
           <>
             <DialogHeader>
@@ -131,7 +139,7 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                     {canManageGuests && (
                       <button
                         type="button"
-                        onClick={() => removeGuestMutation.mutate(guest.user.id)}
+                        onClick={() => setRemoveGuestTarget(guest)}
                         disabled={removeGuestMutation.isPending}
                         className="text-slate-gray hover:text-destructive"
                         aria-label={t("reservationDetail.guests.remove")}
@@ -208,8 +216,19 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
             </Button>
           </>
         )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(removeGuestTarget)}
+        onOpenChange={(open) => !open && setRemoveGuestTarget(null)}
+        title={t("confirmDialog.removeGuest.title", { name: removeGuestTarget?.user.name ?? "" })}
+        description={t("confirmDialog.removeGuest.description")}
+        confirmLabel={t("reservationDetail.guests.remove")}
+        isLoading={removeGuestMutation.isPending}
+        onConfirm={() => removeGuestTarget && removeGuestMutation.mutate(removeGuestTarget.user.id)}
+      />
+    </>
   )
 }
 

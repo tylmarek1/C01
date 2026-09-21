@@ -52,15 +52,18 @@ This is a finished, deliberate design decision:
   color doesn't already exist as a token — this palette is more complete
   than a first guess might assume.
 
-## Two primitives that don't exist yet — decide deliberately, don't assume
+## One primitive that exists, one that doesn't — decide deliberately, don't assume
 
-- **No shared confirm-dialog/destructive-action primitive.** Cancel/confirm
-  actions (e.g. in `AdminPage.tsx`) currently fire their mutation directly,
-  with no "are you sure?" step. If you're adding a new destructive action,
-  build a small confirm step on top of the existing `dialog.tsx` rather
-  than skipping confirmation or writing a third one-off version if this has
-  already been done once elsewhere by the time you're reading this — check
-  first.
+- **`components/shared/confirm-dialog.tsx` is the shared confirm-dialog
+  primitive** — a thin wrapper over `dialog.tsx` taking `title`,
+  `description`, `confirmLabel`, `destructive`, `isLoading`, `onConfirm`.
+  It's wired into cancel-reservation (player + admin), remove-guest,
+  delete-review, and delete-facility-block. Use it for any new destructive
+  or hard-to-undo action instead of firing the mutation straight from the
+  triggering button's `onClick` — don't write a second one-off version.
+  Give the confirm button a label distinct from the dismiss button's
+  "Cancel" (e.g. "Yes, cancel it", not a second "Cancel") so the two aren't
+  visually identical.
 - **No shared table primitive.** Tabular/grid data (e.g. `AdminPage.tsx`'s
   listings) is laid out with ad hoc CSS grid, not a reusable component. A
   new feature with list/table data can follow that same ad hoc grid
