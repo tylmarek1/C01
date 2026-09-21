@@ -71,6 +71,6 @@ REQ-04 (Confirm) — result now depends on the Resource; REQ-06 (Cancel) — `PE
 
 **Change to the state diagram:** `PENDING → PENDING_APPROVAL` (submit) alongside `PENDING → CONFIRMED` (normal court); `PENDING_APPROVAL → CONFIRMED | REJECTED | CANCELLED | EXPIRED`.
 
-**New verification examples:** VE-02.7, VE-03.8, VE-04.8, VE-05.x (Approve), VE-06.x (Reject), VE-07.x (approval expiry), VE-08.x (no bypass) — in `specification.md`.
+**New verification examples:** VE-01.10, VE-02.7, VE-03.8, VE-03.9, VE-04.8, VE-05.x (Approve), VE-06.x (Reject), VE-07.x (approval expiry), VE-08.x (no bypass) — in `specification.md`.
 
 **Architectural drivers for C03:** AD-1 … AD-6 above; the most consequential are **AD-1** (durable timers for a process that outlives a request) and **AD-2/AD-3** (one definition of "blocking", one serialised place where transitions are applied).
