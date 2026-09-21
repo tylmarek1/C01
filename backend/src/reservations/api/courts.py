@@ -304,8 +304,18 @@ def delete_court(
     """Permanently remove a court — distinct from deactivating one (`active=False`),
     which is what retires a court that has actually been used. Only ever
     allowed for a court with no reservation history, so this can't destroy
-    real booking history; the deactivate flag is the tool for that case."""
-    court = _get_court(db, court_id)
+    real booking history; the deactivate flag is the tool for that case.
+
+    Locks the court row for the duration of the check + delete: Postgres
+    takes an implicit FOR KEY SHARE lock on the referenced court when a new
+    Reservation is inserted, so this FOR UPDATE blocks a concurrent booking
+    from slipping in between the "no reservations" check and the delete —
+    without it, that race could leave the has_reservations check stale and
+    turn the delete into an unhandled FK-violation 500 instead of a clean 409.
+    """
+    court = db.get(Court, court_id, with_for_update=True)
+    if court is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
 
     has_reservations = (
         db.scalar(
@@ -319,12 +329,18 @@ def delete_court(
             "This court has reservation history and can't be deleted — deactivate it instead",
         )
 
-    db.execute(Favorite.__table__.delete().where(Favorite.court_id == court.id))
-    db.execute(
-        FacilityBlock.__table__.delete().where(FacilityBlock.court_id == court.id)
-    )
-    db.execute(
-        WaitlistEntry.__table__.delete().where(WaitlistEntry.court_id == court.id)
-    )
+    # Per-object ORM deletes (not a bulk Core statement) to match every other
+    # delete endpoint in this codebase and keep working if these models ever
+    # grow an ORM-level cascade/event hook.
+    for favorite in db.scalars(select(Favorite).where(Favorite.court_id == court.id)):
+        db.delete(favorite)
+    for block in db.scalars(
+        select(FacilityBlock).where(FacilityBlock.court_id == court.id)
+    ):
+        db.delete(block)
+    for entry in db.scalars(
+        select(WaitlistEntry).where(WaitlistEntry.court_id == court.id)
+    ):
+        db.delete(entry)
     db.delete(court)
     db.commit()
