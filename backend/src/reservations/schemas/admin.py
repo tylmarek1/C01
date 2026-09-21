@@ -31,7 +31,8 @@ class AdminStats(BaseModel):
     total_reservations: int
     status_breakdown: dict[str, int]
     no_show_rate: float
-    reservations_last_30_days: int
+    reservations_in_window: int
+    window_days: int
     total_users: int
     total_courts: int
     top_courts: list[CourtPopularity]

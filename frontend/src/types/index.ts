@@ -185,7 +185,8 @@ export interface AdminStats {
   total_reservations: number
   status_breakdown: Record<string, number>
   no_show_rate: number
-  reservations_last_30_days: number
+  reservations_in_window: number
+  window_days: number
   total_users: number
   total_courts: number
   top_courts: CourtPopularity[]

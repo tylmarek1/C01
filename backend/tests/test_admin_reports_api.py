@@ -12,12 +12,19 @@ PRAGUE = ZoneInfo("Europe/Prague")
 
 def at(hour: int, minute: int = 0) -> str:
     day = (datetime.now(PRAGUE) + timedelta(days=3)).date()
-    return datetime(day.year, day.month, day.day, hour, minute, tzinfo=PRAGUE).isoformat()
+    return datetime(
+        day.year, day.month, day.day, hour, minute, tzinfo=PRAGUE
+    ).isoformat()
 
 
 def register_and_login(client: TestClient, email: str) -> str:
-    client.post("/auth/register", json={"name": "Player", "email": email, "password": "supersecret"})
-    response = client.post("/auth/login", json={"email": email, "password": "supersecret"})
+    client.post(
+        "/auth/register",
+        json={"name": "Player", "email": email, "password": "supersecret"},
+    )
+    response = client.post(
+        "/auth/login", json={"email": email, "password": "supersecret"}
+    )
     return response.json()["access_token"]
 
 
@@ -36,7 +43,9 @@ def seed_court(session_factory: sessionmaker, name: str = "Report Court") -> str
         return str(court.id)
 
 
-def test_reservations_csv_export_requires_manager(session_factory: sessionmaker) -> None:
+def test_reservations_csv_export_requires_manager(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     player_token = register_and_login(client, "csv-player@example.com")
@@ -46,19 +55,100 @@ def test_reservations_csv_export_requires_manager(session_factory: sessionmaker)
         headers={"Authorization": f"Bearer {player_token}"},
     )
 
-    denied = client.get("/admin/reservations/export.csv", headers={"Authorization": f"Bearer {player_token}"})
+    denied = client.get(
+        "/admin/reservations/export.csv",
+        headers={"Authorization": f"Bearer {player_token}"},
+    )
     assert denied.status_code == 403
 
     promote_to_manager(session_factory, "csv-player@example.com")
     manager_token = client.post(
-        "/auth/login", json={"email": "csv-player@example.com", "password": "supersecret"}
+        "/auth/login",
+        json={"email": "csv-player@example.com", "password": "supersecret"},
     ).json()["access_token"]
-    response = client.get("/admin/reservations/export.csv", headers={"Authorization": f"Bearer {manager_token}"})
+    response = client.get(
+        "/admin/reservations/export.csv",
+        headers={"Authorization": f"Bearer {manager_token}"},
+    )
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/csv")
     lines = response.text.strip().splitlines()
-    assert lines[0].startswith("id,court,sport,booked_by,email,start_time,end_time,status,created_at")
+    assert lines[0].startswith(
+        "id,court,sport,booked_by,email,start_time,end_time,status,created_at"
+    )
     assert len(lines) >= 2
+
+
+def test_reservations_csv_export_respects_status_filter(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    court_id = seed_court(session_factory, "CSV Filter Court")
+    player_token = register_and_login(client, "csv-filter-player@example.com")
+    booked = client.post(
+        "/reservations",
+        json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers={"Authorization": f"Bearer {player_token}"},
+    ).json()
+
+    manager_email = "csv-filter-mgr@example.com"
+    register_and_login(client, manager_email)
+    promote_to_manager(session_factory, manager_email)
+    manager_token = client.post(
+        "/auth/login", json={"email": manager_email, "password": "supersecret"}
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {manager_token}"}
+
+    # The booking above is PENDING — filtering to CONFIRMED must exclude it.
+    confirmed_only = client.get(
+        "/admin/reservations/export.csv",
+        params={"status": "CONFIRMED"},
+        headers=headers,
+    )
+    assert confirmed_only.status_code == 200
+    assert booked["id"] not in confirmed_only.text
+
+    pending_only = client.get(
+        "/admin/reservations/export.csv", params={"status": "PENDING"}, headers=headers
+    )
+    assert booked["id"] in pending_only.text
+
+
+def test_admin_stats_window_days_changes_the_recent_count(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    court_id = seed_court(session_factory, "Window Court")
+    player_token = register_and_login(client, "window-player@example.com")
+    client.post(
+        "/reservations",
+        json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers={"Authorization": f"Bearer {player_token}"},
+    )
+
+    manager_email = "window-mgr@example.com"
+    register_and_login(client, manager_email)
+    promote_to_manager(session_factory, manager_email)
+    manager_token = client.post(
+        "/auth/login", json={"email": manager_email, "password": "supersecret"}
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {manager_token}"}
+
+    default_window = client.get("/admin/stats", headers=headers).json()
+    assert default_window["window_days"] == 30
+    assert default_window["reservations_in_window"] >= 1
+
+    narrow_window = client.get(
+        "/admin/stats", params={"days": 90}, headers=headers
+    ).json()
+    assert narrow_window["window_days"] == 90
+    assert (
+        narrow_window["reservations_in_window"]
+        >= default_window["reservations_in_window"]
+    )
+
+    out_of_range = client.get("/admin/stats", params={"days": 200}, headers=headers)
+    assert out_of_range.status_code == 422
 
 
 def test_court_utilization_heatmap_shape(session_factory: sessionmaker) -> None:
@@ -67,14 +157,20 @@ def test_court_utilization_heatmap_shape(session_factory: sessionmaker) -> None:
     manager_email = "util-mgr@example.com"
     register_and_login(client, manager_email)
     promote_to_manager(session_factory, manager_email)
-    manager_token = client.post("/auth/login", json={"email": manager_email, "password": "supersecret"}).json()["access_token"]
+    manager_token = client.post(
+        "/auth/login", json={"email": manager_email, "password": "supersecret"}
+    ).json()["access_token"]
     headers = {"Authorization": f"Bearer {manager_token}"}
 
     client.post(
-        "/reservations", json={"court_id": court_id, "start_time": at(18), "end_time": at(19)}, headers=headers
+        "/reservations",
+        json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers=headers,
     )
 
-    response = client.get(f"/admin/courts/{court_id}/utilization", params={"days": 30}, headers=headers)
+    response = client.get(
+        f"/admin/courts/{court_id}/utilization", params={"days": 30}, headers=headers
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["court_id"] == court_id

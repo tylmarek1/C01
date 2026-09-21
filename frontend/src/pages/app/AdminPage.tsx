@@ -681,7 +681,7 @@ function ReservationsTab() {
     rejectMutation.isPending
 
   const exportMutation = useMutation({
-    mutationFn: () => api.exportReservationsCsv(token!),
+    mutationFn: () => api.exportReservationsCsv(token!, statusFilter === "ALL" ? undefined : statusFilter),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationCancel")),
   })
 
@@ -976,11 +976,19 @@ function BarRow({ label, value, max, suffix = "" }: { label: string; value: numb
   )
 }
 
+const STATS_WINDOW_OPTIONS = [7, 30, 90] as const
+
 function OverviewTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
   const statusLabels = useStatusLabels()
-  const { data: stats, isLoading, isError, refetch } = useQuery({ queryKey: ["admin-stats"], queryFn: () => api.getAdminStats(token!) })
+  const [windowDays, setWindowDays] = useState<(typeof STATS_WINDOW_OPTIONS)[number]>(30)
+  const {
+    data: stats,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({ queryKey: ["admin-stats", windowDays], queryFn: () => api.getAdminStats(token!, windowDays) })
 
   if (isLoading) {
     return (
@@ -1005,7 +1013,28 @@ function OverviewTab() {
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile icon={CalendarClock} label={t("admin.overview.totalReservations")} value={stats.total_reservations} />
-        <StatTile icon={Clock3} label={t("admin.overview.last30Days")} value={stats.reservations_last_30_days} />
+        <div className="flex flex-col gap-1.5">
+          <StatTile
+            icon={Clock3}
+            label={t("admin.overview.reservationsInWindow", { days: stats.window_days })}
+            value={stats.reservations_in_window}
+          />
+          <div className="flex gap-1 px-1">
+            {STATS_WINDOW_OPTIONS.map((days) => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => setWindowDays(days)}
+                className={cn(
+                  "rounded-md px-1.5 py-0.5 text-[11px] font-medium transition-colors",
+                  days === windowDays ? "bg-ink-navy text-paper" : "text-slate-gray hover:bg-pebble",
+                )}
+              >
+                {t("admin.overview.windowDays", { days })}
+              </button>
+            ))}
+          </div>
+        </div>
         <StatTile icon={AlertTriangle} label={t("admin.overview.noShowRate")} value={`${Math.round(stats.no_show_rate * 100)}%`} />
         <StatTile icon={Users} label={t("admin.overview.players")} value={stats.total_users} />
         <StatTile icon={LayoutGrid} label={t("admin.overview.courts")} value={stats.total_courts} />

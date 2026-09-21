@@ -41,7 +41,9 @@ _REAL_BOOKING_STATUSES = (
 
 @router.get("/stats", response_model=AdminStats)
 def get_stats(
-    db: Session = Depends(get_db), _manager: User = Depends(get_current_manager)
+    days: int = Query(default=30, ge=1, le=180),
+    db: Session = Depends(get_db),
+    _manager: User = Depends(get_current_manager),
 ) -> AdminStats:
     total_reservations = db.scalar(select(func.count()).select_from(Reservation)) or 0
 
@@ -58,8 +60,8 @@ def get_stats(
         else 0.0
     )
 
-    since = datetime.now(timezone.utc) - timedelta(days=30)
-    reservations_last_30_days = (
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    reservations_in_window = (
         db.scalar(
             select(func.count())
             .select_from(Reservation)
@@ -105,7 +107,8 @@ def get_stats(
         total_reservations=total_reservations,
         status_breakdown=status_breakdown,
         no_show_rate=no_show_rate,
-        reservations_last_30_days=reservations_last_30_days,
+        reservations_in_window=reservations_in_window,
+        window_days=days,
         total_users=total_users,
         total_courts=total_courts,
         top_courts=top_courts,
@@ -211,9 +214,16 @@ def update_user_role(
 
 @router.get("/reservations/export.csv")
 def export_reservations_csv(
-    db: Session = Depends(get_db), _manager: User = Depends(get_current_manager)
+    status: ReservationStatus | None = Query(default=None),
+    db: Session = Depends(get_db),
+    _manager: User = Depends(get_current_manager),
 ) -> StreamingResponse:
+    # Matches whatever the manager currently has filtered in the UI (see
+    # ReservationsTab) rather than always exporting every status — an
+    # export used to silently ignore the on-screen filter entirely.
     stmt = select(Reservation).order_by(Reservation.start_time.desc())
+    if status is not None:
+        stmt = stmt.where(Reservation.status == status)
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(

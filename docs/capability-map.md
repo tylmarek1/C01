@@ -78,7 +78,7 @@ here just because it exists, only ones worth tracking status on.
 |---|---|---|---|
 | Court discovery/search | Strong | Debounced URL-synced search, sport tabs, amenity filters | 2026-09-22 |
 | Booking-flow error recovery | Strong | Form state preserved on failed mutation; one-click waitlist-join offered on a booking conflict | 2026-09-22 |
-| Admin reporting/export | Adequate | Raw reservation list exports to CSV with a status filter; the aggregate dashboard is a fixed 30-day window with no export | 2026-09-22 |
+| Admin reporting/export | Strong | Overview's "reservations in window" stat now has a 7/30/90-day selector (`/admin/stats?days=`); CSV export now respects the current status filter instead of silently ignoring it (a real bug found while touching this) | 2026-09-22 |
 | Mobile responsiveness (general) | Strong | `accessibility-responsive` checklist, whole-app polish pass (PR #19) | 2026-09-22 |
 | Mobile responsiveness (`week-calendar.tsx`) | Strong | Below `sm`, shows one day at a time (tappable day-chip strip) instead of a horizontally-scrolled 7-column grid — desktop/tablet unchanged. Verified in a real browser at 375px and 1280px (Playwright, no horizontal overflow, day-switching and "Today" reset both correct) | 2026-09-22 |
 | Notification UX | Adequate | Mark-all-read exists; no per-type mute/preferences (low urgency at current volume) | 2026-09-22 |
@@ -115,7 +115,6 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - **[Med]** No pagination anywhere (`/reservations`, `/admin/reservations`, `/admin/users`, `/courts`) — full-stack feature; not urgent at current data scale.
 
 ### Product / UX
-- **[Low-Med]** Admin stats fixed at a 30-day window, aggregate view doesn't export — API date-range param + UI picker.
 - **[Low]** No notification mute/preferences — defer until volume actually justifies it.
 - **[Low]** No guided setup for a freshly-promoted manager with zero courts — small UI addition.
 - **[Low]** Keyboard-only completability of the booking flow was inferred from source, never actually walked in a browser — a 10-minute manual verification.
@@ -127,6 +126,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - Dependency-audit baseline run (`pip-audit`/`npm audit`, both clean), `images.py` pixel-dimension cap, `transition()`'s locking contract documented, unhandled-exception logging hook — one PR, `backend/architecture` hardening batch.
 - Reservation reschedule validation: verified `ReservationReschedule` already shares `validate_slot_shape()` with `ReservationCreate` (`schemas/reservation.py`) — not a drifted copy, no fix needed. Closing without a code change.
 - Mobile `week-calendar.tsx` — single-day view below `sm`, PR merging `polish/mobile-week-calendar`.
+- Admin stats 7/30/90-day window selector + CSV export status-filter bug fix, PR merging `feat/admin-stats-window-and-csv-filter`.
 
 ## Rejected (external skills evaluated, 2026-09-22)
 
