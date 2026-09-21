@@ -15,7 +15,7 @@ from reservations.booking_validation import (
 )
 from reservations.calendar_export import build_calendar_feed_ics, build_single_event_ics
 from reservations.deps import get_current_manager, get_current_user, get_db
-from reservations.lifecycle import transition
+from reservations.lifecycle import check_cancellable, transition
 from reservations.models import (
     ACTIVE_RESERVATION_STATUSES,
     Court,
@@ -382,9 +382,17 @@ def create_reservation_series(
 
 
 def _get_owned_reservation(
-    db: Session, current_user: User, reservation_id: uuid.UUID
+    db: Session,
+    current_user: User,
+    reservation_id: uuid.UUID,
+    *,
+    lock: bool = False,
 ) -> Reservation:
-    reservation = db.get(Reservation, reservation_id)
+    # lock=True takes a row lock (SELECT ... FOR UPDATE) so concurrent
+    # state changes of the same reservation run one after the other and the
+    # later one sees the earlier one's result (REQ-07) — without it, a late
+    # Confirm could overwrite a just-committed Cancel.
+    reservation = db.get(Reservation, reservation_id, with_for_update=lock)
     if reservation is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Reservation not found")
     if (
@@ -416,7 +424,7 @@ def confirm_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Reservation:
-    reservation = _get_owned_reservation(db, current_user, reservation_id)
+    reservation = _get_owned_reservation(db, current_user, reservation_id, lock=True)
     transition(db, reservation, ReservationStatus.CONFIRMED, actor_id=current_user.id)
     notify(
         db,
@@ -455,7 +463,8 @@ def cancel_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Reservation:
-    reservation = _get_owned_reservation(db, current_user, reservation_id)
+    reservation = _get_owned_reservation(db, current_user, reservation_id, lock=True)
+    check_cancellable(reservation)
     court_id, start_time, end_time = (
         reservation.court_id,
         reservation.start_time,

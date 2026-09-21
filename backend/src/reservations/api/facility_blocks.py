@@ -59,6 +59,7 @@ def create_facility_block(
         .where(Reservation.status.in_(ACTIVE_RESERVATION_STATUSES))
         .where(Reservation.start_time < payload.end_time)
         .where(Reservation.end_time > payload.start_time)
+        .with_for_update()
     )
     for reservation in db.scalars(stmt):
         transition(

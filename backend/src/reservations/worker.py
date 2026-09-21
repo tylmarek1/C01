@@ -38,6 +38,9 @@ def _expire_stale_holds(db) -> None:
         .where(Reservation.status == ReservationStatus.PENDING)
         .where(Reservation.hold_expires_at.is_not(None))
         .where(Reservation.hold_expires_at < now)
+        # Skip rows a Confirm/Cancel holds locked right now (REQ-07); a still
+        # expired hold is simply picked up again on the next tick.
+        .with_for_update(skip_locked=True)
     )
     for reservation in db.scalars(stmt):
         transition(db, reservation, ReservationStatus.EXPIRED, note="Hold expired unconfirmed")

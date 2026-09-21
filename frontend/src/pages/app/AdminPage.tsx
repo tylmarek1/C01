@@ -485,7 +485,7 @@ const STATUS_FILTERS: (ReservationStatus | "ALL")[] = [
   "NO_SHOW",
 ]
 
-const CANCELLABLE_STATUSES: ReservationStatus[] = ["PENDING", "CONFIRMED", "CHECKED_IN"]
+const CANCELLABLE_STATUSES: ReservationStatus[] = ["PENDING", "CONFIRMED"]
 
 function ReservationHistoryDialog({ reservation, trigger }: { reservation: ReservationAdmin; trigger: ReactNode }) {
   const { token } = useAuth()
@@ -639,7 +639,7 @@ function ReservationsTab() {
                   </Button>
                 }
               />
-              {CANCELLABLE_STATUSES.includes(reservation.status) && (
+              {CANCELLABLE_STATUSES.includes(reservation.status) && new Date(reservation.start_time) > new Date() && (
                 <Button size="sm" variant="outline" disabled={isBusy} onClick={() => setCancelTarget(reservation)}>
                   {t("admin.reservations.cancel")}
                 </Button>

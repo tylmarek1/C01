@@ -11,21 +11,50 @@ from sqlalchemy.orm import Session
 from reservations import rules
 from reservations.models import ACTIVE_RESERVATION_STATUSES, FacilityBlock, Reservation, ReservationStatus, User
 
+# Causes reported by the availability verdict (schemas/availability.py mirrors them as a Literal).
+AVAILABILITY_RESERVATION_OVERLAP = "RESERVATION_OVERLAP"
+AVAILABILITY_FACILITY_BLOCK = "FACILITY_BLOCK"
 
-def check_facility_available(db: Session, court_id: uuid.UUID, start_time: datetime, end_time: datetime) -> None:
+
+def _overlapping_facility_block(
+    db: Session, court_id: uuid.UUID, start_time: datetime, end_time: datetime
+) -> FacilityBlock | None:
     stmt = (
         select(FacilityBlock)
         .where(FacilityBlock.court_id == court_id)
         .where(FacilityBlock.start_time < end_time)
         .where(FacilityBlock.end_time > start_time)
     )
-    block = db.scalar(stmt)
+    return db.scalar(stmt.limit(1))
+
+
+def check_facility_available(db: Session, court_id: uuid.UUID, start_time: datetime, end_time: datetime) -> None:
+    block = _overlapping_facility_block(db, court_id, start_time, end_time)
     if block is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Court unavailable: {block.reason}")
 
 
-def check_within_booking_window(start_time: datetime) -> None:
-    now = datetime.now(timezone.utc)
+def find_availability_conflict(
+    db: Session, court_id: uuid.UUID, start_time: datetime, end_time: datetime
+) -> str | None:
+    """OP-02 / REQ-03: what, if anything, makes the interval unavailable —
+    occupancy only. User-specific rules (booking window, limits) are Create's."""
+    if _overlapping_facility_block(db, court_id, start_time, end_time) is not None:
+        return AVAILABILITY_FACILITY_BLOCK
+    stmt = (
+        select(Reservation.id)
+        .where(Reservation.court_id == court_id)
+        .where(Reservation.status.in_(ACTIVE_RESERVATION_STATUSES))
+        .where(Reservation.start_time < end_time)
+        .where(Reservation.end_time > start_time)
+    )
+    if db.scalar(stmt.limit(1)) is not None:
+        return AVAILABILITY_RESERVATION_OVERLAP
+    return None
+
+
+def check_within_booking_window(start_time: datetime, now: datetime | None = None) -> None:
+    now = now or datetime.now(timezone.utc)
     if start_time < now + timedelta(minutes=rules.MIN_LEAD_MINUTES):
         raise HTTPException(
             status.HTTP_409_CONFLICT,

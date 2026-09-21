@@ -1,11 +1,13 @@
 import uuid
 from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from reservations.booking_validation import find_availability_conflict
 from reservations.deps import get_current_manager, get_current_user, get_db, get_optional_user
 from reservations.images import compress_and_store_court_image
 from reservations.models import (
@@ -19,7 +21,12 @@ from reservations.models import (
     User,
     UserRole,
 )
-from reservations.schemas.availability import BusySlot, CourtAvailability
+from reservations.schemas.availability import (
+    AvailabilityCheckQuery,
+    AvailabilityVerdict,
+    BusySlot,
+    CourtAvailability,
+)
 from reservations.schemas.court import CourtCreate, CourtOut, CourtUpdate
 from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
 
@@ -185,6 +192,28 @@ def get_court_availability(
         opens_at=opens_at.isoformat(),
         closes_at=closes_at.isoformat(),
         busy=[BusySlot(start_time=r.start_time, end_time=r.end_time, status=r.status) for r in busy],
+    )
+
+
+@router.get("/{court_id}/availability/check", response_model=AvailabilityVerdict)
+def check_court_availability(
+    court_id: uuid.UUID,
+    interval: Annotated[AvailabilityCheckQuery, Query()],
+    db: Session = Depends(get_db),
+) -> AvailabilityVerdict:
+    """OP-02 — is this court free for exactly this interval? Public and
+    read-only; a snapshot, so only Create actually guarantees the slot."""
+    court = _get_court(db, court_id)
+    if not court.active:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
+
+    conflict = find_availability_conflict(db, court.id, interval.start_time, interval.end_time)
+    return AvailabilityVerdict(
+        court_id=court.id,
+        start_time=interval.start_time,
+        end_time=interval.end_time,
+        available=conflict is None,
+        reason=conflict,
     )
 
 

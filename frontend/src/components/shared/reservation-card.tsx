@@ -202,7 +202,8 @@ function ReservationCard({
   })
 
   const canReschedule = (status === "PENDING" || status === "CONFIRMED") && Boolean(onReschedule)
-  const canCancel = (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onCancel)
+  // Mirrors BR-03: only a pending/confirmed reservation that has not started yet can be cancelled.
+  const canCancel = (status === "PENDING" || status === "CONFIRMED") && start.getTime() > new Date().getTime() && Boolean(onCancel)
   const canInviteGuest =
     (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onInviteGuest)
   const canReview = status === "COMPLETED" && !hasReview && Boolean(onSubmitReview)

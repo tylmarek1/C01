@@ -19,6 +19,8 @@ VENUE_TZ = ZoneInfo("Europe/Prague")
 def validate_slot_shape(start_time: datetime, end_time: datetime) -> None:
     """Duration, opening hours, and on-the-half-hour checks shared by new
     bookings, reschedules, and recurring-series occurrences."""
+    if start_time.tzinfo is None or end_time.tzinfo is None:
+        raise ValueError("start_time and end_time must include a timezone offset")
     if end_time <= start_time:
         raise ValueError("end_time must be after start_time")
 
