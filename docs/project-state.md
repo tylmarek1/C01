@@ -38,8 +38,10 @@ restate those checklists, it tracks status against them.
 by a non-author per the C01 review-cycle requirement),
 `docs/evidence-and-evolution.md`'s "C01 Engineering Spike" section (all
 four fields filled), `docs/intent-and-change.md` (Project Frame, all
-fields filled including the Q future pressure), root `README.md`'s own
-Definition-of-Done table (all 15 items checked, with links).
+fields filled including the Q future pressure). (Root `README.md` no
+longer carries its own copy of this per-item checklist — the C01 course
+checklist itself lives in `docs/course/C01.md` §10 and status against it
+is tracked here, not duplicated in the product README.)
 
 **C02 baseline v0.1 (`docs/course/C02.md`, "A. Baseline v0.1," items
 1–11):** complete. Evidence: `docs/specification-v0.1.md` §1–10 (all four operations fully
