@@ -11,6 +11,7 @@ import {
   LayoutGrid,
   Pencil,
   Plus,
+  Trash2,
   Users,
 } from "lucide-react"
 import { Fragment, useRef, useState, type ReactNode } from "react"
@@ -51,8 +52,9 @@ import { formatCurrency, formatDateRange } from "@/lib/format"
 import { compressImageFile } from "@/lib/image"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
+import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
-import type { Amenity, Court, FacilityBlock, ReservationAdmin, ReservationStatus, SportType, UserRole } from "@/types"
+import type { Amenity, Court, FacilityBlock, ReservationAdmin, ReservationStatus, SportType, UserAdmin, UserRole } from "@/types"
 
 const SPORTS: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
 
@@ -375,10 +377,12 @@ function CourtUtilizationDialog({ court, trigger }: { court: Court; trigger: Rea
 }
 
 function CourtsTab() {
-  const { token } = useAuth()
+  const { token, user: currentUser } = useAuth()
   const { t } = useTranslation()
   const sportLabels = useSportLabels()
   const queryClient = useQueryClient()
+  const [deleteTarget, setDeleteTarget] = useState<Court | null>(null)
+  const isAdmin = currentUser?.role === "ADMIN"
 
   const {
     data: courts,
@@ -391,6 +395,16 @@ function CourtsTab() {
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin-courts"] })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.deleteCourt(token!, id),
+    onSuccess: () => {
+      toast.success(t("admin.toast.courtDeleted"))
+      setDeleteTarget(null)
+      invalidate()
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.courtDelete")),
+  })
 
   const createMutation = useMutation({
     mutationFn: (values: CourtFormValues) =>
@@ -490,6 +504,17 @@ function CourtsTab() {
                       </Button>
                     }
                   />
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-destructive hover:text-destructive"
+                      aria-label={t("admin.court.deleteAria")}
+                      onClick={() => setDeleteTarget(court)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between border-t border-hairline pt-3">
@@ -506,6 +531,16 @@ function CourtsTab() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={t("admin.court.confirmDelete.title")}
+        description={deleteTarget ? t("admin.court.confirmDelete.description", { name: deleteTarget.name }) : undefined}
+        confirmLabel={t("admin.court.delete")}
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
     </div>
   )
 }
@@ -1036,7 +1071,9 @@ function OverviewTab() {
 function UsersTab() {
   const { token, user: currentUser } = useAuth()
   const { t } = useTranslation()
+  const roleLabels = useRoleLabels()
   const queryClient = useQueryClient()
+  const [roleChangeTarget, setRoleChangeTarget] = useState<{ user: UserAdmin; role: UserRole } | null>(null)
   const {
     data: users,
     isLoading,
@@ -1048,10 +1085,25 @@ function UsersTab() {
     mutationFn: ({ userId, role }: { userId: string; role: UserRole }) => api.updateUserRole(token!, userId, role),
     onSuccess: () => {
       toast.success(t("admin.toast.roleUpdated"))
+      setRoleChangeTarget(null)
       queryClient.invalidateQueries({ queryKey: ["admin-users"] })
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.roleUpdate")),
   })
+
+  const isCurrentUserAdmin = currentUser?.role === "ADMIN"
+  const isGrant = roleChangeTarget?.role === "ADMIN"
+
+  function handleRoleChange(user: UserAdmin, role: UserRole) {
+    if (role === user.role) return
+    // Granting or revoking the top tier is significant enough to confirm;
+    // the existing PLAYER <-> VENUE_MANAGER toggle stays a single click.
+    if (role === "ADMIN" || user.role === "ADMIN") {
+      setRoleChangeTarget({ user, role })
+    } else {
+      roleMutation.mutate({ userId: user.id, role })
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -1061,56 +1113,86 @@ function UsersTab() {
         <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
       )}
 
-      {users?.map((user) => (
-        <DataRow key={user.id}>
-          <div className="flex items-center gap-3">
-            <Avatar className="size-10">
-              <AvatarImage src={assetUrl(user.avatar_url)} alt={user.name} className="object-cover" />
-              <AvatarFallback>
-                {user.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="font-medium text-ink-navy">{user.name}</span>
-              <span className="text-sm text-slate-gray">{user.email}</span>
-              <span className="text-xs text-slate-gray">
-                {t("admin.users.activeCount", { count: user.active_reservation_count })} ·{" "}
-                {user.no_show_count} {user.no_show_count === 1 ? t("admin.users.noShow.one") : t("admin.users.noShow.other")}
-              </span>
-              <span className="text-xs text-mist-gray">
-                {t("admin.users.memberSince", { date: new Date(user.created_at).toLocaleDateString() })}
-              </span>
+      {users?.map((user) => {
+        const isSelf = user.id === currentUser?.id
+        const canEditRole = !isSelf && (isCurrentUserAdmin || user.role !== "ADMIN")
+        return (
+          <DataRow key={user.id}>
+            <div className="flex items-center gap-3">
+              <Avatar className="size-10">
+                <AvatarImage src={assetUrl(user.avatar_url)} alt={user.name} className="object-cover" />
+                <AvatarFallback>
+                  {user.name
+                    .split(" ")
+                    .map((part) => part[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-medium text-ink-navy">{user.name}</span>
+                <span className="text-sm text-slate-gray">{user.email}</span>
+                <span className="text-xs text-slate-gray">
+                  {t("admin.users.activeCount", { count: user.active_reservation_count })} ·{" "}
+                  {user.no_show_count}{" "}
+                  {user.no_show_count === 1 ? t("admin.users.noShow.one") : t("admin.users.noShow.other")}
+                </span>
+                <span className="text-xs text-mist-gray">
+                  {t("admin.users.memberSince", { date: new Date(user.created_at).toLocaleDateString() })}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Badge variant={user.role === "VENUE_MANAGER" ? "success" : "secondary"}>
-              {user.role === "VENUE_MANAGER" ? t("admin.users.venueManager") : t("admin.users.player")}
-            </Badge>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={roleMutation.isPending || user.id === currentUser?.id}
-              onClick={() =>
-                roleMutation.mutate({
-                  userId: user.id,
-                  role: user.role === "VENUE_MANAGER" ? "PLAYER" : "VENUE_MANAGER",
-                })
-              }
-            >
-              {user.id === currentUser?.id
-                ? t("admin.users.you")
-                : user.role === "VENUE_MANAGER"
-                  ? t("admin.users.demote")
-                  : t("admin.users.promote")}
-            </Button>
-          </div>
-        </DataRow>
-      ))}
+            <div className="flex items-center gap-3">
+              <Badge variant={ROLE_VARIANT[user.role]}>{roleLabels[user.role]}</Badge>
+              {isSelf ? (
+                <Button size="sm" variant="outline" disabled>
+                  {t("admin.users.you")}
+                </Button>
+              ) : !canEditRole ? (
+                <Button size="sm" variant="outline" disabled>
+                  {t("admin.users.adminOnly")}
+                </Button>
+              ) : (
+                <Select
+                  value={user.role}
+                  onValueChange={(role) => handleRoleChange(user, role as UserRole)}
+                  disabled={roleMutation.isPending}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PLAYER">{roleLabels.PLAYER}</SelectItem>
+                    <SelectItem value="VENUE_MANAGER">{roleLabels.VENUE_MANAGER}</SelectItem>
+                    {isCurrentUserAdmin && <SelectItem value="ADMIN">{roleLabels.ADMIN}</SelectItem>}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </DataRow>
+        )
+      })}
+
+      <ConfirmDialog
+        open={Boolean(roleChangeTarget)}
+        onOpenChange={(open) => !open && setRoleChangeTarget(null)}
+        title={isGrant ? t("admin.users.confirmGrantAdmin.title") : t("admin.users.confirmRevokeAdmin.title")}
+        description={
+          roleChangeTarget
+            ? t(isGrant ? "admin.users.confirmGrantAdmin.description" : "admin.users.confirmRevokeAdmin.description", {
+                name: roleChangeTarget.user.name,
+                role: roleLabels[roleChangeTarget.role],
+              })
+            : undefined
+        }
+        confirmLabel={isGrant ? t("admin.users.confirmGrantAdmin.confirm") : t("admin.users.confirmRevokeAdmin.confirm")}
+        destructive={!isGrant}
+        isLoading={roleMutation.isPending}
+        onConfirm={() =>
+          roleChangeTarget && roleMutation.mutate({ userId: roleChangeTarget.user.id, role: roleChangeTarget.role })
+        }
+      />
     </div>
   )
 }

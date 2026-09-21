@@ -87,7 +87,9 @@ don't restate it here, it will drift):
 AD-1 (long-lived persisted time-bounded process), AD-2 (blocking-state set
 defined in four places), AD-3 (row-level serialisation is load-bearing),
 AD-4 (several doors to `CONFIRMED`), AD-5 (notification delivery has no
-guarantees), AD-6 (authorization beyond two roles).
+guarantees), AD-6 (approval authority is still coarse — "any manager,"
+not per-resource; the role list grew from two to three post-C02 with an
+ADMIN tier, which doesn't resolve this).
 
 ## Current assumptions and unknowns
 

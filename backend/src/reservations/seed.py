@@ -1,7 +1,7 @@
 """Seed demo courts (with amenities), a demo player + teammate + venue
-manager account, a handful of demo reservations (with history, a review, a
-favorite, a guest invite, notifications) and one facility block so the
-frontend has something real to look at.
+manager + admin account, a handful of demo reservations (with history, a
+review, a favorite, a guest invite, notifications) and one facility block
+so the frontend has something real to look at.
 
 Run with: uv run python -m reservations.seed
 """
@@ -84,9 +84,15 @@ DEMO_COURTS = [
 ]
 
 DEMO_MANAGER = {
-    "name": "Venue Manager",
+    "name": "Admin",
     "email": "admin@courtly.app",
     "password": "adminadmin",
+    "role": UserRole.ADMIN,
+}
+DEMO_VENUE_MANAGER = {
+    "name": "Venue Manager",
+    "email": "manager@courtly.app",
+    "password": "managermanager",
     "role": UserRole.VENUE_MANAGER,
 }
 DEMO_PLAYER = {
@@ -101,11 +107,15 @@ DEMO_TEAMMATE = {
     "password": "teammate1",
     "role": UserRole.PLAYER,
 }
-DEMO_ACCOUNTS = (DEMO_MANAGER, DEMO_PLAYER, DEMO_TEAMMATE)
+DEMO_ACCOUNTS = (DEMO_MANAGER, DEMO_VENUE_MANAGER, DEMO_PLAYER, DEMO_TEAMMATE)
 
 
-def _slot(days_ahead: int, hour: int, duration_minutes: int = 60) -> tuple[datetime, datetime]:
-    start = datetime.now(VENUE_TZ).replace(hour=hour, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
+def _slot(
+    days_ahead: int, hour: int, duration_minutes: int = 60
+) -> tuple[datetime, datetime]:
+    start = datetime.now(VENUE_TZ).replace(
+        hour=hour, minute=0, second=0, microsecond=0
+    ) + timedelta(days=days_ahead)
     return start, start + timedelta(minutes=duration_minutes)
 
 
@@ -131,7 +141,9 @@ def main() -> None:
         created_users = 0
         users_by_email: dict[str, User] = {}
         for account in DEMO_ACCOUNTS:
-            existing_user = session.query(User).filter_by(email=account["email"]).first()
+            existing_user = (
+                session.query(User).filter_by(email=account["email"]).first()
+            )
             if existing_user is None:
                 user = User(
                     name=account["name"],
@@ -155,9 +167,21 @@ def main() -> None:
         confirmed_reservation = None
         if session.query(Reservation).filter_by(user_id=player.id).count() == 0:
             demo_reservations = [
-                (courts_by_name["Tennis Court 1"], *_slot(1, 18), ReservationStatus.CONFIRMED),
-                (courts_by_name["Volleyball Arena"], *_slot(2, 19, 90), ReservationStatus.CONFIRMED),
-                (courts_by_name["Badminton Court 1"], *_slot(3, 8), ReservationStatus.PENDING),
+                (
+                    courts_by_name["Tennis Court 1"],
+                    *_slot(1, 18),
+                    ReservationStatus.CONFIRMED,
+                ),
+                (
+                    courts_by_name["Volleyball Arena"],
+                    *_slot(2, 19, 90),
+                    ReservationStatus.CONFIRMED,
+                ),
+                (
+                    courts_by_name["Badminton Court 1"],
+                    *_slot(3, 8),
+                    ReservationStatus.PENDING,
+                ),
             ]
             for court, start, end, reservation_status in demo_reservations:
                 reservation = Reservation(
@@ -174,7 +198,9 @@ def main() -> None:
                 session.flush()
                 session.add(
                     ReservationEvent(
-                        reservation_id=reservation.id, event_type=ReservationEventType.CREATED, actor_id=player.id
+                        reservation_id=reservation.id,
+                        event_type=ReservationEventType.CREATED,
+                        actor_id=player.id,
                     )
                 )
                 if reservation_status == ReservationStatus.CONFIRMED:
@@ -191,7 +217,9 @@ def main() -> None:
 
             if confirmed_reservation is not None:
                 confirmed_reservation.open_to_join = True
-                confirmed_reservation.open_note = "Need one more for doubles — all levels welcome!"
+                confirmed_reservation.open_note = (
+                    "Need one more for doubles — all levels welcome!"
+                )
 
             # A handful of finished visits in the past — something to review,
             # and enough history for player stats/achievements/leaderboard to
@@ -203,9 +231,9 @@ def main() -> None:
             ]
             past_reservation = None
             for court, days_ago, hour in past_visits:
-                past_start = datetime.now(VENUE_TZ).replace(hour=hour, minute=0, second=0, microsecond=0) - timedelta(
-                    days=days_ago
-                )
+                past_start = datetime.now(VENUE_TZ).replace(
+                    hour=hour, minute=0, second=0, microsecond=0
+                ) - timedelta(days=days_ago)
                 visit = Reservation(
                     court_id=court.id,
                     user_id=player.id,
@@ -216,19 +244,31 @@ def main() -> None:
                 session.add(visit)
                 session.flush()
                 session.add(
-                    ReservationEvent(reservation_id=visit.id, event_type=ReservationEventType.CREATED, actor_id=player.id)
+                    ReservationEvent(
+                        reservation_id=visit.id,
+                        event_type=ReservationEventType.CREATED,
+                        actor_id=player.id,
+                    )
                 )
-                session.add(ReservationEvent(reservation_id=visit.id, event_type=ReservationEventType.COMPLETED))
+                session.add(
+                    ReservationEvent(
+                        reservation_id=visit.id,
+                        event_type=ReservationEventType.COMPLETED,
+                    )
+                )
                 created_reservations += 1
                 if past_reservation is None:
                     past_reservation = visit
 
             # A couple of completed visits for the teammate too, so the
             # leaderboard has more than one row to rank.
-            for court, days_ago, hour in [(courts_by_name["Tennis Court 1"], 3, 17), (courts_by_name["Volleyball Arena"], 8, 19)]:
-                mate_start = datetime.now(VENUE_TZ).replace(hour=hour, minute=0, second=0, microsecond=0) - timedelta(
-                    days=days_ago
-                )
+            for court, days_ago, hour in [
+                (courts_by_name["Tennis Court 1"], 3, 17),
+                (courts_by_name["Volleyball Arena"], 8, 19),
+            ]:
+                mate_start = datetime.now(VENUE_TZ).replace(
+                    hour=hour, minute=0, second=0, microsecond=0
+                ) - timedelta(days=days_ago)
                 mate_visit = Reservation(
                     court_id=court.id,
                     user_id=teammate.id,
@@ -239,9 +279,18 @@ def main() -> None:
                 session.add(mate_visit)
                 session.flush()
                 session.add(
-                    ReservationEvent(reservation_id=mate_visit.id, event_type=ReservationEventType.CREATED, actor_id=teammate.id)
+                    ReservationEvent(
+                        reservation_id=mate_visit.id,
+                        event_type=ReservationEventType.CREATED,
+                        actor_id=teammate.id,
+                    )
                 )
-                session.add(ReservationEvent(reservation_id=mate_visit.id, event_type=ReservationEventType.COMPLETED))
+                session.add(
+                    ReservationEvent(
+                        reservation_id=mate_visit.id,
+                        event_type=ReservationEventType.COMPLETED,
+                    )
+                )
                 created_reservations += 1
 
             session.commit()
@@ -257,16 +306,25 @@ def main() -> None:
             )
             session.commit()
 
-        if confirmed_reservation is not None and session.query(ReservationGuest).count() == 0:
+        if (
+            confirmed_reservation is not None
+            and session.query(ReservationGuest).count() == 0
+        ):
             session.add(
                 ReservationGuest(
-                    reservation_id=confirmed_reservation.id, user_id=teammate.id, invited_by_id=player.id
+                    reservation_id=confirmed_reservation.id,
+                    user_id=teammate.id,
+                    invited_by_id=player.id,
                 )
             )
             session.commit()
 
         if session.query(Favorite).filter_by(user_id=player.id).count() == 0:
-            session.add(Favorite(user_id=player.id, court_id=courts_by_name["Volleyball Arena"].id))
+            session.add(
+                Favorite(
+                    user_id=player.id, court_id=courts_by_name["Volleyball Arena"].id
+                )
+            )
             session.commit()
 
         created_notifications = 0
@@ -314,9 +372,18 @@ def main() -> None:
         f"{created_reservations} new demo reservation(s), {created_notifications} notification(s), "
         f"{created_blocks} facility block(s)."
     )
-    print(f"Demo venue manager login: {DEMO_MANAGER['email']} / {DEMO_MANAGER['password']}")
-    print(f"Demo player login:        {DEMO_PLAYER['email']} / {DEMO_PLAYER['password']}")
-    print(f"Demo teammate login:      {DEMO_TEAMMATE['email']} / {DEMO_TEAMMATE['password']}")
+    print(
+        f"Demo admin login:         {DEMO_MANAGER['email']} / {DEMO_MANAGER['password']}"
+    )
+    print(
+        f"Demo venue manager login: {DEMO_VENUE_MANAGER['email']} / {DEMO_VENUE_MANAGER['password']}"
+    )
+    print(
+        f"Demo player login:        {DEMO_PLAYER['email']} / {DEMO_PLAYER['password']}"
+    )
+    print(
+        f"Demo teammate login:      {DEMO_TEAMMATE['email']} / {DEMO_TEAMMATE['password']}"
+    )
 
 
 if __name__ == "__main__":

@@ -36,7 +36,9 @@ def get_current_user(
     try:
         user_id = decode_access_token(credentials.credentials)
     except jwt.PyJWTError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token") from exc
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Invalid or expired token"
+        ) from exc
 
     user = db.get(User, uuid.UUID(user_id))
     if user is None:
@@ -45,8 +47,17 @@ def get_current_user(
 
 
 def get_current_manager(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != UserRole.VENUE_MANAGER:
+    """Venue-manager-level access — ADMIN inherits everything a manager can do."""
+    if current_user.role not in (UserRole.VENUE_MANAGER, UserRole.ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Venue manager access required")
+    return current_user
+
+
+def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+    """The small set of capabilities above venue manager: granting/revoking
+    roles and permanently deleting a court."""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required")
     return current_user
 
 

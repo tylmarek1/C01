@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session
 
 from reservations import rules
 from reservations.lifecycle import transition
-from reservations.models import NotificationType, Reservation, ReservationStatus, User, UserRole
+from reservations.models import (
+    NotificationType,
+    Reservation,
+    ReservationStatus,
+    User,
+    UserRole,
+)
 from reservations.notifications import notify
 from reservations.schemas.reservation import VENUE_TZ
 
@@ -32,7 +38,9 @@ def notify_approval_requested(db: Session, reservation: Reservation) -> None:
         "Approval requested",
         f"{court_name} on {when} needs a venue manager's approval — you'll be notified of the decision.",
     )
-    managers = db.scalars(select(User).where(User.role == UserRole.VENUE_MANAGER))
+    managers = db.scalars(
+        select(User).where(User.role.in_((UserRole.VENUE_MANAGER, UserRole.ADMIN)))
+    )
     for manager in managers:
         notify(
             db,

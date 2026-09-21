@@ -11,6 +11,10 @@ from reservations.db import Base
 class UserRole(enum.StrEnum):
     PLAYER = "PLAYER"
     VENUE_MANAGER = "VENUE_MANAGER"
+    # Above VENUE_MANAGER: everything a venue manager can do, plus granting/
+    # revoking roles (including ADMIN itself) and permanently deleting a
+    # court. See deps.get_current_admin.
+    ADMIN = "ADMIN"
 
 
 class User(Base):
@@ -20,7 +24,9 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(255), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="user_role"), default=UserRole.PLAYER)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, name="user_role"), default=UserRole.PLAYER
+    )
     # Relative path under /static, e.g. "/static/avatars/<uuid>.jpg" — the
     # frontend prefixes it with the API origin. Null until the user uploads one.
     avatar_url: Mapped[str | None] = mapped_column(String(500), default=None)
@@ -28,5 +34,9 @@ class User(Base):
     # feed URL — a calendar app can't send a Bearer header, so this stands in
     # for one. Null until the user requests a feed link; regenerating revokes
     # any URL handed out before.
-    calendar_token: Mapped[str | None] = mapped_column(String(64), unique=True, default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    calendar_token: Mapped[str | None] = mapped_column(
+        String(64), unique=True, default=None
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

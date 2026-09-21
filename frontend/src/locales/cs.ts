@@ -14,6 +14,10 @@ const cs: Record<TranslationKey, string> = {
   "nav.menu.open": "Otevřít menu",
   "nav.menu.close": "Zavřít menu",
 
+  "role.PLAYER": "Hráč",
+  "role.VENUE_MANAGER": "Správce sportoviště",
+  "role.ADMIN": "Administrátor",
+
   "hero.badge": "Rezervace kurtů jednoduše",
   "hero.title": "Zarezervujte si kurt. Nikdy dvakrát obsazený.",
   "hero.description":
@@ -410,8 +414,6 @@ const cs: Record<TranslationKey, string> = {
   "profile.avatar.uploading": "Nahrávání a komprese…",
   "profile.avatar.hint": "JPEG, PNG, WEBP nebo GIF, max. 8 MB",
   "profile.avatar.description": "Obrázek zmenšíme na 512×512 a zkomprimujeme na straně prohlížeče před nahráním, poté znovu na serveru.",
-  "profile.role.player": "Hráč",
-  "profile.role.manager": "Správce sportoviště",
   "profile.favorites.empty.title": "Zatím žádné oblíbené",
   "profile.favorites.empty.description": "Klepnutím na srdíčko u kurtu si ho sem uložíte.",
   "profile.favorites.browse": "Procházet kurty",
@@ -495,6 +497,13 @@ const cs: Record<TranslationKey, string> = {
   "admin.court.pricePlaceholder": "např. 350",
   "admin.court.utilization": "Zobrazit vytíženost",
   "admin.court.utilizationAria": "Zobrazit vytíženost kurtu",
+  "admin.court.deleteAria": "Smazat kurt",
+  "admin.court.delete": "Smazat kurt",
+  "admin.court.confirmDelete.title": "Smazat tento kurt?",
+  "admin.court.confirmDelete.description":
+    "{name} bude trvale odstraněn. Možné jen u kurtu bez historie rezervací — pro vyřazení již používaného kurtu ho místo toho deaktivujte.",
+  "admin.toast.courtDeleted": "Kurt smazán",
+  "admin.error.courtDelete": "Kurt se nepodařilo smazat",
 
   "admin.reservations.allStatuses": "Všechny stavy",
   "admin.reservations.empty.title": "Žádné rezervace",
@@ -565,11 +574,15 @@ const cs: Record<TranslationKey, string> = {
   "admin.overview.busiestHoursDescription":
     "Potvrzené, přihlášené, dokončené a nedostavené rezervace podle hodiny začátku (čas sportoviště).",
 
-  "admin.users.venueManager": "Správce sportoviště",
-  "admin.users.player": "Hráč",
   "admin.users.you": "Vy",
-  "admin.users.demote": "Snížit na hráče",
-  "admin.users.promote": "Povýšit na správce",
+  "admin.users.adminOnly": "Jen admin",
+  "admin.users.confirmGrantAdmin.title": "Udělit administrátorský přístup?",
+  "admin.users.confirmGrantAdmin.description":
+    "{name} bude moci spravovat roli kohokoli (včetně jiných adminů) a trvale mazat kurty.",
+  "admin.users.confirmGrantAdmin.confirm": "Udělit admina",
+  "admin.users.confirmRevokeAdmin.title": "Odebrat administrátorský přístup?",
+  "admin.users.confirmRevokeAdmin.description": "Nová role uživatele {name}: {role}. Přijde o administrátorská oprávnění.",
+  "admin.users.confirmRevokeAdmin.confirm": "Odebrat admina",
   "admin.users.activeCount": "{count} aktivních",
   "admin.users.noShow.one": "nedostavení se",
   "admin.users.noShow.other": "nedostavení se",
@@ -736,6 +749,9 @@ const cs: Record<TranslationKey, string> = {
   "help.faq.free.answer": "Ne — Courtly je studentský projekt vytvořený pro předmět softwarového inženýrství a všechny funkce jsou po dobu pilotního provozu zdarma.",
   "help.faq.becomeManager.question": "Jak získám přístup provozovatele?",
   "help.faq.becomeManager.answer": "Stávající provozovatel může váš účet povýšit v záložce Administrace → Uživatelé.",
+  "help.faq.becomeAdmin.question": "Jaký je rozdíl mezi adminem a provozovatelem?",
+  "help.faq.becomeAdmin.answer":
+    "Admin umí vše co provozovatel, navíc může měnit roli komukoli (i jiným adminům) a trvale smazat kurt bez historie rezervací. Admin přístup může udělit jen stávající admin, v záložce Administrace → Uživatelé.",
 
   "help.cta.title": "Máte ještě otázku?",
   "help.cta.description": "Pusťte se rovnou do toho — nejrychlejší způsob, jak Courtly pochopit, je zarezervovat si termín.",

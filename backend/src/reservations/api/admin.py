@@ -10,8 +10,21 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from reservations.deps import get_current_manager, get_db
-from reservations.models import ACTIVE_RESERVATION_STATUSES, Court, Reservation, ReservationStatus, User, UserRole
-from reservations.schemas.admin import AdminStats, CourtPopularity, HourlyDemand, UserAdminOut, UserRoleUpdate
+from reservations.models import (
+    ACTIVE_RESERVATION_STATUSES,
+    Court,
+    Reservation,
+    ReservationStatus,
+    User,
+    UserRole,
+)
+from reservations.schemas.admin import (
+    AdminStats,
+    CourtPopularity,
+    HourlyDemand,
+    UserAdminOut,
+    UserRoleUpdate,
+)
 from reservations.schemas.court import CourtOut
 from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
 from reservations.schemas.stats import CourtUtilization, CourtUtilizationCell
@@ -27,20 +40,33 @@ _REAL_BOOKING_STATUSES = (
 
 
 @router.get("/stats", response_model=AdminStats)
-def get_stats(db: Session = Depends(get_db), _manager: User = Depends(get_current_manager)) -> AdminStats:
+def get_stats(
+    db: Session = Depends(get_db), _manager: User = Depends(get_current_manager)
+) -> AdminStats:
     total_reservations = db.scalar(select(func.count()).select_from(Reservation)) or 0
 
-    status_rows = db.execute(select(Reservation.status, func.count()).group_by(Reservation.status)).all()
+    status_rows = db.execute(
+        select(Reservation.status, func.count()).group_by(Reservation.status)
+    ).all()
     status_breakdown = {row[0].value: row[1] for row in status_rows}
 
     completed = status_breakdown.get(ReservationStatus.COMPLETED.value, 0)
     no_shows = status_breakdown.get(ReservationStatus.NO_SHOW.value, 0)
-    no_show_rate = round(no_shows / (completed + no_shows), 3) if (completed + no_shows) > 0 else 0.0
+    no_show_rate = (
+        round(no_shows / (completed + no_shows), 3)
+        if (completed + no_shows) > 0
+        else 0.0
+    )
 
     since = datetime.now(timezone.utc) - timedelta(days=30)
-    reservations_last_30_days = db.scalar(
-        select(func.count()).select_from(Reservation).where(Reservation.created_at >= since)
-    ) or 0
+    reservations_last_30_days = (
+        db.scalar(
+            select(func.count())
+            .select_from(Reservation)
+            .where(Reservation.created_at >= since)
+        )
+        or 0
+    )
 
     total_users = db.scalar(select(func.count()).select_from(User)) or 0
     total_courts = db.scalar(select(func.count()).select_from(Court)) or 0
@@ -58,9 +84,15 @@ def get_stats(db: Session = Depends(get_db), _manager: User = Depends(get_curren
     for court_id, count in top_rows:
         court = db.get(Court, court_id)
         if court is not None:
-            top_courts.append(CourtPopularity(court=CourtOut.model_validate(court), reservation_count=count))
+            top_courts.append(
+                CourtPopularity(
+                    court=CourtOut.model_validate(court), reservation_count=count
+                )
+            )
 
-    hour_expr = func.extract("hour", Reservation.start_time.op("AT TIME ZONE")("Europe/Prague"))
+    hour_expr = func.extract(
+        "hour", Reservation.start_time.op("AT TIME ZONE")("Europe/Prague")
+    )
     hour_rows = db.execute(
         select(hour_expr, func.count())
         .where(Reservation.status.in_(_REAL_BOOKING_STATUSES))
@@ -82,7 +114,9 @@ def get_stats(db: Session = Depends(get_db), _manager: User = Depends(get_curren
 
 
 @router.get("/users", response_model=list[UserAdminOut])
-def list_users(db: Session = Depends(get_db), _manager: User = Depends(get_current_manager)) -> list[UserAdminOut]:
+def list_users(
+    db: Session = Depends(get_db), _manager: User = Depends(get_current_manager)
+) -> list[UserAdminOut]:
     users = list(db.scalars(select(User).order_by(User.created_at.desc())))
     if not users:
         return []
@@ -130,25 +164,38 @@ def update_user_role(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
-    if user.id == manager.id and payload.role != UserRole.VENUE_MANAGER:
-        raise HTTPException(status.HTTP_409_CONFLICT, "You can't demote yourself")
+    if user.id == manager.id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "You can't change your own role")
+    # Granting/revoking ADMIN, or touching an existing admin's role at all,
+    # is reserved to admins themselves — a venue manager keeps the existing
+    # PLAYER <-> VENUE_MANAGER toggle only.
+    if manager.role != UserRole.ADMIN and (
+        payload.role == UserRole.ADMIN or user.role == UserRole.ADMIN
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required")
 
     user.role = payload.role
     db.commit()
     db.refresh(user)
 
-    active_count = db.scalar(
-        select(func.count())
-        .select_from(Reservation)
-        .where(Reservation.user_id == user.id)
-        .where(Reservation.status.in_(ACTIVE_RESERVATION_STATUSES))
-    ) or 0
-    no_show_count = db.scalar(
-        select(func.count())
-        .select_from(Reservation)
-        .where(Reservation.user_id == user.id)
-        .where(Reservation.status == ReservationStatus.NO_SHOW)
-    ) or 0
+    active_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(Reservation)
+            .where(Reservation.user_id == user.id)
+            .where(Reservation.status.in_(ACTIVE_RESERVATION_STATUSES))
+        )
+        or 0
+    )
+    no_show_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(Reservation)
+            .where(Reservation.user_id == user.id)
+            .where(Reservation.status == ReservationStatus.NO_SHOW)
+        )
+        or 0
+    )
 
     return UserAdminOut(
         id=user.id,
@@ -169,7 +216,19 @@ def export_reservations_csv(
     stmt = select(Reservation).order_by(Reservation.start_time.desc())
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["id", "court", "sport", "booked_by", "email", "start_time", "end_time", "status", "created_at"])
+    writer.writerow(
+        [
+            "id",
+            "court",
+            "sport",
+            "booked_by",
+            "email",
+            "start_time",
+            "end_time",
+            "status",
+            "created_at",
+        ]
+    )
     for r in db.scalars(stmt):
         writer.writerow(
             [
@@ -219,14 +278,20 @@ def get_court_utilization(
     stmt = (
         select(Reservation)
         .where(Reservation.court_id == court_id)
-        .where(Reservation.status.in_((*ACTIVE_RESERVATION_STATUSES, ReservationStatus.COMPLETED)))
+        .where(
+            Reservation.status.in_(
+                (*ACTIVE_RESERVATION_STATUSES, ReservationStatus.COMPLETED)
+            )
+        )
         .where(Reservation.start_time >= since)
         .where(Reservation.start_time < now)
     )
     booked_count: Counter[tuple[int, int]] = Counter()
     for reservation in db.scalars(stmt):
         local_start = reservation.start_time.astimezone(VENUE_TZ)
-        span_hours = int((reservation.end_time - reservation.start_time).total_seconds() // 3600)
+        span_hours = int(
+            (reservation.end_time - reservation.start_time).total_seconds() // 3600
+        )
         for offset in range(max(span_hours, 1)):
             slot = local_start + timedelta(hours=offset)
             booked_count[(slot.weekday(), slot.hour)] += 1

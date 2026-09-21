@@ -49,8 +49,8 @@ src/
   pages/
     landing/             marketing home page
     auth/                login, register
-    app/                 dashboard, booking flow, profile, the venue-manager
-                          admin panel (behind ProtectedRoute)
+    app/                 dashboard, booking flow, profile, the admin panel
+                          (venue manager or admin, behind ProtectedRoute)
     courts/               court listing + detail
   lib/
     api.ts               fetch wrapper for the backend, throws ApiError

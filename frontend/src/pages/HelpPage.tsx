@@ -118,6 +118,7 @@ const FAQ_ITEMS: { questionKey: TranslationKey; answerKey: TranslationKey }[] = 
   { questionKey: "help.faq.language.question", answerKey: "help.faq.language.answer" },
   { questionKey: "help.faq.free.question", answerKey: "help.faq.free.answer" },
   { questionKey: "help.faq.becomeManager.question", answerKey: "help.faq.becomeManager.answer" },
+  { questionKey: "help.faq.becomeAdmin.question", answerKey: "help.faq.becomeAdmin.answer" },
 ]
 
 function QuickNav() {

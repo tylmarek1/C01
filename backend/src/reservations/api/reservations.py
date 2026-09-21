@@ -395,9 +395,9 @@ def _get_owned_reservation(
     reservation = db.get(Reservation, reservation_id, with_for_update=lock)
     if reservation is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Reservation not found")
-    if (
-        reservation.user_id != current_user.id
-        and current_user.role != UserRole.VENUE_MANAGER
+    if reservation.user_id != current_user.id and current_user.role not in (
+        UserRole.VENUE_MANAGER,
+        UserRole.ADMIN,
     ):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your reservation")
     return reservation

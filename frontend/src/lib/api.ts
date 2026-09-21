@@ -166,6 +166,8 @@ export const api = {
     return request<Court>(`/courts/${id}/image`, { method: "POST", body: formData }, token)
   },
 
+  deleteCourt: (token: string, id: string) => request<void>(`/courts/${id}`, { method: "DELETE" }, token),
+
   listReservations: (token: string) => request<Reservation[]>("/reservations", {}, token),
 
   listAllReservations: (token: string, status?: ReservationStatus) =>

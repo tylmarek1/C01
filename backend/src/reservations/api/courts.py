@@ -8,18 +8,27 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from reservations.booking_validation import find_availability_conflict
-from reservations.deps import get_current_manager, get_current_user, get_db, get_optional_user
+from reservations.deps import (
+    get_current_admin,
+    get_current_manager,
+    get_current_user,
+    get_db,
+    get_optional_user,
+)
 from reservations.images import compress_and_store_court_image
 from reservations.models import (
     ACTIVE_RESERVATION_STATUSES,
     Amenity,
     Court,
+    FacilityBlock,
+    Favorite,
     Reservation,
     ReservationStatus,
     Review,
     SportType,
     User,
     UserRole,
+    WaitlistEntry,
 )
 from reservations.schemas.availability import (
     AvailabilityCheckQuery,
@@ -75,7 +84,10 @@ def list_courts(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_user),
 ) -> list[Court]:
-    if include_inactive and (current_user is None or current_user.role != UserRole.VENUE_MANAGER):
+    if include_inactive and (
+        current_user is None
+        or current_user.role not in (UserRole.VENUE_MANAGER, UserRole.ADMIN)
+    ):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Venue manager access required")
 
     stmt = select(Court)
@@ -146,9 +158,15 @@ def list_recommended_courts(
         return courts
 
     base = select(Court).where(Court.active.is_(True))
-    unplayed = base.where(Court.id.notin_(played_court_ids)) if played_court_ids else base
+    unplayed = (
+        base.where(Court.id.notin_(played_court_ids)) if played_court_ids else base
+    )
 
-    candidates = _ranked(unplayed.where(Court.sport_type == favorite_sport[0])) if favorite_sport is not None else []
+    candidates = (
+        _ranked(unplayed.where(Court.sport_type == favorite_sport[0]))
+        if favorite_sport is not None
+        else []
+    )
     if not candidates:
         candidates = _ranked(unplayed)
     if not candidates:
@@ -168,13 +186,19 @@ def get_court(court_id: uuid.UUID, db: Session = Depends(get_db)) -> Court:
 @router.get("/{court_id}/availability", response_model=CourtAvailability)
 def get_court_availability(
     court_id: uuid.UUID,
-    date: date_type = Query(..., description="Day to check, in the venue's local calendar (YYYY-MM-DD)"),
+    date: date_type = Query(
+        ..., description="Day to check, in the venue's local calendar (YYYY-MM-DD)"
+    ),
     db: Session = Depends(get_db),
 ) -> CourtAvailability:
     court = _get_court(db, court_id)
 
-    opens_at = datetime.combine(date, datetime.min.time(), tzinfo=VENUE_TZ).replace(hour=OPENING_HOUR)
-    closes_at = datetime.combine(date, datetime.min.time(), tzinfo=VENUE_TZ).replace(hour=CLOSING_HOUR)
+    opens_at = datetime.combine(date, datetime.min.time(), tzinfo=VENUE_TZ).replace(
+        hour=OPENING_HOUR
+    )
+    closes_at = datetime.combine(date, datetime.min.time(), tzinfo=VENUE_TZ).replace(
+        hour=CLOSING_HOUR
+    )
 
     stmt = (
         select(Reservation)
@@ -191,7 +215,10 @@ def get_court_availability(
         date=date.isoformat(),
         opens_at=opens_at.isoformat(),
         closes_at=closes_at.isoformat(),
-        busy=[BusySlot(start_time=r.start_time, end_time=r.end_time, status=r.status) for r in busy],
+        busy=[
+            BusySlot(start_time=r.start_time, end_time=r.end_time, status=r.status)
+            for r in busy
+        ],
     )
 
 
@@ -207,7 +234,9 @@ def check_court_availability(
     if not court.active:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
 
-    conflict = find_availability_conflict(db, court.id, interval.start_time, interval.end_time)
+    conflict = find_availability_conflict(
+        db, court.id, interval.start_time, interval.end_time
+    )
     return AvailabilityVerdict(
         court_id=court.id,
         start_time=interval.start_time,
@@ -225,7 +254,9 @@ def create_court(
 ) -> Court:
     existing = db.scalar(select(Court).where(Court.name == payload.name))
     if existing is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "A court with that name already exists")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "A court with that name already exists"
+        )
 
     court = Court(**payload.model_dump())
     db.add(court)
@@ -262,3 +293,54 @@ def upload_court_image(
     db.commit()
     db.refresh(court)
     return court
+
+
+@router.delete("/{court_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_court(
+    court_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> None:
+    """Permanently remove a court — distinct from deactivating one (`active=False`),
+    which is what retires a court that has actually been used. Only ever
+    allowed for a court with no reservation history, so this can't destroy
+    real booking history; the deactivate flag is the tool for that case.
+
+    Locks the court row for the duration of the check + delete: Postgres
+    takes an implicit FOR KEY SHARE lock on the referenced court when a new
+    Reservation is inserted, so this FOR UPDATE blocks a concurrent booking
+    from slipping in between the "no reservations" check and the delete —
+    without it, that race could leave the has_reservations check stale and
+    turn the delete into an unhandled FK-violation 500 instead of a clean 409.
+    """
+    court = db.get(Court, court_id, with_for_update=True)
+    if court is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
+
+    has_reservations = (
+        db.scalar(
+            select(Reservation.id).where(Reservation.court_id == court.id).limit(1)
+        )
+        is not None
+    )
+    if has_reservations:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This court has reservation history and can't be deleted — deactivate it instead",
+        )
+
+    # Per-object ORM deletes (not a bulk Core statement) to match every other
+    # delete endpoint in this codebase and keep working if these models ever
+    # grow an ORM-level cascade/event hook.
+    for favorite in db.scalars(select(Favorite).where(Favorite.court_id == court.id)):
+        db.delete(favorite)
+    for block in db.scalars(
+        select(FacilityBlock).where(FacilityBlock.court_id == court.id)
+    ):
+        db.delete(block)
+    for entry in db.scalars(
+        select(WaitlistEntry).where(WaitlistEntry.court_id == court.id)
+    ):
+        db.delete(entry)
+    db.delete(court)
+    db.commit()

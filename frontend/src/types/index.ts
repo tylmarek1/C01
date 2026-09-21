@@ -1,4 +1,4 @@
-export type UserRole = "PLAYER" | "VENUE_MANAGER"
+export type UserRole = "PLAYER" | "VENUE_MANAGER" | "ADMIN"
 export type SportType = "TENNIS" | "VOLLEYBALL" | "BADMINTON"
 export type ReservationStatus =
   | "PENDING"
