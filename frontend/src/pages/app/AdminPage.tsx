@@ -457,6 +457,26 @@ function CourtsTab() {
           />
         )}
 
+        {!isLoading && !isError && courts?.length === 0 && (
+          <EmptyState
+            className="col-span-full"
+            title={t("admin.court.empty.title")}
+            description={t("admin.court.empty.description")}
+            action={
+              <CourtFormDialog
+                onSaved={async (values) => {
+                  await createMutation.mutateAsync(values)
+                }}
+                trigger={
+                  <Button size="sm" className="mt-2">
+                    <Plus className="size-4" /> {t("admin.court.add")}
+                  </Button>
+                }
+              />
+            }
+          />
+        )}
+
         {courts?.map((court) => (
           <div key={court.id} className="flex flex-col overflow-hidden rounded-2xl border border-hairline bg-card shadow-card">
             <CourtArt sport={court.sport_type} indoor={court.indoor} imageUrl={court.image_url} compact className="rounded-none" />
