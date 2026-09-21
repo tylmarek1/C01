@@ -11,6 +11,7 @@ from reservations import rules
 from reservations.lifecycle import transition
 from reservations.models import NotificationType, Reservation, ReservationStatus, User, UserRole
 from reservations.notifications import notify
+from reservations.schemas.reservation import VENUE_TZ
 
 
 def approval_deadline(start_time: datetime, now: datetime | None = None) -> datetime:
@@ -23,7 +24,7 @@ def approval_deadline(start_time: datetime, now: datetime | None = None) -> date
 def notify_approval_requested(db: Session, reservation: Reservation) -> None:
     """Owner gets a receipt; every venue manager learns there is something to decide."""
     court_name = reservation.court.name
-    when = reservation.start_time.astimezone().strftime("%d %b %H:%M")
+    when = reservation.start_time.astimezone(VENUE_TZ).strftime("%d %b %H:%M")
     notify(
         db,
         reservation.user_id,

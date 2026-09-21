@@ -563,7 +563,7 @@ def reschedule_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Reservation:
-    reservation = _get_owned_reservation(db, current_user, reservation_id)
+    reservation = _get_owned_reservation(db, current_user, reservation_id, lock=True)
     if reservation.status not in (
         ReservationStatus.PENDING,
         ReservationStatus.CONFIRMED,

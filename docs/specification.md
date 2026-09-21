@@ -232,6 +232,7 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 | VE-05.5 | a manager approves a request that this same manager submitted | allowed (A-06) |
 | VE-05.6 | manager approves and manager rejects concurrently, repeated 20× | exactly one succeeds; final state is `CONFIRMED` or `REJECTED` accordingly; never both |
 | VE-05.7 | approval-required court's `CONFIRMED` reservation cannot be rescheduled; a normal court's can; a `PENDING` hold on it can | `CONFLICT` / success / success (REQ-11) |
+| VE-05.7b | a reschedule sent while a Confirm/Approve of the same reservation is in flight | it waits for that decision and is evaluated against its result (a request submitted meanwhile can no longer be moved) |
 | VE-05.8 | approve and the owner's cancel concurrently, repeated 20× | the cancel always succeeds and the final state is always `CANCELLED` (same rule as Confirm‖Cancel) |
 
 **Rationale:** The approver's explicit decision is the whole point of the change; requiring the Venue Manager role and a deadline keeps a request from blocking a slot indefinitely.

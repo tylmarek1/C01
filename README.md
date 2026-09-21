@@ -149,7 +149,7 @@ Beyond the C01 spike, the project now has a runnable product slice:
 - **Backend API** — `POST /auth/register`, `POST /auth/login`, `GET /auth/me`
   (JWT bearer auth, bcrypt password hashing), `GET /courts`, and the full
   reservation lifecycle: `POST /reservations`, `GET /reservations`,
-  `POST /reservations/{id}/confirm`, `POST /reservations/{id}/cancel` (plus approve/reject). 175
+  `POST /reservations/{id}/confirm`, `POST /reservations/{id}/cancel` (plus approve/reject). 176
   pytest tests run against the real PostgreSQL. Details, config and the full
   API table: [`backend/README.md`](backend/README.md).
 - **Frontend** — a React app ("Courtly") with a marketing landing page,

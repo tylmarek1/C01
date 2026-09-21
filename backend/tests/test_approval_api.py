@@ -494,6 +494,40 @@ def test_ve_05_7_reschedule_cannot_move_an_approved_booking(
     )
 
 
+def test_ve_05_7b_reschedule_waits_for_a_concurrent_decision_and_sees_its_result(
+    session_factory: sessionmaker,
+) -> None:
+    """A reschedule read the status before a concurrent Confirm/Approve could
+    change it would write new times onto a request that was submitted for
+    the *old* slot. It must wait for the row lock and re-check."""
+    client = TestClient(app, raise_server_exceptions=False)
+    user_id, token = make_user(session_factory, "player@example.com")
+    court_id = make_court(session_factory, requires_approval=True)
+    hold = add_reservation(
+        session_factory, court_id, user_id, at(10), at(11), ReservationStatus.PENDING, hold_in_future()
+    )
+    move = {"start_time": at(20).isoformat(), "end_time": at(21).isoformat()}
+    result: dict[str, int] = {}
+
+    with session_factory() as holder:  # plays a concurrent Confirm that is mid-flight
+        holder.execute(select(Reservation).where(Reservation.id == hold).with_for_update())
+        thread = threading.Thread(
+            target=lambda: result.update(
+                code=client.patch(f"/reservations/{hold}/reschedule", json=move, headers=bearer(token)).status_code
+            )
+        )
+        thread.start()
+        thread.join(timeout=1.0)
+        assert thread.is_alive(), "reschedule did not wait for the row lock"
+        holder.get(Reservation, hold).status = PENDING_APPROVAL  # the concurrent submission commits
+        holder.commit()
+    thread.join(timeout=10)
+
+    assert result["code"] == 409  # it saw PENDING_APPROVAL, which cannot be rescheduled
+    with session_factory() as session:
+        assert session.get(Reservation, hold).start_time == at(10)
+
+
 def test_ve_05_8_approve_racing_cancel_always_ends_cancelled(
     session_factory: sessionmaker,
 ) -> None:

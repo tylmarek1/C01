@@ -100,9 +100,9 @@ OK VE-04.3   expected 409      got 409  detail='This reservation has already sta
 | Where | What | Result |
 |---|---|---|
 | `backend/tests/test_spec_baseline.py` | every VE-01…VE-04 of v0.1 (43 test cases, incl. 8-way concurrent Create, 20× Confirm‖Cancel race, boundary tests with an injected clock) | 43 passed |
-| `backend/tests/test_approval_api.py` | every VE of the v0.2 additions (approve, reject, expiry, delay, no-bypass, races, drift guards; 36 test cases) | 36 passed |
-| whole backend suite | the 96 pre-existing tests + the two files above | **175 passed** (real PostgreSQL 16.15) |
-| mutation check | six guards deliberately broken in a scratch copy (BR-11 guard, approval-decision flag, blocking-state set, waitlist bypass, row lock, reschedule guard) | each broken guard made the intended test(s) fail |
+| `backend/tests/test_approval_api.py` | every VE of the v0.2 additions (approve, reject, expiry, delay, no-bypass, races, drift guards; 37 test cases) | 37 passed |
+| whole backend suite | the 96 pre-existing tests + the two files above | **176 passed** (real PostgreSQL 16.15) |
+| mutation check | seven guards deliberately broken in a scratch copy (BR-11 guard, approval-decision flag, blocking-state set, waitlist bypass, row lock, reschedule guard, reschedule lock) | each broken guard made the intended test(s) fail |
 | frontend | `npm run build` (`tsc -b` + Vite) and `npm run lint` | build passes; lint shows only warnings that were there before. **The UI was not exercised in a browser in this session.** |
 
 The v0.2 flows were also run live, including the real worker expiring an undecided request (the request that was *not* past its deadline stayed `PENDING_APPROVAL` through the same cycles — the "delay" case):
@@ -162,6 +162,7 @@ The rule of the assignment — do not assume "the code is wrong" — was applied
 | 8 | v0.2, found by tracing every path to `CONFIRMED`: waitlist acceptance created `CONFIRMED` directly and reschedule moved an approved booking — both would bypass approval | **Design gap of the change**, found before implementing | BR-11 / REQ-11; guard inside the state machine; waitlist accept becomes `PENDING_APPROVAL`; reschedule refused for approved bookings (VE-05.7, VE-08.1, VE-08.2). |
 | 9 | v0.2: the transition table alone would let the owner turn their own `PENDING_APPROVAL` into `CONFIRMED` via the ordinary Confirm endpoint | **Design gap**, closed while designing (a decision flag only Approve/Reject pass); not something a test found first | VE-03.10 verifies it. |
 | 10 | v0.2: the calendar export silently mapped unknown statuses to `CONFIRMED`, so a request awaiting approval would have appeared as confirmed in the player's calendar | **Implementation** (found by sweeping every place that lists states) | Status map extended; test added. |
+| 11 | Independent code review of the branch: the new approval notifications formatted the start time in the *server's* time zone instead of the venue's (known pitfall #1), and `reschedule` did not take the row lock the other state-changing endpoints do | **Implementation** (my own new code) | Notifications use `Europe/Prague`; reschedule locks the row (VE-05.7b, mutation-checked). Not changed, only noted: older notification texts use the same server-zone formatting, and waitlist acceptance does not check that the court is still active (both pre-date this work). |
 
 ### Shrnutí dopadu změny (change impact)
 The change touched: BR-02/03/07/09/10 (extended), new BR-11/BR-12; REQ-04/06/07 changed, REQ-08…REQ-11 new; two new operations (Approve, Reject) for the *existing* Venue Manager actor; two new states (`PENDING_APPROVAL`, `REJECTED`); `EXPIRED` reused. Untouched: Create and Availability (their text), BR-01/04/05/06/08. New data: `courts.requires_approval`, `reservations.approval_expires_at`, three enum values ×2 → the dev database needs the drop/create/seed cycle. Full analysis, written before the specification: [`change-c02-impact.md`](change-c02-impact.md).
