@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useSearchParams } from "react-router-dom"
 import {
   AlertTriangle,
   BarChart3,
@@ -551,7 +552,12 @@ function ReservationsTab() {
   const { t } = useTranslation()
   const statusLabels = useStatusLabels()
   const queryClient = useQueryClient()
-  const [statusFilter, setStatusFilter] = useState<ReservationStatus | "ALL">("ALL")
+  // A notification can deep-link here with ?status=PENDING_APPROVAL (the manager's approval queue).
+  const [searchParams] = useSearchParams()
+  const linkedStatus = searchParams.get("status") as ReservationStatus | null
+  const [statusFilter, setStatusFilter] = useState<ReservationStatus | "ALL">(
+    linkedStatus && STATUS_FILTERS.includes(linkedStatus) ? linkedStatus : "ALL",
+  )
   const [cancelTarget, setCancelTarget] = useState<ReservationAdmin | null>(null)
   const [rejectTarget, setRejectTarget] = useState<ReservationAdmin | null>(null)
 
@@ -1074,6 +1080,7 @@ function UsersTab() {
 
 function AdminPage() {
   const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
       <SectionHeader
@@ -1083,7 +1090,8 @@ function AdminPage() {
         description={t("admin.header.description")}
       />
 
-      <Tabs defaultValue="overview" className="mt-10">
+      {/* key: re-mount when a notification deep-links to another tab while this page is already open */}
+      <Tabs key={searchParams.toString()} defaultValue={searchParams.get("tab") ?? "overview"} className="mt-10">
         <div className="-mx-6 overflow-x-auto px-6 pb-1">
           <TabsList>
             <TabsTrigger value="overview">{t("admin.tabs.overview")}</TabsTrigger>

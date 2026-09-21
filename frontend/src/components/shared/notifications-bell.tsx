@@ -39,7 +39,7 @@ const NOTIFICATION_DESTINATION: Record<NotificationType, string> = {
   RESERVATION_REMINDER: "/app",
   RESERVATION_EXPIRED: "/app",
   RESERVATION_REJECTED: "/app",
-  APPROVAL_REQUESTED: "/app/admin",
+  APPROVAL_REQUESTED: "/app/admin?tab=reservations&status=PENDING_APPROVAL",
   FACILITY_UNAVAILABLE: "/app",
   WAITLIST_JOINED: "/app",
   WAITLIST_SLOT_OFFERED: "/app",
