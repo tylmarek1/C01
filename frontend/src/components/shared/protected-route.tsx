@@ -19,12 +19,19 @@ function AuthCheckFallback() {
   )
 }
 
-function ProtectedRoute({ children, requireRole }: { children: ReactNode; requireRole?: UserRole }) {
+function ProtectedRoute({
+  children,
+  requireRole,
+}: {
+  children: ReactNode
+  requireRole?: UserRole | UserRole[]
+}) {
   const { user, isLoading } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
 
-  const isForbidden = Boolean(user && requireRole && user.role !== requireRole)
+  const allowedRoles = requireRole ? (Array.isArray(requireRole) ? requireRole : [requireRole]) : null
+  const isForbidden = Boolean(user && allowedRoles && !allowedRoles.includes(user.role))
 
   useEffect(() => {
     if (isForbidden) toast.error(t("protectedRoute.forbidden"))

@@ -54,13 +54,21 @@ concurrent demand (see [Architecture & decisions](#architecture--decisions)).
   per-court utilization, no-show rate.
 - Promote or demote player accounts to venue manager.
 
+### For admins
+
+Everything a venue manager can do, plus:
+
+- Grant or revoke anyone's role, including another admin's.
+- Permanently delete a court that has no reservation history (deactivate
+  is still the tool for retiring a court that's actually been used).
+
 ## Domain at a glance
 
 | Concept | In this system |
 |---|---|
 | **Resource** | `Court` — sport type (TENNIS / VOLLEYBALL / BADMINTON), indoor/outdoor, active flag |
 | **Reservation** | one court, one user, one time slot `[start_time, end_time)`, timestamptz |
-| **User** | `Player` (books/confirms/cancels own reservations) or `Venue manager` (manages courts, can act on any reservation) |
+| **User** | `Player` (books/confirms/cancels own reservations), `Venue manager` (manages courts, can act on any reservation), or `Admin` (everything a venue manager can, plus role management and permanently deleting a court) |
 | **States** | `PENDING` (a 5-minute hold) `→ CONFIRMED`; on courts that require approval `PENDING → PENDING_APPROVAL → CONFIRMED / REJECTED`; `→ CANCELLED` before the start; unanswered holds/requests `→ EXPIRED`; then `CHECKED_IN → COMPLETED / NO_SHOW`. Full lifecycle: [`docs/specification.md`](docs/specification.md) |
 | **Operations** | create · check availability · confirm · cancel · approve/reject (approval-required courts) |
 | **Common rule** | two reservations that hold a court (`PENDING`, `PENDING_APPROVAL`, `CONFIRMED`, `CHECKED_IN`) must never overlap |

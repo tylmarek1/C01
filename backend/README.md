@@ -54,8 +54,8 @@ data again.
 | `POST /reservations` | Bearer | Create a `PENDING` reservation — a 5-minute hold that already blocks the court (validates the 60/90/120 min slot rule, `:00`/`:30` alignment, 07:00–22:00 opening hours, booking window, limits; 409 if the slot is held/booked) |
 | `GET /reservations` | Bearer | List the current user's reservations |
 | `POST /reservations/{id}/confirm` | Bearer | `PENDING` → `CONFIRMED`; on a court with `requires_approval` → `PENDING_APPROVAL` instead (409 if the hold expired or the court was deactivated) |
-| `POST /reservations/{id}/approve` | Venue manager | `PENDING_APPROVAL` → `CONFIRMED` |
-| `POST /reservations/{id}/reject` | Venue manager | `PENDING_APPROVAL` → `REJECTED`, releases the slot |
+| `POST /reservations/{id}/approve` | Venue manager or admin | `PENDING_APPROVAL` → `CONFIRMED` |
+| `POST /reservations/{id}/reject` | Venue manager or admin | `PENDING_APPROVAL` → `REJECTED`, releases the slot |
 | `POST /reservations/{id}/cancel` | Bearer | `PENDING`/`PENDING_APPROVAL`/`CONFIRMED` → `CANCELLED`, only before the start time (409 otherwise) |
 
 That's the core reservation lifecycle. The API has grown well past it:
@@ -65,7 +65,11 @@ achievements/leaderboard live in `stats.py`; and `favorites`,
 `facility_blocks`, `notifications`, `reviews`, `waitlist`, and the
 venue-manager `admin` endpoints (stats, user roles, reservation export,
 court utilization) each have their own router under `src/reservations/api/`
-(see Layout below). Rather than hand-duplicating a table that goes stale
+(see Layout below). `UserRole` has a third value, `ADMIN`, above
+`VENUE_MANAGER` — it inherits every venue-manager endpoint plus two
+admin-only ones: changing anyone's role (including granting/revoking
+`ADMIN` itself) and `DELETE /courts/{id}` (only for a court with no
+reservation history). Rather than hand-duplicating a table that goes stale
 the next time an endpoint is added, browse the live, always-current
 reference: run the server and open `/docs` (Swagger UI) or `/openapi.json`.
 

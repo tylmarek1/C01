@@ -51,6 +51,7 @@ function Navbar() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const canAccessAdmin = user?.role === "VENUE_MANAGER" || user?.role === "ADMIN"
 
   function handleLogout() {
     // Navigate off the protected route first so ProtectedRoute's own
@@ -73,7 +74,7 @@ function Navbar() {
             <>
               <NavItem to="/app">{t("nav.dashboard")}</NavItem>
               <NavItem to="/app/book">{t("nav.book")}</NavItem>
-              {user.role === "VENUE_MANAGER" && <NavItem to="/app/admin">{t("nav.admin")}</NavItem>}
+              {canAccessAdmin && <NavItem to="/app/admin">{t("nav.admin")}</NavItem>}
             </>
           )}
         </nav>
@@ -118,7 +119,7 @@ function Navbar() {
                     <UserRound /> {t("nav.profile")}
                   </NavLink>
                 </DropdownMenuItem>
-                {user.role === "VENUE_MANAGER" && (
+                {canAccessAdmin && (
                   <DropdownMenuItem asChild>
                     <NavLink to="/app/admin">
                       <ShieldCheck /> {t("nav.admin")}
@@ -173,7 +174,7 @@ function Navbar() {
                 <NavItem to="/app/profile" onClick={() => setMobileOpen(false)}>
                   {t("nav.profile")}
                 </NavItem>
-                {user.role === "VENUE_MANAGER" && (
+                {canAccessAdmin && (
                   <NavItem to="/app/admin" onClick={() => setMobileOpen(false)}>
                     {t("nav.admin")}
                   </NavItem>

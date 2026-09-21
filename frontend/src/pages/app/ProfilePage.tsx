@@ -37,6 +37,7 @@ import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 import { compressImageFile } from "@/lib/image"
+import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
 import type { Court, Review } from "@/types"
 
@@ -56,6 +57,7 @@ function formatKb(bytes: number) {
 function OverviewTab() {
   const { user, token, updateUser } = useAuth()
   const { t } = useTranslation()
+  const roleLabels = useRoleLabels()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(user?.name ?? "")
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -235,9 +237,9 @@ function OverviewTab() {
 
             <div className="flex flex-col gap-2">
               <Label>{t("profile.role.label")}</Label>
-              <Badge variant="secondary" className="w-fit gap-1.5">
+              <Badge variant={ROLE_VARIANT[user.role]} className="w-fit gap-1.5">
                 <ShieldCheck className="size-3.5" />
-                {user.role === "VENUE_MANAGER" ? t("profile.role.manager") : t("profile.role.player")}
+                {roleLabels[user.role]}
               </Badge>
             </div>
 

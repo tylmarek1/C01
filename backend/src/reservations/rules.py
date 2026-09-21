@@ -9,6 +9,7 @@ from reservations.models import UserRole
 MAX_ACTIVE_RESERVATIONS = {
     UserRole.PLAYER: 3,
     UserRole.VENUE_MANAGER: 1000,
+    UserRole.ADMIN: 1000,
 }
 
 # A reservation can't start further out than this...

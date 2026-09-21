@@ -10,6 +10,18 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **A new `ADMIN` role, above `VENUE_MANAGER`.** Inherits every venue-manager
+  capability, plus two admin-only ones: changing anyone's role — including
+  granting or revoking `ADMIN` itself (a venue manager keeps the existing
+  player ↔ venue-manager toggle only) — and permanently deleting a court
+  that has no reservation history (`DELETE /courts/{id}`; deactivating is
+  still how you retire a court that's actually been used). The Admin →
+  Users tab is now a role picker instead of a promote/demote toggle, with a
+  confirmation step for anything touching the admin tier. The seeded demo
+  venue-manager account is now the demo admin account
+  (`admin@courtly.app`); a new `manager@courtly.app` demo account covers
+  the venue-manager tier. **Breaking for the dev database:** a new enum
+  value — run the drop/create/seed cycle from `backend/CLAUDE.md`.
 - **Approval process for courts that require it** (C02, spec v0.2). A court can
   be flagged `requires_approval`; on it a player's Confirm submits the
   reservation (`PENDING_APPROVAL`, blocks the slot for up to 24 h or until the

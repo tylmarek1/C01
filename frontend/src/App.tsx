@@ -77,7 +77,7 @@ function App() {
         <Route
           path="app/admin"
           element={
-            <ProtectedRoute requireRole="VENUE_MANAGER">
+            <ProtectedRoute requireRole={["VENUE_MANAGER", "ADMIN"]}>
               <AdminPage />
             </ProtectedRoute>
           }

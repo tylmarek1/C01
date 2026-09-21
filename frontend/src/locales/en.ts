@@ -12,6 +12,10 @@ const en = {
   "nav.menu.open": "Open menu",
   "nav.menu.close": "Close menu",
 
+  "role.PLAYER": "Player",
+  "role.VENUE_MANAGER": "Venue manager",
+  "role.ADMIN": "Admin",
+
   "hero.badge": "Court booking, simplified",
   "hero.title": "Book a court. Never double-booked.",
   "hero.description":
@@ -408,8 +412,6 @@ const en = {
   "profile.avatar.uploading": "Uploading & compressing…",
   "profile.avatar.hint": "JPEG, PNG, WEBP or GIF, up to 8MB",
   "profile.avatar.description": "We resize it to 512×512 and compress it client-side before upload, then again on the server.",
-  "profile.role.player": "Player",
-  "profile.role.manager": "Venue manager",
   "profile.favorites.empty.title": "No favorites yet",
   "profile.favorites.empty.description": "Tap the heart on any court to save it here.",
   "profile.favorites.browse": "Browse courts",
@@ -493,6 +495,13 @@ const en = {
   "admin.court.pricePlaceholder": "e.g. 350",
   "admin.court.utilization": "View utilization",
   "admin.court.utilizationAria": "View court utilization",
+  "admin.court.deleteAria": "Delete court",
+  "admin.court.delete": "Delete court",
+  "admin.court.confirmDelete.title": "Delete this court?",
+  "admin.court.confirmDelete.description":
+    "{name} will be permanently removed. Only possible for a court with no reservation history — deactivate it instead to retire a court that's actually been used.",
+  "admin.toast.courtDeleted": "Court deleted",
+  "admin.error.courtDelete": "Could not delete court",
 
   "admin.reservations.allStatuses": "All statuses",
   "admin.reservations.empty.title": "No reservations here",
@@ -563,11 +572,15 @@ const en = {
   "admin.overview.busiestHoursDescription":
     "Confirmed, checked-in, completed and no-show bookings by start hour (venue time).",
 
-  "admin.users.venueManager": "Venue manager",
-  "admin.users.player": "Player",
   "admin.users.you": "You",
-  "admin.users.demote": "Demote to player",
-  "admin.users.promote": "Promote to manager",
+  "admin.users.adminOnly": "Admin only",
+  "admin.users.confirmGrantAdmin.title": "Grant admin access?",
+  "admin.users.confirmGrantAdmin.description":
+    "{name} will be able to manage every user's role (including other admins) and permanently delete courts.",
+  "admin.users.confirmGrantAdmin.confirm": "Grant admin",
+  "admin.users.confirmRevokeAdmin.title": "Remove admin access?",
+  "admin.users.confirmRevokeAdmin.description": "New role for {name}: {role}. They'll lose admin-only capabilities.",
+  "admin.users.confirmRevokeAdmin.confirm": "Remove admin",
   "admin.users.activeCount": "{count} active",
   "admin.users.noShow.one": "no-show",
   "admin.users.noShow.other": "no-shows",
@@ -744,6 +757,9 @@ const en = {
     "No — Courtly is a student project built for a software engineering course, and every feature is free to use during the pilot.",
   "help.faq.becomeManager.question": "How do I get venue manager access?",
   "help.faq.becomeManager.answer": "An existing venue manager can promote your account from the Admin → Users tab.",
+  "help.faq.becomeAdmin.question": "What's the difference between an admin and a venue manager?",
+  "help.faq.becomeAdmin.answer":
+    "An admin can do everything a venue manager can, plus grant or revoke anyone's role (including other admins) and permanently delete a court with no booking history. Only an existing admin can grant admin access, from the Admin → Users tab.",
 
   "help.cta.title": "Still have a question?",
   "help.cta.description": "Jump straight in — the fastest way to understand Courtly is to book a slot.",
