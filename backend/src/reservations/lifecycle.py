@@ -9,7 +9,12 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from reservations.models import Reservation, ReservationEvent, ReservationEventType, ReservationStatus
+from reservations.models import (
+    Reservation,
+    ReservationEvent,
+    ReservationEventType,
+    ReservationStatus,
+)
 
 ALLOWED_TRANSITIONS: dict[ReservationStatus, set[ReservationStatus]] = {
     ReservationStatus.PENDING: {
@@ -30,7 +35,10 @@ ALLOWED_TRANSITIONS: dict[ReservationStatus, set[ReservationStatus]] = {
         ReservationStatus.COMPLETED,
         ReservationStatus.NO_SHOW,
     },
-    ReservationStatus.CHECKED_IN: {ReservationStatus.COMPLETED, ReservationStatus.CANCELLED},
+    ReservationStatus.CHECKED_IN: {
+        ReservationStatus.COMPLETED,
+        ReservationStatus.CANCELLED,
+    },
     ReservationStatus.COMPLETED: set(),
     ReservationStatus.CANCELLED: set(),
     ReservationStatus.EXPIRED: set(),
@@ -64,14 +72,20 @@ def check_cancellable(reservation: Reservation, now: datetime | None = None) -> 
     PENDING_APPROVAL or CONFIRMED and strictly before the start instant. Ownership is checked by the caller."""
     now = now or datetime.now(timezone.utc)
     if reservation.status not in CANCELLABLE_STATUSES:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Cannot cancel a {reservation.status} reservation")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Cannot cancel a {reservation.status} reservation",
+        )
     if now >= reservation.start_time:
         raise HTTPException(
-            status.HTTP_409_CONFLICT, "This reservation has already started and can no longer be cancelled"
+            status.HTTP_409_CONFLICT,
+            "This reservation has already started and can no longer be cancelled",
         )
 
 
-def _check_guards(reservation: Reservation, new_status: ReservationStatus, approval_decision: bool) -> None:
+def _check_guards(
+    reservation: Reservation, new_status: ReservationStatus, approval_decision: bool
+) -> None:
     """Conditions beyond "is this edge in the table" — the guards of BR-06,
     BR-11 and BR-12 in docs/specification.md. Kept here so no caller can reach
     CONFIRMED/PENDING_APPROVAL/REJECTED around them."""
@@ -83,14 +97,27 @@ def _check_guards(reservation: Reservation, new_status: ReservationStatus, appro
         ReservationStatus.PENDING_APPROVAL,
     ):
         # A hold past its deadline is dead even if the worker has not swept it yet (BR-06).
-        if reservation.hold_expires_at is not None and reservation.hold_expires_at < now:
-            raise HTTPException(status.HTTP_409_CONFLICT, "This hold has expired — book the slot again")
+        if (
+            reservation.hold_expires_at is not None
+            and reservation.hold_expires_at < now
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "This hold has expired — book the slot again"
+            )
         if not reservation.court.active:
-            raise HTTPException(status.HTTP_409_CONFLICT, "This court is no longer available")
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "This court is no longer available"
+            )
         # BR-11: on an approval-required court a hold can only be *submitted*;
         # CONFIRMED is reachable through Approve alone.
-        if new_status == ReservationStatus.CONFIRMED and reservation.court.requires_approval:
-            raise HTTPException(status.HTTP_409_CONFLICT, "This court requires a venue manager's approval")
+        if (
+            new_status == ReservationStatus.CONFIRMED
+            and reservation.court.requires_approval
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "This court requires a venue manager's approval",
+            )
 
     if old_status == ReservationStatus.PENDING_APPROVAL and new_status in (
         ReservationStatus.CONFIRMED,
@@ -98,11 +125,20 @@ def _check_guards(reservation: Reservation, new_status: ReservationStatus, appro
     ):
         # Only the Approve/Reject operations (which check the Venue Manager role) may pass approval_decision.
         if not approval_decision:
-            raise HTTPException(status.HTTP_409_CONFLICT, "Only a venue manager's decision can do that")
-        if reservation.approval_expires_at is not None and reservation.approval_expires_at < now:
-            raise HTTPException(status.HTTP_409_CONFLICT, "This approval request has expired")
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Only a venue manager's decision can do that"
+            )
+        if (
+            reservation.approval_expires_at is not None
+            and reservation.approval_expires_at < now
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "This approval request has expired"
+            )
         if new_status == ReservationStatus.CONFIRMED and not reservation.court.active:
-            raise HTTPException(status.HTTP_409_CONFLICT, "This court is no longer available")
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "This court is no longer available"
+            )
 
 
 def transition(
@@ -115,7 +151,17 @@ def transition(
     approval_decision: bool = False,
 ) -> None:
     """`approval_decision=True` is passed only by Approve/Reject, after they
-    have checked the caller is a venue manager (BR-10, BR-11)."""
+    have checked the caller is a venue manager (BR-10, BR-11).
+
+    Concurrency contract (not enforced here — see docs/capability-map.md):
+    the caller must already hold a row lock on `reservation` (`SELECT ...
+    FOR UPDATE`, e.g. `_get_owned_reservation(..., lock=True)` in
+    `api/reservations.py`, or a `.with_for_update()`-selected row as in
+    `worker.py`/`facility_blocks.py`) before calling this. Every call site
+    in this codebase does; a new one that doesn't would silently reopen the
+    race two concurrent transitions on the same reservation would otherwise
+    hit — this function only checks the state-machine edge, not isolation.
+    """
     allowed = ALLOWED_TRANSITIONS[reservation.status]
     if new_status not in allowed:
         raise HTTPException(

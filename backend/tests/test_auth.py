@@ -221,3 +221,27 @@ def test_upload_avatar_rejects_non_image(
     )
 
     assert response.status_code == 400
+
+
+def test_upload_avatar_rejects_oversized_pixel_dimensions(
+    session_factory: sessionmaker, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A real decompression-bomb file (tiny bytes, huge claimed dimensions)
+    # isn't worth constructing here — patching the cap far below an
+    # ordinary test image's size exercises the same guard cheaply.
+    monkeypatch.setattr("reservations.images.settings.upload_dir", tmp_path)
+    monkeypatch.setattr("reservations.images.MAX_IMAGE_PIXELS", 100)
+    client = TestClient(app)
+    token = _register(client, "olive@example.com")
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (200, 200), color=(10, 20, 200)).save(buffer, format="JPEG")
+    buffer.seek(0)
+
+    response = client.post(
+        "/auth/me/avatar",
+        headers={"Authorization": f"Bearer {token}"},
+        files={"file": ("big.jpg", buffer, "image/jpeg")},
+    )
+
+    assert response.status_code == 400
