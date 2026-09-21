@@ -35,6 +35,11 @@ between that and a narrower row, treat it as full-stack; the cost of
 checking an irrelevant section is one paragraph, the cost of missing a
 layer is a half-built feature.
 
+Once classified (any row except pure exploration/investigation), branch
+off `main` before touching files — see root `CLAUDE.md`'s "Git workflow".
+Everything from Step 4 onward happens on that branch, and `finish-task`
+at Step 5 carries it through commit/push/PR/merge.
+
 ## Step 1 — Understand
 
 - Grep `backend/src/reservations/` for anything resembling the feature

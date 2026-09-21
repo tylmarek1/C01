@@ -63,9 +63,11 @@ docker-compose.yml                  single `db` service (Postgres 16) shared by 
 | Tests | pytest + httpx, against real Postgres | none exist yet (see frontend/CLAUDE.md) |
 | Lint | not configured (a stray `.ruff_cache` is the only trace of ruff) | `oxlint`, default rules |
 
-There is **no CI/CD, no pre-commit hooks, and no Alembic migrations**
-anywhere in this repo. That's the real current state, not an oversight for
-you to silently fix — see "Known gaps" below.
+There is **no CI/CD and no Alembic migrations** anywhere in this repo.
+That's the real current state, not an oversight for you to silently fix —
+see "Known gaps" below. There is one narrow pre-commit hook (blocks commits
+on `main`, see "Git workflow" below) plus the existing ruff-format
+post-edit hook — neither is a substitute for CI.
 
 ## Cross-cutting architectural rules
 
@@ -104,9 +106,13 @@ you to silently fix — see "Known gaps" below.
    understood before making sweeping multi-file edits.
 4. Implement, then verify — see "Definition of done" below. Never report a
    change as complete with a failing test or a broken build.
-5. **Never `git commit` or `git push` unless explicitly asked for in the
-   current request.** A prior approval doesn't carry forward to later,
-   unrelated changes.
+5. **A meaningful change owns its own Git lifecycle by default** — branch,
+   commit, push, PR, merge. You do not need to be asked for any of these
+   individually; see "Git workflow" below and `finish-task`, which drives
+   this lifecycle after implementation. The one thing that still needs an
+   explicit ask is a **destructive** git action (force-push, `reset --hard`,
+   deleting someone else's branch) — see the Environment's own Git Safety
+   Protocol for what counts.
 
 A request to *improve*, *audit*, or *find weaknesses in* the app (rather
 than build something specific) is a different workflow — use `improve-app`,
@@ -208,11 +214,52 @@ for. If you're about to add a sentence describing what a feature does rather
 than a rule about how to safely change something, it probably belongs in a
 README or docs file instead (see the `update-docs` skill).
 
-## Git & review conventions
+## Git workflow (default, not optional)
 
-Work on feature branches, land via a reviewed PR (author ≠ reviewer) — the
-convention the team already used for the graded C01 spike (PR #5). Commit
-messages should explain *why*, not restate the diff.
+`main` is protected by convention, and a hook backs that up mechanically
+(see below): **never develop directly on `main`.** For any meaningful
+change, the default lifecycle is:
+
+```
+branch → implement → verify (finish-task) → review (self-review) →
+docs/changelog → commit → push → PR (gh) → merge → cleanup
+```
+
+Drive this yourself; the user shouldn't have to separately ask for a
+branch, a commit, a push, or a PR — `finish-task` owns Steps after
+implementation. Details:
+
+- **Branch from `main`** (`git fetch origin && git checkout -b <type>/<short-desc>
+  origin/main`) before touching files. Name it `feat/…`, `fix/…`,
+  `refactor/…`, `perf/…`, `docs/…`, or `chore/…` per Conventional Commits.
+  One logical task per branch.
+- **Commits**: Conventional Commits style (`feat: …`, `fix: …`, `refactor:
+  …`, `test: …`, `docs: …`, `chore: …`, `perf: …`), explaining *why* not
+  restating the diff. Commit once the change verifies cleanly, not every
+  intermediate edit.
+- **Push and open a PR** with `gh pr create` once verification passes —
+  this repo's remote is GitHub (`tylmarek1/C01`), not GitLab, so `gh` is
+  the tool, not `git push` alone. PR description: what changed, why,
+  affected areas, tests/validation run, notable decisions, risks — see
+  `finish-task` for the exact template.
+- **Author ≠ reviewer** in spirit — if nothing else can review it, run the
+  built-in `/code-review` skill against the branch before merging, don't
+  self-certify silently.
+- **Merge** with `gh pr merge` once checks/review are satisfied. This repo
+  has no CI, so "checks satisfied" means `finish-task`'s own verification
+  already passed on the branch — don't treat the absence of CI as license
+  to skip that. Never merge a change you know is broken.
+- **Cleanup** — delete the merged branch (`gh pr merge --delete-branch`, or
+  `git branch -d`/`git push origin --delete` after merge) and sync local
+  `main`.
+- A **destructive** git action — force-push, `reset --hard` past the last
+  push, deleting a branch that isn't the one just merged — still needs an
+  explicit ask; it's the one thing this default lifecycle doesn't cover
+  autonomously.
+
+A pre-commit hook (`.claude/hooks/guard-main.sh`) mechanically blocks `git
+commit`/`git push` while `main` is checked out, so forgetting to branch
+fails loudly instead of silently landing on `main`.
 
 ## Security baseline
 
@@ -225,12 +272,12 @@ tokens, passwords, or password hashes.
 
 ## Known gaps — flag, don't silently fix
 
-No CI, no pre-commit hooks, no Alembic, no generated frontend API types, no
-frontend test suite. These are real, current, and known (several are
-explicitly named in `cviko1/todo.md`'s own "nice to have" list). If closing
-one of these would genuinely help the task you're doing, propose it and say
-why — don't silently add a new dependency, config file, or pipeline as a
-side effect of an unrelated change.
+No CI, no Alembic, no generated frontend API types, no frontend test suite.
+These are real, current, and known (several are explicitly named in
+`cviko1/todo.md`'s own "nice to have" list). If closing one of these would
+genuinely help the task you're doing, propose it and say why — don't
+silently add a new dependency, config file, or pipeline as a side effect of
+an unrelated change.
 
 ## Skills available in this repo
 
@@ -243,7 +290,7 @@ repo; the ones below apply everywhere.
 |---|---|
 | `feature-development` | Any "add X" / "change X" request — the default entry point, classifies the change and drives the rest |
 | `architecture-review` | Before adding a new module/file — does something existing already own this? |
-| `finish-task` | Before declaring any non-trivial change done — picks the right checks to run |
+| `finish-task` | Before declaring any non-trivial change done — picks the right checks to run, then owns commit → push → PR → merge → cleanup |
 | `self-review` | Before declaring any non-trivial change done — qualitative diff read |
 | `feature-completeness` | After implementing a feature, or "is X actually complete" — traces the whole feature end-to-end, not just the diff |
 | `consistency` | Before adding a new endpoint/component, or asked to review consistency — follow existing conventions, flag drift rather than adding a third variant |
@@ -254,8 +301,8 @@ repo; the ones below apply everywhere.
 | `security-review` | Adding an endpoint/role logic, or asked to review/improve security |
 | `performance-review` | Adding a data-heavy endpoint/page, or asked to review/improve performance |
 | `refactoring` | Any "refactor/clean up/restructure" request |
-| `versioning` | Deciding whether a change is breaking, and keeping backend/frontend/docs in step |
-| `update-docs` | After a change that could make a README or `docs/*.md` wrong |
+| `versioning` | Deciding whether a change is breaking, bumping the version, and keeping backend/frontend/docs in step |
+| `update-docs` | After a change that could make a README, `docs/*.md`, or `CHANGELOG.md` wrong |
 
 Backend-only (`backend/.claude/skills/`): `api-design`, `database-evolution`,
 `backend-testing` — see `backend/CLAUDE.md`.

@@ -1,18 +1,48 @@
 ---
 name: versioning
-description: How to think about change classification (breaking/feature/fix) and keeping backend/frontend/docs in step on Courtly (C01), which has no release process, no version numbers, and no versioned API contract. Use when a change could be "breaking" for the dev DB or for the frontend's hand-maintained types, or when deciding how a change should be described in a commit/PR.
+description: How to think about change classification (breaking/feature/fix), CHANGELOG.md entries, and keeping backend/frontend/docs in step on Courtly (C01). Use when a change could be "breaking" for the dev DB or for the frontend's hand-maintained types, when deciding how a change should be described in a commit/PR, or when a merge should get a CHANGELOG entry or version bump.
 ---
 
-# Versioning, without inventing a release process
+# Versioning, kept lightweight
 
-Courtly has no semantic version, no CHANGELOG, no tagged releases, and no
-versioned API — `frontend/` and `backend/` are always meant to move together
-against `main`. Don't introduce a version scheme, a CHANGELOG file, or a
-release checklist; none of that is warranted at this project's current
-scale, and it would be exactly the overengineering the root `CLAUDE.md`
-warns against.
+`frontend/` and `backend/` are always meant to move together against
+`main` — there's still no versioned API contract or generated client
+between them (see below for what that implies). There *is* now a
+`CHANGELOG.md` at the repo root and version fields in `backend/pyproject.toml`
+(`project.version`) and `frontend/package.json` (`version`) — keep these in
+step, but don't build more release machinery than that (no tags, no
+release branches, no automated bump tooling) unless the project's scale
+actually grows into needing it; that would be the overengineering root
+`CLAUDE.md` warns against.
 
-What *does* matter here, because there's no tooling to catch it for you:
+## CHANGELOG.md
+
+[Keep a Changelog](https://keepachangelog.com/) format, already in the repo.
+
+- Every merged PR that changes user-visible or developer-visible behavior
+  gets one bullet under `## [Unreleased]`, in the right category (`Added`,
+  `Changed`, `Fixed`, `Removed`, `Deprecated`, `Security`). Add it as part
+  of `finish-task` Step 4, before committing — not as a separate pass.
+  Written for a reader, not restating the diff: "Add court-availability
+  waitlist notifications," not "Add `notify_waitlist()` to `worker.py`."
+- **Exempt**: pure refactors with zero behavioral change, formatting,
+  typo/comment fixes, and this-infra-only changes (skills, CLAUDE.md,
+  hooks) — those belong in the commit message, not the changelog.
+- There is no release process yet (no tags, no `git-cliff`/similar), so
+  `[Unreleased]` just accumulates. If the team ever cuts an actual release,
+  that's the point to rename `[Unreleased]` to a dated version heading and
+  start a fresh `[Unreleased]` — don't invent that ceremony preemptively.
+
+## Version numbers
+
+`backend/pyproject.toml`'s `project.version` and `frontend/package.json`'s
+`version` are independent (backend and frontend are different deployables,
+per ADR-002's repo split) and currently both pre-1.0 (`0.1.0` / `0.0.0`).
+Bump only on a genuine breaking change to that side (see below) — most
+day-to-day feature/fix work doesn't need a bump, and bumping isn't a
+substitute for a CHANGELOG entry.
+
+## What *does* matter here, because there's no tooling to catch it for you
 
 ## What counts as "breaking" in this codebase
 
@@ -56,7 +86,9 @@ ADR-000..003 format.
 
 ## Git conventions
 
-Feature branch → reviewed PR (author ≠ reviewer), per root `CLAUDE.md` and
-the convention already used for the graded C01 spike (PR #5). A commit or PR
-description is where "what changed and why" belongs — not CLAUDE.md (see
-root `CLAUDE.md`'s "what belongs in CLAUDE.md" rule).
+See root `CLAUDE.md`'s "Git workflow" section and `finish-task` for the
+actual branch/commit/PR/merge mechanics — not duplicated here. A commit or
+PR description is where "what changed and why" belongs, in prose; a
+CHANGELOG entry is the same fact, written for a reader instead of a
+reviewer — not CLAUDE.md (see root `CLAUDE.md`'s "what belongs in
+CLAUDE.md" rule).

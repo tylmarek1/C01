@@ -32,6 +32,7 @@ template. Confirm the actual current behavior first (see root `CLAUDE.md`
 | A new architectural decision (new dependency, new cross-cutting pattern) | Add a new ADR to `docs/architecture-and-decisions.md`, matching the existing ADR-000..003 format (status/context/decision/consequences) |
 | A doc states a specific number (test count, endpoint count) that's now wrong | Fix it, even if unrelated to your change — but don't go on an unrelated doc-fixing spree in the same PR unless asked |
 | Something course/DoD-related | `cviko1/todo.md` — only if still genuinely relevant; it's mostly historical |
+| Any user/developer-visible change, once verified | `CHANGELOG.md`'s `[Unreleased]` section — see `versioning` for category and what's exempt; this is normally done inside `finish-task` Step 4, not a separate pass |
 
 ## Step 3 — What belongs in CLAUDE.md (root, backend, or frontend)
 
