@@ -483,6 +483,8 @@ const en = {
   "admin.court.save": "Save court",
   "admin.court.saving": "Saving…",
   "admin.court.add": "Add court",
+  "admin.court.empty.title": "No courts yet",
+  "admin.court.empty.description": "Add your first court to start taking bookings — players will see it as soon as you save it.",
   "admin.court.editAria": "Edit court",
   "admin.court.visible": "Visible to players",
   "admin.court.hidden": "Hidden",

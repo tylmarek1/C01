@@ -485,6 +485,8 @@ const cs: Record<TranslationKey, string> = {
   "admin.court.save": "Uložit kurt",
   "admin.court.saving": "Ukládání…",
   "admin.court.add": "Přidat kurt",
+  "admin.court.empty.title": "Zatím žádné kurty",
+  "admin.court.empty.description": "Přidejte svůj první kurt a začněte přijímat rezervace — hráči ho uvidí hned po uložení.",
   "admin.court.editAria": "Upravit kurt",
   "admin.court.visible": "Viditelný pro hráče",
   "admin.court.hidden": "Skrytý",

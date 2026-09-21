@@ -89,7 +89,7 @@ here just because it exists, only ones worth tracking status on.
 |---|---|---|---|
 | Core booking/approval/waitlist flow | Strong | C02 spec, 177 backend tests | 2026-09-22 |
 | Onboarding (new player) | Strong | Real empty state + CTA on a zero-reservation dashboard | 2026-09-22 |
-| Onboarding (new venue manager) | **Weak** | No confirmed guided setup for a zero-court manager; low severity since accounts are admin-provisioned | 2026-09-22 |
+| Onboarding (new venue manager) | Strong | Correction to the earlier framing: courts aren't per-manager here (`Court` has no owner/manager FK — any manager sees the whole shared venue catalog), so "a fresh manager sees zero courts" isn't really the scenario. The real gap was narrower but real: `CourtsTab` had no empty state at all (rendered nothing) for a genuinely empty catalog. Fixed with the existing `EmptyState` component + an "Add your first court" CTA, matching the pattern already used elsewhere on this page | 2026-09-22 |
 | Account recovery | **Missing** | Cross-ref Security | 2026-09-22 |
 
 ## Engineering system (`.claude/`)
@@ -116,7 +116,6 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ### Product / UX
 - **[Low]** No notification mute/preferences — defer until volume actually justifies it.
-- **[Low]** No guided setup for a freshly-promoted manager with zero courts — small UI addition.
 - **[Low]** Keyboard-only completability of the booking flow was inferred from source, never actually walked in a browser — a 10-minute manual verification.
 
 ## Recently closed
@@ -127,6 +126,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - Reservation reschedule validation: verified `ReservationReschedule` already shares `validate_slot_shape()` with `ReservationCreate` (`schemas/reservation.py`) — not a drifted copy, no fix needed. Closing without a code change.
 - Mobile `week-calendar.tsx` — single-day view below `sm`, PR merging `polish/mobile-week-calendar`.
 - Admin stats 7/30/90-day window selector + CSV export status-filter bug fix, PR merging `feat/admin-stats-window-and-csv-filter`.
+- Empty state for `CourtsTab` when the court catalog is genuinely empty, PR merging `polish/empty-courts-state`.
 
 ## Rejected (external skills evaluated, 2026-09-22)
 
