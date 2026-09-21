@@ -66,7 +66,7 @@ here just because it exists, only ones worth tracking status on.
 |---|---|---|---|
 | Reservation state machine | Strong | Exhaustive `ALLOWED_TRANSITIONS`, centralized guards. Concurrency safety is an API-layer convention (`lock=True` at call sites), not enforced inside `lifecycle.py` itself — see Backlog | 2026-09-22 |
 | Double-booking guarantee | Strong | ADR-001, Postgres exclusion constraint, regression-tested | 2026-09-22 |
-| Background worker reliability | **Weak** | All 5 housekeeping sub-tasks share one transaction (one failure silently blocks all 5 every tick); inconsistent row-locking across sub-tasks — see Backlog | 2026-09-22 |
+| Background worker reliability | Strong | Each of the 5 housekeeping sub-tasks now runs in its own session/transaction (`worker.py`'s `_SUB_TASKS` loop) — one failing task is logged and skipped, the other 4 still commit. All 5 now consistently use `with_for_update(skip_locked=True)`. Regression-tested (`test_worker_tick_survives_one_failing_sub_task`) | 2026-09-22 |
 | API pagination | **Missing** | Every list endpoint is a full-table read — no `limit`/`offset` anywhere | 2026-09-22 |
 | Observability / logging | **Weak** | `import logging` appears in exactly one backend file (`worker.py`); no unhandled-exception logging anywhere in the API layer. No platform, by deliberate design (`production-readiness`) — but even the minimal level is missing | 2026-09-22 |
 | Migrations | **Missing** (deliberate) | No Alembic — known, documented gap (root `CLAUDE.md`) | 2026-09-22 |
@@ -109,9 +109,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 `improve-app`'s existing vocabulary — not a new scheme.
 
 ### Security / reliability
-- **[High]** Worker: one failing sub-task silently blocks all 5 housekeeping tasks every tick (`worker.py`) — per-subtask try/except+commit, plus a regression test.
 - **[High]** Run `pip-audit`/`npm audit` once to baseline dependency vulnerabilities — one-off check, then a recurring `security-review` line.
-- **[Med]** Inconsistent row-locking across the worker's 5 sub-tasks (2 of 5 use `skip_locked`, 3 don't) — code change; dormant risk until the app is ever horizontally scaled.
 - **[Med]** No password-reset flow — needs an email-delivery decision first; a product decision, not silent scaffolding.
 - **[Med]** Reservation reschedule: unconfirmed whether it shares `ReservationCreate`'s slot/opening-hours validator, or has a drifted copy — verify first, add a test if it's a real gap.
 - **[Med]** Zero `logging` usage outside `worker.py` — a single unhandled-exception logging hook, not a platform.
@@ -131,6 +129,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 ## Recently closed
 
 - Auth rate-limiting on `/auth/login`/`/auth/register` — `rate_limit.py`, PR merging `security/auth-rate-limit`.
+- Worker reliability: per-subtask transaction isolation + consistent row-locking — `worker.py`, PR merging `reliability/worker-tick-isolation`.
 
 ## Rejected (external skills evaluated, 2026-09-22)
 
