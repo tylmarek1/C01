@@ -49,8 +49,8 @@ at Step 5 carries it through commit/push/PR/merge.
 - Check `frontend/src/pages/` and `frontend/src/components/shared/` for
   existing UI that's adjacent or that the feature should reuse.
 - Check `docs/intent-and-change.md` for whether this is already part of the
-  documented domain frame, and `cviko1/todo.md` for whether it's a
-  previously-noted gap.
+  documented domain frame, and `docs/project-state.md`/root `CLAUDE.md`'s
+  "Known gaps" for whether it's a previously-noted gap.
 
 **Ambiguous product decisions vs. inferable scope.** Ask only when the
 codebase genuinely doesn't answer the question. Two worked examples:

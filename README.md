@@ -98,6 +98,9 @@ system.
 ## Repository layout
 
 ```
+docs/course/                        the course assignments, verbatim (C01.md, C02.md, ...)
+docs/project-state.md               current phase, completed/pending gates, architectural drivers
+docs/definition-of-done.md          what counts as "done" (evidence-backed, not "looks complete")
 docs/intent-and-change.md           Project Frame + selected future pressure
 docs/architecture-and-decisions.md  architecture overview + decision records
 docs/evidence-and-evolution.md      spike evidence and decisions + C02 evidence (spec -> running app)
@@ -107,7 +110,6 @@ docs/change-c02-impact.md           impact analysis of the C02 change, architect
 docs/screenshots/                   README preview images
 backend/                            FastAPI application (see backend/README.md)
 frontend/                           React application (see frontend/README.md)
-cviko1/                             running C01 checklist / working notes
 docker-compose.yml                  shared PostgreSQL instance for both apps
 ```
 
@@ -167,9 +169,11 @@ Beyond the C01 spike, the project now has a runnable product slice:
   opening-hours rule compared wall-clock hours in UTC instead of the venue's
   `Europe/Prague` time, rejecting valid slots sent by a browser in a
   different offset — now covered by a regression test.
-- Ideas for what's next (Alembic migrations, a venue-manager UI, a real
-  Notification Service integration, frontend tests) are tracked in
-  [`cviko1/todo.md`](cviko1/todo.md).
+- Known engineering gaps (Alembic migrations, a real Notification Service
+  integration, frontend tests) are tracked in root `CLAUDE.md`'s "Known
+  gaps" section; architectural drivers for C03 are in
+  [`docs/change-c02-impact.md`](docs/change-c02-impact.md); current
+  project phase and status in [`docs/project-state.md`](docs/project-state.md).
 
 ## Review cycle (C01)
 
