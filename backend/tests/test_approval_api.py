@@ -504,22 +504,34 @@ def test_ve_05_7b_reschedule_waits_for_a_concurrent_decision_and_sees_its_result
     user_id, token = make_user(session_factory, "player@example.com")
     court_id = make_court(session_factory, requires_approval=True)
     hold = add_reservation(
-        session_factory, court_id, user_id, at(10), at(11), ReservationStatus.PENDING, hold_in_future()
+        session_factory,
+        court_id,
+        user_id,
+        at(10),
+        at(11),
+        ReservationStatus.PENDING,
+        hold_in_future(),
     )
     move = {"start_time": at(20).isoformat(), "end_time": at(21).isoformat()}
     result: dict[str, int] = {}
 
     with session_factory() as holder:  # plays a concurrent Confirm that is mid-flight
-        holder.execute(select(Reservation).where(Reservation.id == hold).with_for_update())
+        holder.execute(
+            select(Reservation).where(Reservation.id == hold).with_for_update()
+        )
         thread = threading.Thread(
             target=lambda: result.update(
-                code=client.patch(f"/reservations/{hold}/reschedule", json=move, headers=bearer(token)).status_code
+                code=client.patch(
+                    f"/reservations/{hold}/reschedule", json=move, headers=bearer(token)
+                ).status_code
             )
         )
         thread.start()
         thread.join(timeout=1.0)
         assert thread.is_alive(), "reschedule did not wait for the row lock"
-        holder.get(Reservation, hold).status = PENDING_APPROVAL  # the concurrent submission commits
+        holder.get(
+            Reservation, hold
+        ).status = PENDING_APPROVAL  # the concurrent submission commits
         holder.commit()
     thread.join(timeout=10)
 
@@ -603,6 +615,21 @@ def test_ve_06_1_reject_releases_the_slot_and_offers_it_to_the_waitlist(
     ]
     with session_factory() as session:
         assert session.get(WaitlistEntry, entry_id).status == WaitlistStatus.OFFERED
+
+
+def test_ve_06_2_a_player_owner_or_not_cannot_reject(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    user_id, token = make_user(session_factory, "player@example.com")
+    _, other_token = make_user(session_factory, "other@example.com")
+    court_id = make_court(session_factory, requires_approval=True)
+    reservation_id = request_pending(session_factory, court_id, user_id)
+
+    assert reject(client, None, reservation_id).status_code == 401
+    assert reject(client, token, reservation_id).status_code == 403
+    assert reject(client, other_token, reservation_id).status_code == 403
+    assert status_of(session_factory, reservation_id) == PENDING_APPROVAL
 
 
 @pytest.mark.parametrize(
