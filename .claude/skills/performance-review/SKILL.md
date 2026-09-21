@@ -22,13 +22,13 @@ existing ones" list. If you find one while working nearby, flag it via
 
 ## Frontend: known, current finding
 
-`npm run build` currently reports a single JS chunk over 500kB with no
-code-splitting. This is real and unaddressed — if you're adding a
-significant new page/feature, consider whether it's a natural candidate for
-`React.lazy`/route-level code splitting rather than growing the one bundle
-further. Don't do a general code-splitting pass unprompted; do avoid making
-this specific, already-flagged problem worse when you have the option not
-to.
+Routes are code-split: `App.tsx` lazy-loads every page except `LandingPage`
+and `NotFoundPage` via `React.lazy`, with a `Suspense` boundary in
+`app-layout.tsx` around `<Outlet />` (fallback is a skeleton block, not a
+blank screen). A new top-level page should follow the same
+`lazy(() => import(...).then((m) => ({ default: m.X })))` pattern rather
+than an eager import at the top of `App.tsx` — that's exactly how the
+previous single >500kB chunk crept back in before this was fixed.
 
 ## Frontend: query/fetch patterns
 

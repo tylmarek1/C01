@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/shared/card"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { CourtArt } from "@/components/shared/court-art"
 import {
   Dialog,
@@ -29,6 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/shared/dialog"
+import { EmptyState } from "@/components/shared/empty-state"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
 import { SectionHeader } from "@/components/shared/section-header"
@@ -47,7 +49,7 @@ import { compressImageFile } from "@/lib/image"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import { cn } from "@/lib/utils"
-import type { Amenity, Court, ReservationAdmin, ReservationStatus, SportType, UserRole } from "@/types"
+import type { Amenity, Court, FacilityBlock, ReservationAdmin, ReservationStatus, SportType, UserRole } from "@/types"
 
 const SPORTS: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
 
@@ -529,6 +531,7 @@ function ReservationsTab() {
   const statusLabels = useStatusLabels()
   const queryClient = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "ALL">("ALL")
+  const [cancelTarget, setCancelTarget] = useState<ReservationAdmin | null>(null)
 
   const { data: reservations, isLoading } = useQuery({
     queryKey: ["admin-reservations", statusFilter],
@@ -541,6 +544,7 @@ function ReservationsTab() {
     mutationFn: (reservation: ReservationAdmin) => api.cancelReservation(token!, reservation.id),
     onSuccess: () => {
       toast.success(t("admin.toast.reservationCancelled"))
+      setCancelTarget(null)
       invalidate()
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.reservationCancel")),
@@ -595,10 +599,7 @@ function ReservationsTab() {
         {isLoading && Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-20 w-full" />)}
 
         {!isLoading && reservations?.length === 0 && (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-hairline py-16 text-center">
-            <p className="font-medium text-ink-navy">{t("admin.reservations.empty.title")}</p>
-            <p className="text-sm text-slate-gray">{t("admin.reservations.empty.description")}</p>
-          </div>
+          <EmptyState title={t("admin.reservations.empty.title")} description={t("admin.reservations.empty.description")} />
         )}
 
         {reservations?.map((reservation) => (
@@ -639,7 +640,7 @@ function ReservationsTab() {
                 }
               />
               {CANCELLABLE_STATUSES.includes(reservation.status) && (
-                <Button size="sm" variant="outline" disabled={isBusy} onClick={() => cancelMutation.mutate(reservation)}>
+                <Button size="sm" variant="outline" disabled={isBusy} onClick={() => setCancelTarget(reservation)}>
                   {t("admin.reservations.cancel")}
                 </Button>
               )}
@@ -647,6 +648,16 @@ function ReservationsTab() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(cancelTarget)}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        title={t("confirmDialog.cancelReservation.title")}
+        description={t("confirmDialog.cancelReservation.description")}
+        confirmLabel={t("confirmDialog.cancelReservation.confirm")}
+        isLoading={cancelMutation.isPending}
+        onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget)}
+      />
     </div>
   )
 }
@@ -667,6 +678,7 @@ function AvailabilityTab() {
   const [start, setStart] = useState("")
   const [end, setEnd] = useState("")
   const [reason, setReason] = useState("")
+  const [deleteTarget, setDeleteTarget] = useState<FacilityBlock | null>(null)
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["facility-blocks"] })
 
@@ -690,6 +702,7 @@ function AvailabilityTab() {
     mutationFn: (id: string) => api.deleteFacilityBlock(token!, id),
     onSuccess: () => {
       toast.success(t("admin.toast.blockRemoved"))
+      setDeleteTarget(null)
       invalidate()
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.blockRemove")),
@@ -764,10 +777,7 @@ function AvailabilityTab() {
 
         {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}
         {!isLoading && blocks?.length === 0 && (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-hairline py-16 text-center">
-            <p className="font-medium text-ink-navy">{t("admin.availability.empty.title")}</p>
-            <p className="text-sm text-slate-gray">{t("admin.availability.empty.description")}</p>
-          </div>
+          <EmptyState title={t("admin.availability.empty.title")} description={t("admin.availability.empty.description")} />
         )}
         {blocks?.map((block) => (
           <div
@@ -782,12 +792,22 @@ function AvailabilityTab() {
                 {t("admin.availability.createdOn", { date: new Date(block.created_at).toLocaleDateString() })}
               </span>
             </div>
-            <Button size="sm" variant="outline" onClick={() => deleteMutation.mutate(block.id)}>
+            <Button size="sm" variant="outline" onClick={() => setDeleteTarget(block)}>
               {t("admin.availability.remove")}
             </Button>
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={t("confirmDialog.deleteBlock.title")}
+        description={t("confirmDialog.deleteBlock.description")}
+        confirmLabel={t("admin.availability.remove")}
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
     </div>
   )
 }

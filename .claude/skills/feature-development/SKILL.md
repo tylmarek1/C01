@@ -151,10 +151,10 @@ pass:
   empty), **error**, and **success-feedback** state — not just the happy
   path. See `accessibility-responsive`.
 - A **destructive action** (cancel, delete, remove) gets a confirmation
-  step. No shared confirm-dialog primitive exists in
-  `components/shared/` yet — build a lightweight one on top of the existing
-  `dialog.tsx` rather than skipping confirmation or inventing an
-  inconsistent one-off.
+  step via `components/shared/confirm-dialog.tsx` — the shared primitive
+  for this, already wired into cancel-reservation, remove-guest,
+  delete-review, and delete-facility-block. Use it rather than firing the
+  mutation straight from the triggering button or inventing a one-off.
 - **Disabled and permission states** are handled explicitly — a
   manager-only control hidden or disabled for a player, a submit button
   disabled while its mutation is pending, not just visually present but

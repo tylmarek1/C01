@@ -1,19 +1,24 @@
+import { lazy } from "react"
 import { Route, Routes } from "react-router-dom"
 
 import { AppLayout } from "@/components/shared/app-layout"
 import { ProtectedRoute, RedirectIfAuthed } from "@/components/shared/protected-route"
-import { AboutPage } from "@/pages/AboutPage"
-import { AdminPage } from "@/pages/app/AdminPage"
-import { BookCourtPage } from "@/pages/app/BookCourtPage"
-import { DashboardPage } from "@/pages/app/DashboardPage"
-import { ProfilePage } from "@/pages/app/ProfilePage"
-import { LoginPage } from "@/pages/auth/LoginPage"
-import { RegisterPage } from "@/pages/auth/RegisterPage"
-import { ContactPage } from "@/pages/ContactPage"
-import { CourtDetailPage } from "@/pages/courts/CourtDetailPage"
-import { CourtsPage } from "@/pages/courts/CourtsPage"
 import { LandingPage } from "@/pages/landing/LandingPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
+
+// Landing/404 stay eager (first thing an anonymous visitor sees); everything
+// else is route-split so a player never downloads the admin panel and vice
+// versa — this was the app's single >500kB bundle-size finding.
+const AboutPage = lazy(() => import("@/pages/AboutPage").then((m) => ({ default: m.AboutPage })))
+const ContactPage = lazy(() => import("@/pages/ContactPage").then((m) => ({ default: m.ContactPage })))
+const CourtsPage = lazy(() => import("@/pages/courts/CourtsPage").then((m) => ({ default: m.CourtsPage })))
+const CourtDetailPage = lazy(() => import("@/pages/courts/CourtDetailPage").then((m) => ({ default: m.CourtDetailPage })))
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })))
+const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })))
+const DashboardPage = lazy(() => import("@/pages/app/DashboardPage").then((m) => ({ default: m.DashboardPage })))
+const BookCourtPage = lazy(() => import("@/pages/app/BookCourtPage").then((m) => ({ default: m.BookCourtPage })))
+const ProfilePage = lazy(() => import("@/pages/app/ProfilePage").then((m) => ({ default: m.ProfilePage })))
+const AdminPage = lazy(() => import("@/pages/app/AdminPage").then((m) => ({ default: m.AdminPage })))
 
 function App() {
   return (

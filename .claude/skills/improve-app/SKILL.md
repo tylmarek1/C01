@@ -64,13 +64,17 @@ loading/empty/error states (every page, not a sample — see above), mobile
 layout at each page, typography/spacing/color consistency against
 `index.css`'s tokens, icon usage (`sport-icon.tsx`/`lucide-react` used
 consistently vs. ad hoc), and interaction-pattern consistency (does
-"confirm before destructive action" exist everywhere it should, given no
-shared confirm-dialog primitive currently exists — see `component-design`).
+"confirm before destructive action" exist everywhere it should — a shared
+`components/shared/confirm-dialog.tsx` primitive exists, wired into cancel
+reservation, remove guest, delete review, and delete facility block; check
+any *new* destructive action against it before adding a bare onClick).
 
 - Check `frontend/src/locales/en.ts` size/coverage against pages added since
   — any page you can find with a literal string not going through `t()`?
-- The last verified `npm run build` reported a >500kB single JS chunk with
-  no code-splitting warning — real, current, not yet addressed.
+- Routes are code-split (`App.tsx` uses `React.lazy` per page, with a
+  `Suspense` boundary in `app-layout.tsx` around `<Outlet />`) — the
+  previous >500kB single-chunk warning is fixed; a *new* page should stay
+  lazy-loaded rather than added as an eager import.
 
 Prefer consolidating a repeated pattern into `components/shared/` over
 listing the same finding once per page it appears on — "this markup is

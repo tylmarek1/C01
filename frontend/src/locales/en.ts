@@ -201,6 +201,18 @@ const en = {
   "common.delete": "Delete",
   "common.viewDetails": "View details",
 
+  "confirmDialog.cancelReservation.title": "Cancel this reservation?",
+  "confirmDialog.cancelReservation.description": "The slot will be released and offered to anyone on the waitlist. This can't be undone.",
+  "confirmDialog.cancelReservation.confirm": "Yes, cancel it",
+  "confirmDialog.cancelWaitlist.title": "Leave the waitlist?",
+  "confirmDialog.cancelWaitlist.description": "You'll lose your place in line for this slot.",
+  "confirmDialog.removeGuest.title": "Remove {name} from this reservation?",
+  "confirmDialog.removeGuest.description": "They'll no longer be able to see or check in to this booking.",
+  "confirmDialog.deleteReview.title": "Delete this review?",
+  "confirmDialog.deleteReview.description": "Your rating and comment will be permanently removed.",
+  "confirmDialog.deleteBlock.title": "Remove this availability block?",
+  "confirmDialog.deleteBlock.description": "The court becomes bookable for this time range again immediately.",
+
   "sport.TENNIS": "Tennis",
   "sport.VOLLEYBALL": "Volleyball",
   "sport.BADMINTON": "Badminton",

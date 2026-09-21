@@ -47,9 +47,10 @@ dev server's URL with a short script is an acceptable fallback (see
 **Loading / empty / error states**
 - Loading: does the UI show a `skeleton.tsx`-style placeholder or spinner
   rather than a blank flash while a query is pending?
-- Empty: does a list/collection show a real empty state (not just nothing)
-  when there's no data yet — check an existing page's empty-state copy for
-  the tone to match?
+- Empty: does a list/collection show a real empty state via
+  `components/shared/empty-state.tsx` (not a one-off `<div>` — that
+  component exists precisely because the bordered-box empty state used to
+  be copy-pasted across half a dozen pages) rather than nothing at all?
 - Error: does a failed query/mutation show something visible (see
   `api-integration`'s error-handling section), not a silent no-op?
 
