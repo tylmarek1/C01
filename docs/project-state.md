@@ -40,8 +40,8 @@ four fields filled), `docs/intent-and-change.md` (Project Frame, all
 fields filled including the Q future pressure), root `README.md`'s own
 Definition-of-Done table (all 15 items checked, with links).
 
-**C02 baseline v0.1 (`docs/course/C02.md` items 1–6, 8–9, 11):** complete.
-Evidence: `docs/specification-v0.1.md` §1–10 (all four operations fully
+**C02 baseline v0.1 (`docs/course/C02.md`, "A. Baseline v0.1," items
+1–11):** complete. Evidence: `docs/specification-v0.1.md` §1–10 (all four operations fully
 specified, §6 requirement acceptance review, §7 consistency review, §5
 use-case/state/activity diagrams); `backend/tests/test_spec_baseline.py`
 (43 tests, all VE-01…VE-04); `docs/evidence-and-evolution.md`'s "Evidence
@@ -53,21 +53,24 @@ complete. Evidence: `docs/change-c02-impact.md` (impact analysis, written
 *before* the spec edit — item 10 — with affected/unaffected parts
 explicit — item 11); `docs/specification.md` §4 OP-05/OP-06 (fully
 specified — item 12), §5.1/§5.2 (updated diagrams — item 13);
-`backend/tests/test_approval_api.py` (37 tests, VE-05…VE-08);
+`backend/tests/test_approval_api.py` (38 tests, VE-05…VE-08 — 37 from the
+v0.2 change plus VE-06.2, added in this repository's own governance pass
+to close a spec↔test gap);
 `docs/evidence-and-evolution.md`'s "Evidence C02" section (live run,
 `change-c02-impact.md` §3 architectural drivers AD-1…AD-6 — item 16).
 
 ## Pending / open gates — needs human action, not more code
 
 - **Team approval of both baselines is not yet given.** `docs/course/C02.md`'s
-  own DoD requires "baseline v0.1 byla týmem explicitně schválena," and
-  `docs/specification.md` §11 states v0.1's approval is a prerequisite for
-  v0.2's. The checkboxes in `docs/specification-v0.1.md` §11 and
-  `docs/specification.md` §11 are unticked for all four team members, and
-  the approval date is blank in both. **This is the one gate a Claude
-  session cannot close** — it requires the actual team to review and tick
-  it. `docs/evidence-and-evolution.md` already names this explicitly under
-  "Zbývající předpoklad / neznámá."
+  own DoD requires the team to explicitly approve baseline v0.1 (see its
+  "Definice hotového" list), and `docs/specification.md` §11 states v0.1's
+  approval is a prerequisite for v0.2's. The checkboxes in
+  `docs/specification-v0.1.md` §11 and `docs/specification.md` §11 are
+  unticked for all four team members, and the approval date is blank in
+  both. **This is the one gate a Claude session cannot close** — it
+  requires the actual team to review and tick it.
+  `docs/evidence-and-evolution.md`'s own "remaining assumptions/unknowns"
+  section already names this same gap.
 - Because of the above, item 14 of `docs/course/C02.md`'s DoD ("running
   app matches the *approved* baseline v0.2") is evidenced *behaviorally*
   (the app matches what v0.2 says) but not formally, since v0.2 isn't yet

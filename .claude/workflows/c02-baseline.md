@@ -15,7 +15,15 @@ template for a future course iteration with a different reserved resource.
 
 This is the **full workflow** — not scoped down — because a baseline is,
 by definition, the whole minimal system. Don't skip steps because a
-change looks small; a baseline's job is completeness.
+change looks small; a baseline's job is completeness. That's about
+*coverage* (every operation, every rule, both diagrams), not about
+*review effort per step* — see root `CLAUDE.md`'s "Review depth matches
+risk": step 10's consistency check is one focused pass through the areas
+listed there, not one subagent per check, and this workflow doesn't run
+`security-review`/`performance-review`/`production-readiness` at all
+unless something it actually finds triggers one of them — C02 is a
+requirements/evidence phase, not a production-readiness audit (root
+`CLAUDE.md`'s "Cross-cutting architectural rules" / C01–C03 boundary).
 
 ## Procedure
 
