@@ -80,7 +80,7 @@ here just because it exists, only ones worth tracking status on.
 | Booking-flow error recovery | Strong | Form state preserved on failed mutation; one-click waitlist-join offered on a booking conflict | 2026-09-22 |
 | Admin reporting/export | Adequate | Raw reservation list exports to CSV with a status filter; the aggregate dashboard is a fixed 30-day window with no export | 2026-09-22 |
 | Mobile responsiveness (general) | Strong | `accessibility-responsive` checklist, whole-app polish pass (PR #19) | 2026-09-22 |
-| Mobile responsiveness (`week-calendar.tsx`) | **Weak** | Forces horizontal scroll at mobile width; the List-view toggle is an undiscoverable escape hatch | 2026-09-22 |
+| Mobile responsiveness (`week-calendar.tsx`) | Strong | Below `sm`, shows one day at a time (tappable day-chip strip) instead of a horizontally-scrolled 7-column grid — desktop/tablet unchanged. Verified in a real browser at 375px and 1280px (Playwright, no horizontal overflow, day-switching and "Today" reset both correct) | 2026-09-22 |
 | Notification UX | Adequate | Mark-all-read exists; no per-type mute/preferences (low urgency at current volume) | 2026-09-22 |
 
 ## Product capabilities
@@ -115,7 +115,6 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - **[Med]** No pagination anywhere (`/reservations`, `/admin/reservations`, `/admin/users`, `/courts`) — full-stack feature; not urgent at current data scale.
 
 ### Product / UX
-- **[Med]** `week-calendar.tsx` forces horizontal scroll at mobile width — a mobile single-day variant, or default to List view under a breakpoint.
 - **[Low-Med]** Admin stats fixed at a 30-day window, aggregate view doesn't export — API date-range param + UI picker.
 - **[Low]** No notification mute/preferences — defer until volume actually justifies it.
 - **[Low]** No guided setup for a freshly-promoted manager with zero courts — small UI addition.
@@ -127,6 +126,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - Worker reliability: per-subtask transaction isolation + consistent row-locking — `worker.py`, PR merging `reliability/worker-tick-isolation`.
 - Dependency-audit baseline run (`pip-audit`/`npm audit`, both clean), `images.py` pixel-dimension cap, `transition()`'s locking contract documented, unhandled-exception logging hook — one PR, `backend/architecture` hardening batch.
 - Reservation reschedule validation: verified `ReservationReschedule` already shares `validate_slot_shape()` with `ReservationCreate` (`schemas/reservation.py`) — not a drifted copy, no fix needed. Closing without a code change.
+- Mobile `week-calendar.tsx` — single-day view below `sm`, PR merging `polish/mobile-week-calendar`.
 
 ## Rejected (external skills evaluated, 2026-09-22)
 
