@@ -58,15 +58,16 @@ data again.
 | `POST /reservations/{id}/reject` | Venue manager | `PENDING_APPROVAL` → `REJECTED`, releases the slot |
 | `POST /reservations/{id}/cancel` | Bearer | `PENDING`/`PENDING_APPROVAL`/`CONFIRMED` → `CANCELLED`, only before the start time (409 otherwise) |
 
-That's the core reservation lifecycle. The API has grown well past it —
-check-in/check-out, reschedule, guests and cost-split, join requests on open
-reservations, calendar export, favorites, reviews, the waitlist,
-notifications, achievements/leaderboard, and the venue-manager admin
-endpoints (stats, user roles, reservation export, court utilization) each
-have their own thin `APIRouter` under `src/reservations/api/` (see Layout
-below). Rather than hand-duplicating a table that goes stale the next time
-an endpoint is added, browse the live, always-current reference: run the
-server and open `/docs` (Swagger UI) or `/openapi.json`.
+That's the core reservation lifecycle. The API has grown well past it:
+check-in/check-out, reschedule, guests/cost-split, join requests and
+calendar export are more endpoints on this same `reservations` router;
+achievements/leaderboard live in `stats.py`; and `favorites`,
+`facility_blocks`, `notifications`, `reviews`, `waitlist`, and the
+venue-manager `admin` endpoints (stats, user roles, reservation export,
+court utilization) each have their own router under `src/reservations/api/`
+(see Layout below). Rather than hand-duplicating a table that goes stale
+the next time an endpoint is added, browse the live, always-current
+reference: run the server and open `/docs` (Swagger UI) or `/openapi.json`.
 
 The behaviour behind the reservation endpoints — rules, states, rejection
 outcomes — is specified in [`docs/specification.md`](../docs/specification.md).

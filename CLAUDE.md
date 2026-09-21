@@ -19,32 +19,36 @@ decide what's inferable from the codebase yourself; ask only when a
 decision is genuinely product-defining and the repository doesn't answer
 it (see `feature-development`'s Step 1 for the line between the two).
 
-## 0. Read this first: code is ground truth; some docs are frozen by design
+## 0. Read this first: code is ground truth; most docs here are point-in-time records
 
 Docs drift behind code as work continues — expected, not a failure state.
-When a doc states a fact about the current implementation (an endpoint
-list, a state count, a test count) and the code disagrees, the code is
-right; fix the doc opportunistically (see the `update-docs` skill) rather
-than trusting the doc's prose. Never re-quote a doc's number into another
-doc, a skill, or here — a second hardcoded copy of the same fact is exactly
-how two docs independently drift (this has already happened once: a
-skill's own "here's how stale the docs are" paragraph went stale itself by
-hardcoding numbers that the code then outgrew).
+When a *living* doc (see below) states a fact about the current
+implementation and the code disagrees, the code is right; fix the doc
+opportunistically (see the `update-docs` skill) rather than trusting the
+doc's prose. Never re-quote a doc's number into another doc, a skill, or
+here — a second hardcoded copy of the same fact is exactly how two docs
+independently drift (this has already happened once: a skill's own "here's
+how stale the docs are" paragraph went stale itself by hardcoding numbers
+the code then outgrew).
 
-Some docs are the exception — **frozen by design**, not stale:
-`docs/intent-and-change.md` (the Project Frame), `docs/specification-v0.1.md`,
-and `cviko1/todo.md` are graded or point-in-time snapshots; never rewrite
-them wholesale to match newer code. `docs/specification.md` is the current,
-living requirement for the reservation operations — every verification
-example in it is executable (`backend/tests/test_spec_baseline.py`,
-`test_approval_api.py`) and must stay in sync with it.
+**Point-in-time records — never edit their substance to match newer code,
+only fix an actual error in them:** `docs/intent-and-change.md` (the
+Project Frame), `docs/specification-v0.1.md`, and `cviko1/todo.md` are
+graded snapshots. `docs/evidence-and-evolution.md` is a dated lab write-up
+(pinned commit SHAs, literal test-run transcripts) — new evidence gets a
+new dated entry, old ones are never rewritten to the present. `docs/change-
+c02-impact.md` is explicitly "written before `specification.md` v0.2 was
+touched, kept as the reasoning behind it" — a decision trail, not a
+description of today. `docs/architecture-and-decisions.md` is the same kind
+of record but append-only: a changed decision gets a new ADR or an explicit
+"Amendment" note below the original (see ADR-001's), never a rewrite of the
+original decision/context/consequences in place.
 
-Everything else — both READMEs, `docs/architecture-and-decisions.md`,
-`docs/evidence-and-evolution.md`, `docs/change-c02-impact.md` — should
-track current code opportunistically. A mismatch you find there is a bug to
-fix via `update-docs`, not a documented permanent gap; don't assume every
-doc in the repo is equally out of date — check the specific file, some get
-kept current and some don't.
+**Living — should track current code:** `docs/specification.md` (every
+verification example in it is executable — `backend/tests/
+test_spec_baseline.py`, `test_approval_api.py` — and must stay in sync with
+it), and root/`backend`/`frontend` `README.md`. A mismatch you find in one
+of these is a bug to fix via `update-docs`, not a documented permanent gap.
 
 ## Repository layout
 
