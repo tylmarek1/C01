@@ -19,30 +19,32 @@ decide what's inferable from the codebase yourself; ask only when a
 decision is genuinely product-defining and the repository doesn't answer
 it (see `feature-development`'s Step 1 for the line between the two).
 
-## 0. Read this first: docs and code have diverged
+## 0. Read this first: code is ground truth; some docs are frozen by design
 
-`README.md`, `backend/README.md`, `frontend/README.md`, `docs/*.md` and
-`cviko1/todo.md` all describe the project as it stood on **2026-09-14**: a
-3-state reservation flow (`DRAFT → CONFIRMED → CANCELLED`) with only
-auth + courts + reservations. The actual code on `main` today is well past
-that — a 9-state lifecycle (`PENDING → CONFIRMED → CHECKED_IN → COMPLETED`,
-or `→ CANCELLED/EXPIRED/NO_SHOW`, plus `PENDING_APPROVAL`/`REJECTED` for
-courts that require a manager's approval), a dozen backend routers, a full
-admin panel, i18n, achievements, reviews, waitlists, and 170+ tests, none of
-it reflected in the READMEs. **The exception** is `docs/specification.md`
-(and its frozen predecessor `specification-v0.1.md`), written on 2026-09-21
-against the code: it is the requirement for the reservation operations and
-their rules, with every verification example executable in
-`backend/tests/test_spec_baseline.py` / `test_approval_api.py`.
+Docs drift behind code as work continues — expected, not a failure state.
+When a doc states a fact about the current implementation (an endpoint
+list, a state count, a test count) and the code disagrees, the code is
+right; fix the doc opportunistically (see the `update-docs` skill) rather
+than trusting the doc's prose. Never re-quote a doc's number into another
+doc, a skill, or here — a second hardcoded copy of the same fact is exactly
+how two docs independently drift (this has already happened once: a
+skill's own "here's how stale the docs are" paragraph went stale itself by
+hardcoding numbers that the code then outgrew).
 
-**Rule:** for "what currently exists," trust `backend/src/` and
-`frontend/src/` over any README or doc. Treat `docs/intent-and-change.md`
-(the Project Frame) and `docs/architecture-and-decisions.md` (the ADRs) as
-binding *decisions* that are still accurate for what they cover, just silent
-on everything added later — not as an outdated feature inventory to correct
-wholesale. When a doc and the code disagree on a fact (an endpoint list, a
-state name, a test count), the code is right; fix the doc opportunistically
-(see the `update-docs` skill) rather than trusting the doc's prose.
+Some docs are the exception — **frozen by design**, not stale:
+`docs/intent-and-change.md` (the Project Frame), `docs/specification-v0.1.md`,
+and `cviko1/todo.md` are graded or point-in-time snapshots; never rewrite
+them wholesale to match newer code. `docs/specification.md` is the current,
+living requirement for the reservation operations — every verification
+example in it is executable (`backend/tests/test_spec_baseline.py`,
+`test_approval_api.py`) and must stay in sync with it.
+
+Everything else — both READMEs, `docs/architecture-and-decisions.md`,
+`docs/evidence-and-evolution.md`, `docs/change-c02-impact.md` — should
+track current code opportunistically. A mismatch you find there is a bug to
+fix via `update-docs`, not a documented permanent gap; don't assume every
+doc in the repo is equally out of date — check the specific file, some get
+kept current and some don't.
 
 ## Repository layout
 

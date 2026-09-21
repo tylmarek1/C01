@@ -55,8 +55,9 @@ a third way.**
 
 - **File/module naming** — match the existing pattern in the directory
   you're adding to (singular vs. plural, `snake_case` vs. `kebab-case` —
-  Python backend is `snake_case` throughout, frontend TS files are
-  `kebab-case` for components).
+  Python backend is `snake_case` throughout; frontend TS files are
+  `kebab-case` everywhere except `pages/**`, which is `PascalCase` matching
+  the page component's exported name).
 - **Commands** — `uv run ...` for backend, `npm run ...` for frontend;
   don't introduce a third invocation style (a Makefile target, a shell
   script) for something one of those already does cleanly.

@@ -47,16 +47,26 @@ src/
                         reservation-card, auth-layout, ...). Barrel-exported
                         from index.ts; pages import only from here.
   pages/
-    landing/            marketing home page
+    landing/             marketing home page
     auth/                login, register
-    app/                 dashboard, book-a-court (behind ProtectedRoute)
+    app/                 dashboard, booking flow, profile, the venue-manager
+                          admin panel (behind ProtectedRoute)
+    courts/               court listing + detail
   lib/
-    api.ts               fetch wrapper for the backend
+    api.ts               fetch wrapper for the backend, throws ApiError
     auth-context.tsx     AuthProvider / useAuth (JWT in localStorage)
+    i18n.tsx              t() + the EN/CS language switcher
     query-client.ts       TanStack Query client
     format.ts             date/time formatting helpers
+  locales/                en.ts (source of truth for TranslationKey), cs.ts
   types/                  TypeScript types mirroring the backend's Pydantic schemas
 ```
 
+For the current, exact file list — this README intentionally doesn't
+duplicate it, see `frontend/CLAUDE.md`'s "Directory layout" section instead.
+
 Every page is composed from `@/components/shared` — if a page needs a new
 piece of UI, add it there first rather than writing one-off markup inline.
+Every user-facing string goes through `t()`, with a key in both
+`locales/en.ts` and `locales/cs.ts` — see `frontend/CLAUDE.md`'s i18n
+section and the `i18n-check` skill.

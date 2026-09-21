@@ -5,16 +5,15 @@ description: Map a Courtly (C01) code change to the README/docs it may have inva
 
 # Keep docs honest
 
-## Context: docs are already stale
+## Context: docs drift behind code, some docs are frozen by design
 
-As of this writing, every doc in the repo (`README.md`, `backend/README.md`,
-`frontend/README.md`, `docs/*.md`, `cviko1/todo.md`) describes the
-2026-09-14 graded-spike snapshot — a 3-state reservation flow with only
-auth+courts+reservations — while the actual code is far ahead (7-state
-lifecycle, a dozen routers, a full admin/i18n frontend, 90+ tests). Don't
-make this worse. Fix it opportunistically when you touch a doc's subject
-matter, even if the specific number/claim you're fixing isn't why you're in
-that file.
+See root `CLAUDE.md` §0 for which docs are living (should track current
+code) versus frozen by design (graded/point-in-time, never rewritten to
+match newer code) — don't restate that list or its numbers here; it will
+just go stale a second time, the way this section itself once did. Don't
+make a living doc's drift worse. Fix it opportunistically when you touch
+its subject matter, even if the specific number/claim you're fixing isn't
+why you're in that file.
 
 ## Step 1 — Read the current code for the area you're documenting
 

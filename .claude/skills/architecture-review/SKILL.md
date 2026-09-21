@@ -19,9 +19,9 @@ next to similar ones, or does it change a cross-cutting concern
 
 1. **Does an existing module already own this responsibility?** Grep for the
    closest existing concept. A new "penalty" rule probably belongs next to
-   `check_no_show_penalty` in `rules.py`, not a new `penalties.py`. A new
-   kind of background job belongs in `worker.py`'s tick, not a second
-   scheduler.
+   `check_no_show_penalty` in `booking_validation.py`, not a new
+   `penalties.py`. A new kind of background job belongs in `worker.py`'s
+   tick, not a second scheduler.
 2. **Can an existing abstraction be reused instead of a parallel one?** E.g.
    `Notification`/`NotificationType` already exists — a new "tell the user
    something happened" feature should add a `NotificationType` value and use
