@@ -212,7 +212,11 @@ function CourtFormDialog({
             <div className="flex flex-col gap-2">
               <Label>{t("admin.court.indoor")}</Label>
               <div className="flex h-11 items-center gap-2.5">
-                <Switch checked={values.indoor} onCheckedChange={(checked) => setValues((v) => ({ ...v, indoor: checked }))} />
+                <Switch
+                  checked={values.indoor}
+                  onCheckedChange={(checked) => setValues((v) => ({ ...v, indoor: checked }))}
+                  aria-label={values.indoor ? t("admin.court.indoorCourt") : t("admin.court.outdoorCourt")}
+                />
                 <span className="text-sm text-slate-gray">
                   {values.indoor ? t("admin.court.indoorCourt") : t("admin.court.outdoorCourt")}
                 </span>
@@ -226,6 +230,7 @@ function CourtFormDialog({
               <Switch
                 checked={values.requires_approval}
                 onCheckedChange={(checked) => setValues((v) => ({ ...v, requires_approval: checked }))}
+                aria-label={t("admin.court.requiresApproval")}
               />
               <span className="text-sm text-slate-gray">{t("admin.court.requiresApprovalHint")}</span>
             </div>
@@ -545,6 +550,7 @@ function CourtsTab() {
                 <Switch
                   checked={court.active}
                   onCheckedChange={(checked) => updateMutation.mutate({ id: court.id, values: { active: checked } })}
+                  aria-label={court.active ? t("admin.court.visible") : t("admin.court.hidden")}
                 />
               </div>
             </div>

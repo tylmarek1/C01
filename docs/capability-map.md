@@ -82,6 +82,7 @@ here just because it exists, only ones worth tracking status on.
 | Mobile responsiveness (general) | Strong | `accessibility-responsive` checklist, whole-app polish pass (PR #19) | 2026-09-22 |
 | Mobile responsiveness (`week-calendar.tsx`) | Strong | Below `sm`, shows one day at a time (tappable day-chip strip) instead of a horizontally-scrolled 7-column grid — desktop/tablet unchanged. Verified in a real browser at 375px and 1280px (Playwright, no horizontal overflow, day-switching and "Today" reset both correct) | 2026-09-22 |
 | Notification UX | Adequate | Mark-all-read exists; no per-type mute/preferences (low urgency at current volume) | 2026-09-22 |
+| Keyboard-only completability (booking flow) | Strong | Actually walked end-to-end with a real browser and no mouse (Playwright: Tab-only navigation, Enter/ArrowDown on every `Select`, native date-input digit entry, final submit) — court card, date, duration, start time, repeat-weekly switch, and Reserve-slot button were all reachable and operable, error toast (advance-booking-window rejection) was clear, and a valid submission succeeded and appeared correctly on the dashboard. Found and fixed a real, systemic gap this surfaced: 5 `<Switch>` usages across 3 files had no accessible name for screen readers (a visible label sibling, never programmatically associated) — all 5 now have `aria-label` | 2026-09-22 |
 
 ## Product capabilities
 
@@ -116,7 +117,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ### Product / UX
 - **[Low]** No notification mute/preferences — defer until volume actually justifies it.
-- **[Low]** Keyboard-only completability of the booking flow was inferred from source, never actually walked in a browser — a 10-minute manual verification.
+- **[Low]** The booking form's date `<input>` has a `min` (today) but no `max` — a date beyond the 14-day advance-booking window (`rules.py`'s `MAX_ADVANCE_DAYS`) can be picked and only gets rejected at submit time. The rejection toast is clear and correct, so this isn't broken, just later feedback than it could be. Found while verifying keyboard completability, not fixed since it's UX polish rather than a defect — a `max={todayPlusNDaysString()}` on the input would close it.
 
 ## Recently closed
 
@@ -127,6 +128,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - Mobile `week-calendar.tsx` — single-day view below `sm`, PR merging `polish/mobile-week-calendar`.
 - Admin stats 7/30/90-day window selector + CSV export status-filter bug fix, PR merging `feat/admin-stats-window-and-csv-filter`.
 - Empty state for `CourtsTab` when the court catalog is genuinely empty, PR merging `polish/empty-courts-state`.
+- Keyboard-only completability of the booking flow — verified in a real browser (Playwright), full pass, no code change needed.
 
 ## Rejected (external skills evaluated, 2026-09-22)
 

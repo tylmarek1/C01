@@ -297,7 +297,11 @@ function BookCourtPage() {
                 <span className="text-sm font-medium text-ink-navy">{t("book.repeatWeekly.label")}</span>
                 <span className="text-xs text-slate-gray">{t("book.repeatWeekly.description")}</span>
               </div>
-              <Switch checked={repeatWeekly} onCheckedChange={setRepeatWeekly} />
+              <Switch
+                checked={repeatWeekly}
+                onCheckedChange={setRepeatWeekly}
+                aria-label={t("book.repeatWeekly.label")}
+              />
             </div>
 
             {repeatWeekly && (

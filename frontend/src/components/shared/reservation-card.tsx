@@ -127,7 +127,7 @@ function OpenToJoinDialog({
             <span className="text-sm font-medium text-ink-navy">{t("reservationCard.openToJoin.label")}</span>
             <span className="text-xs text-slate-gray">{t("reservationCard.openToJoin.description")}</span>
           </div>
-          <Switch checked={enabled} onCheckedChange={setEnabled} />
+          <Switch checked={enabled} onCheckedChange={setEnabled} aria-label={t("reservationCard.openToJoin.label")} />
         </div>
         {enabled && (
           <Input
