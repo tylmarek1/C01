@@ -2,6 +2,7 @@ import type { TranslationKey } from "@/locales/en"
 
 const cs: Record<TranslationKey, string> = {
   "nav.courts": "Kurty",
+  "nav.help": "Nápověda",
   "nav.dashboard": "Přehled",
   "nav.book": "Rezervovat kurt",
   "nav.profile": "Můj profil",
@@ -49,6 +50,45 @@ const cs: Record<TranslationKey, string> = {
   "cta.button": "Začít",
   "cta.button.authed": "Rezervovat kurt",
 
+  "landing.why.eyebrow": "Proč Courtly",
+  "landing.why.title": "Uzpůsobeno tomu, jak doopravdy hrajete",
+  "landing.why.description": "Nejen rezervační formulář — celá společenská stránka hraní.",
+  "landing.why.openGames.title": "Najděte si parťáka",
+  "landing.why.openGames.description":
+    "Otevřete některou svou potvrzenou rezervaci ostatním hráčům a přijímejte žádosti o účast, když vám chybí spoluhráč.",
+  "landing.why.waitlist.title": "Pořadník s automatickou nabídkou",
+  "landing.why.waitlist.description": "Termín je plný? Zapište se do pořadníku — jakmile se uvolní, hned vám ho nabídneme.",
+  "landing.why.split.title": "Rozdělte si cenu",
+  "landing.why.split.description": "Jedním klikem uvidíte rovný podíl ceny kurtu mezi všechny, kdo hrají.",
+  "landing.why.calendarSync.title": "Propojeno s kalendářem",
+  "landing.why.calendarSync.description": "Přihlaste se k odběru jednou a každá rezervace se automaticky objeví v Google nebo Apple Kalendáři.",
+  "landing.why.recurring.title": "Zarezervujte si pravidelný termín jednou",
+  "landing.why.recurring.description": "Nastavte si opakovanou rezervaci na stejný čas každý týden, na tolik týdnů, kolik chcete.",
+  "landing.why.achievements.title": "Úspěchy a žebříček",
+  "landing.why.achievements.description": "Sledujte svou šňůru a odehrané kurty a porovnejte se s ostatními pravidelnými hráči.",
+
+  "landing.faq.eyebrow": "Časté dotazy",
+  "landing.faq.title": "Rychlé odpovědi",
+  "landing.faq.viewAll": "Zobrazit celého průvodce a FAQ",
+  "landing.faq.hold.question": "Proč moje rezervace ukazuje „podrženo“ místo potvrzeno?",
+  "landing.faq.hold.answer":
+    "Každá nová rezervace začíná jako 5minutová podržená rezervace, aby ji mezitím nezabral nikdo jiný. Potvrďte ji ve svém přehledu, než podržení vyprší — jinak se termín automaticky uvolní.",
+  "landing.faq.approval.question": "Proč některé kurty vyžadují schválení?",
+  "landing.faq.approval.answer":
+    "Provozovatel může některé kurty označit jako vyžadující schválení. Potvrzení tam znamená odeslání žádosti místo okamžité rezervace — odpověď dostanete do 24 hodin, nebo dříve, pokud termín začíná dřív.",
+  "landing.faq.cancel.question": "Můžu rezervaci zrušit nebo přesunout?",
+  "landing.faq.cancel.answer":
+    "Ano, kdykoliv před začátkem termínu — ve svém přehledu. Zrušením se termín okamžitě uvolní, včetně nabídky komukoliv v pořadníku.",
+  "landing.faq.limit.question": "Kolik aktivních rezervací můžu mít?",
+  "landing.faq.limit.answer":
+    "Až 3 najednou (podržené, čekající na schválení nebo potvrzené). Dokončené a zrušené rezervace se do tohoto limitu nepočítají.",
+
+  "landing.venueManager.eyebrow": "Pro provozovatele",
+  "landing.venueManager.title": "Řiďte celé sportoviště z jednoho místa",
+  "landing.venueManager.description":
+    "Spravujte kurty a ceny, vyřizujte žádosti o schválení, blokujte kurty kvůli údržbě a sledujte využití a přehledy neúčastí.",
+  "landing.venueManager.cta": "Zobrazit průvodce pro provozovatele",
+
   "footer.tagline": "Zarezervujte si kurt a nechte si ho — žádné dvojí rezervace, žádné telefonáty.",
   "footer.product": "Produkt",
   "footer.sports": "Sporty",
@@ -57,6 +97,7 @@ const cs: Record<TranslationKey, string> = {
   "footer.availability": "Dostupnost",
   "footer.pricing": "Ceník",
   "footer.about": "O projektu",
+  "footer.help": "Nápověda a FAQ",
   "footer.courseProject": "Školní projekt",
   "footer.contact": "Kontakt",
   "footer.copyright": "Vytvořeno pro předmět SWI, inženýrský spike C01.",
@@ -196,6 +237,9 @@ const cs: Record<TranslationKey, string> = {
   "profile.calendar.hint": "Vytvořením nového odkazu zneplatníte ten, který jste dříve sdíleli.",
   "profile.calendar.error": "Odkaz na kalendář se nepodařilo vytvořit",
 
+  "common.retry": "Zkusit znovu",
+  "common.error.title": "Něco se nepovedlo",
+  "common.error.description": "Nepodařilo se nám to načíst. Zkontrolujte připojení a zkuste to znovu.",
   "common.cancel": "Zrušit",
   "common.save": "Uložit",
   "common.confirm": "Potvrdit",
@@ -546,6 +590,145 @@ const cs: Record<TranslationKey, string> = {
   "contact.channels.team.label": "Zobrazit repozitář",
   "contact.help.title": "Potřebujete pomoc s rezervací?",
   "contact.help.description": "Přihlaste se a přejděte na svůj přehled — kdykoliv tam můžete potvrdit nebo zrušit kteroukoli rezervaci.",
+  "contact.help.link": "Přečtěte si úvodního průvodce a časté dotazy",
+
+  "help.nav.aria": "Přejít na sekci",
+  "help.nav.gettingStarted": "Začínáme",
+  "help.nav.booking": "Jak funguje rezervace",
+  "help.nav.states": "Stavy rezervace",
+  "help.nav.social": "Hraní s ostatními",
+  "help.nav.manage": "Udržujte si přehled",
+  "help.nav.venueManagers": "Pro provozovatele",
+  "help.nav.faq": "Časté dotazy",
+
+  "help.hero.eyebrow": "Centrum nápovědy",
+  "help.hero.title": "Vše o rezervaci kurtu",
+  "help.hero.description": "Stručný průvodce tím, jak Courtly funguje — od první rezervace až po to, co znamená každý stavový štítek.",
+
+  "help.gettingStarted.eyebrow": "Začínáme",
+  "help.gettingStarted.title": "Vaše první rezervace ve čtyřech krocích",
+  "help.gettingStarted.description": "Žádné telefonáty, žádné sdílené tabulky — celý proces probíhá v aplikaci.",
+  "help.gettingStarted.step1.title": "Vytvořte si účet zdarma",
+  "help.gettingStarted.step1.description": "Zaregistrujte se jménem, e-mailem a heslem — bez platební karty.",
+  "help.gettingStarted.step2.title": "Procházejte kurty",
+  "help.gettingStarted.step2.description":
+    "Filtrujte tenisové, volejbalové a badmintonové kurty podle vybavení nebo hledejte podle názvu a před rezervací zkontrolujte obsazenost kurtu.",
+  "help.gettingStarted.step3.title": "Zarezervujte a potvrďte",
+  "help.gettingStarted.step3.description": "Vyberte datum, délku a čas začátku. Termín vám podržíme 5 minut, než ho potvrdíte.",
+  "help.gettingStarted.step4.title": "Přijďte a přihlaste se",
+  "help.gettingStarted.step4.description":
+    "Po příchodu se přihlaste ve svém přehledu. Po hře ohodnoťte kurt a příště si vás bude pamatovat.",
+
+  "help.booking.eyebrow": "Jak funguje rezervace",
+  "help.booking.title": "Mechanika za každou rezervací",
+  "help.booking.description": "Pravidla, která určují, co a kdy si můžete zarezervovat.",
+  "help.booking.rule1.title": "Délka a čas termínu",
+  "help.booking.rule1.description": "Každá rezervace trvá 60, 90 nebo 120 minut, začíná na celou nebo půlhodinu, mezi 7:00 a 22:00.",
+  "help.booking.rule2.title": "5minutové podržení, pak potvrzení",
+  "help.booking.rule2.description":
+    "Výběrem termínu si ho podržíte na 5 minut jen pro sebe. Potvrďte ho ve svém přehledu, než podržení vyprší — jinak se automaticky uvolní.",
+  "help.booking.rule3.title": "Některé kurty vyžadují schválení",
+  "help.booking.rule3.description":
+    "Několik kurtů provozovatel označil jako vyžadující schválení. Potvrzení tam znamená odeslání žádosti místo okamžité rezervace — odpověď dostanete do 24 hodin, nebo dříve, pokud termín začíná dřív.",
+  "help.booking.rule4.title": "Limity rezervací",
+  "help.booking.rule4.description":
+    "Můžete mít až 3 aktivní rezervace najednou a rezervovat až 14 dní dopředu. Tři a více neúčastí za 30 dní dočasně pozastaví nové rezervace.",
+
+  "help.states.eyebrow": "Stavy rezervace",
+  "help.states.title": "Co znamená každý stavový štítek",
+  "help.states.description": "Každá rezervace prochází jedním z těchto stavů — zde je vysvětlení, co pro vás znamená.",
+  "help.states.desc.PENDING": "Podržena pro vás na 5 minut. Potvrďte ji ve svém přehledu, jinak podržení vyprší a termín se uvolní.",
+  "help.states.desc.PENDING_APPROVAL":
+    "Odeslána na kurtu, který vyžaduje schválení provozovatelem. Termín zůstává blokovaný, dokud se nerozhodne.",
+  "help.states.desc.CONFIRMED": "Potvrzena. Kdykoliv před začátkem ji můžete přesunout nebo zrušit.",
+  "help.states.desc.CHECKED_IN": "Přihlásili jste se na sportovišti — užijte si hru.",
+  "help.states.desc.COMPLETED": "Termín proběhl a odehráli jste ho. Teď můžete kurt ohodnotit.",
+  "help.states.desc.CANCELLED": "Zrušena před začátkem, vámi nebo provozovatelem. Termín se ihned uvolnil.",
+  "help.states.desc.EXPIRED": "Nikdo podržení včas nepotvrdil — nebo se provozovatel nerozhodl — takže se automaticky uvolnilo.",
+  "help.states.desc.REJECTED": "Provozovatel žádost zamítl. Termín se uvolnil a nabídl se pořadníku.",
+  "help.states.desc.NO_SHOW": "Rezervace byla potvrzena, ale nikdo se nepřihlásil. Opakované neúčasti mohou pozastavit nové rezervace.",
+
+  "help.social.eyebrow": "Hraní s ostatními",
+  "help.social.title": "Rezervace málokdy bývá sólová záležitost",
+  "help.social.description": "Několik funkcí existuje jen proto, aby bylo snazší najít si spoluhráče.",
+  "help.social.openGames.title": "Otevřené hry",
+  "help.social.openGames.description":
+    "Otevřete kteroukoli potvrzenou rezervaci ostatním hráčům ve svém přehledu a přijímejte nebo odmítejte žádosti o účast.",
+  "help.social.guests.title": "Pozvěte hosty",
+  "help.social.guests.description":
+    "Pozvěte kohokoliv s účtem Courtly e-mailem přímo z rezervace — uvidí ji a může se s vámi přihlásit.",
+  "help.social.split.title": "Rozdělte si cenu",
+  "help.social.split.description":
+    "Otevřete rezervaci a zvolte Rozdělit cenu, abyste viděli rovný podíl hodinové sazby kurtu mezi všechny přiřazené k rezervaci.",
+  "help.social.teammates.title": "Časté spoluhráče",
+  "help.social.teammates.description": "Zahrajte si s hostem několikrát a objeví se ve vašem přehledu jako častý spoluhráč.",
+
+  "help.manage.eyebrow": "Udržujte si přehled",
+  "help.manage.title": "Mějte svůj rozvrh pod kontrolou",
+  "help.manage.description": "Nástroje pro případ, že se plány změní, nebo je kurt, který chcete, už obsazený.",
+  "help.manage.waitlist.title": "Zapište se do pořadníku",
+  "help.manage.waitlist.description":
+    "Termín je už obsazený? Zapište se do jeho pořadníku — pokud se zruší, zamítne nebo vyprší, automaticky vám ho nabídneme.",
+  "help.manage.calendar.title": "Propojte se s kalendářem",
+  "help.manage.calendar.description":
+    "Vygenerujte si osobní odkaz na kanál ve svém profilu a přihlaste se k odběru v Google nebo Apple Kalendáři — aktualizuje se sám.",
+  "help.manage.recurring.title": "Zarezervujte si opakovaný termín",
+  "help.manage.recurring.description": "Zarezervujte si stejný čas každý týden na tolik týdnů, kolik chcete — každý týden se podrží a potvrzuje zvlášť.",
+  "help.manage.reschedule.title": "Přesuňte termín",
+  "help.manage.reschedule.description":
+    "Přesuňte podrženou nebo potvrzenou rezervaci na nové datum a čas ve svém přehledu — délka zůstává stejná.",
+
+  "help.venueManagers.eyebrow": "Pro provozovatele",
+  "help.venueManagers.title": "Správa sportoviště",
+  "help.venueManagers.description": "Vše, co účet provozovatele zvládne z administrace.",
+  "help.venueManagers.item1.title": "Správa kurtů a cen",
+  "help.venueManagers.item1.description":
+    "Přidávejte nebo upravujte kurty, nastavte hodinovou sazbu, nahrajte fotku a přepínejte, zda je kurt viditelný pro hráče.",
+  "help.venueManagers.item2.title": "Vyřizování žádostí o schválení",
+  "help.venueManagers.item2.description":
+    "Označte kurt jako vyžadující schválení a poté schvalujte nebo zamítejte žádosti v záložce Rezervace.",
+  "help.venueManagers.item3.title": "Blokování kurtů kvůli údržbě",
+  "help.venueManagers.item3.description":
+    "Uzavřete kurt na časové období — nové rezervace se odmítnou a stávající v tomto období se automaticky zruší.",
+  "help.venueManagers.item4.title": "Přehledy a export",
+  "help.venueManagers.item4.description":
+    "Sledujte rozložení stavů, míru neúčasti, nejvytíženější hodiny a využití jednotlivých kurtů a exportujte všechny rezervace do CSV.",
+  "help.venueManagers.item5.title": "Správa rolí hráčů",
+  "help.venueManagers.item5.description": "Povyšte hráče na provozovatele nebo ho zase degradujte zpět v záložce Uživatelé.",
+
+  "help.faq.eyebrow": "Časté dotazy",
+  "help.faq.title": "Často kladené otázky",
+  "help.faq.duration.question": "Jaké délky a časy termínů si můžu zarezervovat?",
+  "help.faq.duration.answer":
+    "60, 90 nebo 120 minut, začínající na celou nebo půlhodinu, mezi 7:00 a 22:00. Rezervovat můžete od 15 minut až 14 dní dopředu.",
+  "help.faq.guests.question": "Můžu si vzít hosty?",
+  "help.faq.guests.answer": "Ano — pozvěte kohokoliv s účtem Courtly e-mailem přímo z rezervace. Uvidí ji a může se s vámi přihlásit.",
+  "help.faq.split.question": "Jak funguje rozdělení ceny?",
+  "help.faq.split.answer":
+    "Otevřete rezervaci a zvolte Rozdělit cenu — rovnoměrně rozdělí hodinovou sazbu kurtu mezi všechny přiřazené k rezervaci. Nic se automaticky nestrhává, je to jen částka k vyrovnání.",
+  "help.faq.openGames.question": "Co jsou otevřené hry?",
+  "help.faq.openGames.answer":
+    "Kteroukoli potvrzenou rezervaci lze otevřít ostatním hráčům ve vašem přehledu. Kdokoliv pak může poslat žádost o účast, kterou přijmete nebo odmítnete.",
+  "help.faq.waitlist.question": "Jak funguje pořadník?",
+  "help.faq.waitlist.answer":
+    "Pokud je termín obsazený, zapište se do pořadníku. Když se zruší, zamítne nebo vyprší, další v pořadí ho automaticky dostane nabídnutý.",
+  "help.faq.calendar.question": "Uvidím své rezervace ve svém vlastním kalendáři?",
+  "help.faq.calendar.answer":
+    "Ano — vygenerujte si osobní odkaz na kanál ve svém profilu a přihlaste se k odběru v Google Kalendáři, Apple Kalendáři nebo Outlooku.",
+  "help.faq.noShow.question": "Co se stane, když nepřijdu?",
+  "help.faq.noShow.answer":
+    "Potvrzená rezervace, na kterou se nikdy nepřihlásíte, se označí jako neúčast. Tři a více neúčastí za 30 dní dočasně zablokuje nové rezervace — pokud nemůžete přijít, zrušte ji raději předem.",
+  "help.faq.language.question": "Je Courtly dostupné v češtině?",
+  "help.faq.language.answer": "Ano — jazyk můžete kdykoliv přepnout přepínačem EN/CS v navigaci.",
+  "help.faq.free.question": "Stojí Courtly něco?",
+  "help.faq.free.answer": "Ne — Courtly je studentský projekt vytvořený pro předmět softwarového inženýrství a všechny funkce jsou po dobu pilotního provozu zdarma.",
+  "help.faq.becomeManager.question": "Jak získám přístup provozovatele?",
+  "help.faq.becomeManager.answer": "Stávající provozovatel může váš účet povýšit v záložce Administrace → Uživatelé.",
+
+  "help.cta.title": "Máte ještě otázku?",
+  "help.cta.description": "Pusťte se rovnou do toho — nejrychlejší způsob, jak Courtly pochopit, je zarezervovat si termín.",
+  "help.cta.button": "Vytvořit účet zdarma",
+  "help.cta.button.authed": "Rezervovat kurt",
 }
 
 export default cs

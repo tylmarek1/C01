@@ -1,4 +1,5 @@
 import { ExternalLink, LifeBuoy, MessageCircle } from "lucide-react"
+import { Link } from "react-router-dom"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/card"
 import { SectionHeader } from "@/components/shared/section-header"
@@ -64,8 +65,11 @@ function ContactPage() {
               {t("contact.help.title")}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-3">
             <p className="text-slate-gray">{t("contact.help.description")}</p>
+            <Link to="/help" className="w-fit text-sm font-semibold text-ink-navy hover:underline">
+              {t("contact.help.link")} →
+            </Link>
           </CardContent>
         </Card>
       </div>

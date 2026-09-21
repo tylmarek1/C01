@@ -1,5 +1,6 @@
 const en = {
   "nav.courts": "Courts",
+  "nav.help": "Help",
   "nav.dashboard": "Dashboard",
   "nav.book": "Book a court",
   "nav.profile": "My profile",
@@ -47,6 +48,45 @@ const en = {
   "cta.button": "Get started",
   "cta.button.authed": "Book a court",
 
+  "landing.why.eyebrow": "Why Courtly",
+  "landing.why.title": "Built for how you actually play",
+  "landing.why.description": "Not just a booking form — the whole social side of showing up to play.",
+  "landing.why.openGames.title": "Find a partner",
+  "landing.why.openGames.description":
+    "Open one of your confirmed bookings to other players and accept join requests when you're a player short.",
+  "landing.why.waitlist.title": "Waitlist with auto-offers",
+  "landing.why.waitlist.description": "A slot's full? Join the waitlist — we offer it to you the instant it opens up.",
+  "landing.why.split.title": "Split the cost",
+  "landing.why.split.description": "See an even split of the court fee across everyone who's playing, in one tap.",
+  "landing.why.calendarSync.title": "Synced to your calendar",
+  "landing.why.calendarSync.description": "Subscribe once and every booking shows up automatically in Google or Apple Calendar.",
+  "landing.why.recurring.title": "Book your weekly slot once",
+  "landing.why.recurring.description": "Set up a recurring reservation for the same time each week, for as many weeks as you like.",
+  "landing.why.achievements.title": "Achievements & leaderboard",
+  "landing.why.achievements.description": "Track streaks and courts played, and see how you stack up against other regulars.",
+
+  "landing.faq.eyebrow": "FAQ",
+  "landing.faq.title": "Quick answers",
+  "landing.faq.viewAll": "See the full guide and FAQ",
+  "landing.faq.hold.question": "Why does my booking say \"held\" instead of confirmed?",
+  "landing.faq.hold.answer":
+    "Every new booking starts as a 5-minute hold so nobody else can grab the slot while you decide. Confirm it from your dashboard before the hold expires, or it's released automatically.",
+  "landing.faq.approval.question": "Why do some courts need approval?",
+  "landing.faq.approval.answer":
+    "A venue manager can mark specific courts as approval-required. Confirming there submits a request instead of booking immediately — you'll hear back within 24 hours, or by the slot's start time if that's sooner.",
+  "landing.faq.cancel.question": "Can I cancel or reschedule?",
+  "landing.faq.cancel.answer":
+    "Yes, any time before the slot starts — from your dashboard. Cancelling releases the slot immediately, including to anyone waiting for it.",
+  "landing.faq.limit.question": "How many active bookings can I have?",
+  "landing.faq.limit.answer":
+    "Up to 3 at a time (held, awaiting approval or confirmed). Completed and cancelled bookings don't count against that limit.",
+
+  "landing.venueManager.eyebrow": "For venue managers",
+  "landing.venueManager.title": "Run the whole venue from one dashboard",
+  "landing.venueManager.description":
+    "Manage courts and pricing, review approval requests, block courts for maintenance, and see utilization and no-show reports.",
+  "landing.venueManager.cta": "See the venue manager guide",
+
   "footer.tagline": "Book a court, keep your slot — no double bookings, no phone calls.",
   "footer.product": "Product",
   "footer.sports": "Sports",
@@ -55,6 +95,7 @@ const en = {
   "footer.availability": "Availability",
   "footer.pricing": "Pricing",
   "footer.about": "About",
+  "footer.help": "Help & FAQ",
   "footer.courseProject": "Course project",
   "footer.contact": "Contact",
   "footer.copyright": "Built for course SWI, engineering spike C01.",
@@ -202,6 +243,9 @@ const en = {
   "common.remove": "Remove",
   "common.delete": "Delete",
   "common.viewDetails": "View details",
+  "common.retry": "Try again",
+  "common.error.title": "Something went wrong",
+  "common.error.description": "We couldn't load this. Check your connection and try again.",
 
   "confirmDialog.cancelReservation.title": "Cancel this reservation?",
   "confirmDialog.cancelReservation.description": "The slot will be released and offered to anyone on the waitlist. This can't be undone.",
@@ -549,6 +593,150 @@ const en = {
   "contact.help.title": "Need help with a reservation?",
   "contact.help.description":
     "Log in and head to your dashboard — you can confirm or cancel any of your reservations there at any time.",
+  "contact.help.link": "Read the getting-started guide and FAQ",
+
+  "help.nav.aria": "Jump to section",
+  "help.nav.gettingStarted": "Getting started",
+  "help.nav.booking": "How booking works",
+  "help.nav.states": "Reservation states",
+  "help.nav.social": "Playing with others",
+  "help.nav.manage": "Staying on top of it",
+  "help.nav.venueManagers": "For venue managers",
+  "help.nav.faq": "FAQ",
+
+  "help.hero.eyebrow": "Help Center",
+  "help.hero.title": "Everything about booking a court",
+  "help.hero.description":
+    "A short guide to how Courtly works — from your first booking to what every status badge means.",
+
+  "help.gettingStarted.eyebrow": "Getting started",
+  "help.gettingStarted.title": "Your first booking in four steps",
+  "help.gettingStarted.description": "No phone calls, no shared spreadsheets — the whole flow lives in the app.",
+  "help.gettingStarted.step1.title": "Create a free account",
+  "help.gettingStarted.step1.description": "Sign up with your name, email and a password — no card required.",
+  "help.gettingStarted.step2.title": "Browse courts",
+  "help.gettingStarted.step2.description":
+    "Filter tennis, volleyball and badminton courts by amenity, or search by name, and check a court's occupancy before you commit.",
+  "help.gettingStarted.step3.title": "Book and confirm",
+  "help.gettingStarted.step3.description": "Pick a date, duration and start time. Your slot is held for 5 minutes while you confirm it.",
+  "help.gettingStarted.step4.title": "Show up and check in",
+  "help.gettingStarted.step4.description":
+    "Check in from your dashboard when you arrive. After the game, rate the court and it'll remember you for next time.",
+
+  "help.booking.eyebrow": "How booking works",
+  "help.booking.title": "The mechanics behind every reservation",
+  "help.booking.description": "The rules that decide what you can book, and when.",
+  "help.booking.rule1.title": "Slot length and timing",
+  "help.booking.rule1.description":
+    "Every booking is 60, 90 or 120 minutes, starting on the hour or half hour, between 07:00 and 22:00.",
+  "help.booking.rule2.title": "A 5-minute hold, then you confirm",
+  "help.booking.rule2.description":
+    "Picking a slot holds it just for you for 5 minutes. Confirm it from your dashboard before the hold runs out, or it's released automatically.",
+  "help.booking.rule3.title": "Some courts need approval",
+  "help.booking.rule3.description":
+    "A handful of courts are marked as approval-required by the venue. Confirming there sends a request instead of booking outright — you'll hear back within 24 hours, or by the slot's start time if that's sooner.",
+  "help.booking.rule4.title": "Booking limits",
+  "help.booking.rule4.description":
+    "You can have up to 3 active bookings at once, and book up to 14 days ahead. Three or more no-shows in 30 days temporarily pauses new bookings.",
+
+  "help.states.eyebrow": "Reservation states",
+  "help.states.title": "What every status badge means",
+  "help.states.description": "Every reservation moves through one of these states — here's what each one means for you.",
+  "help.states.desc.PENDING": "Held for you for 5 minutes. Confirm it from your dashboard, or the hold expires and the slot is released.",
+  "help.states.desc.PENDING_APPROVAL":
+    "Submitted on a court that needs a venue manager's sign-off. It still blocks the slot while you wait for a decision.",
+  "help.states.desc.CONFIRMED": "Locked in. You can reschedule or cancel it any time before it starts.",
+  "help.states.desc.CHECKED_IN": "You've checked in at the venue — have a great game.",
+  "help.states.desc.COMPLETED": "The slot has passed and you played it. You can rate the court now.",
+  "help.states.desc.CANCELLED": "Withdrawn before it started, by you or a venue manager. The slot was released immediately.",
+  "help.states.desc.EXPIRED": "Nobody confirmed the hold — or a manager didn't decide — in time, so it was released automatically.",
+  "help.states.desc.REJECTED": "A venue manager declined the request. The slot was released and offered to the waitlist.",
+  "help.states.desc.NO_SHOW": "The booking was confirmed but nobody checked in. Repeated no-shows can pause new bookings.",
+
+  "help.social.eyebrow": "Playing with others",
+  "help.social.title": "Booking is rarely a solo thing",
+  "help.social.description": "A few features exist just to make it easier to find people to play with.",
+  "help.social.openGames.title": "Open games",
+  "help.social.openGames.description":
+    "Open any confirmed booking to other players from your dashboard, and accept or decline the join requests you get.",
+  "help.social.guests.title": "Invite guests",
+  "help.social.guests.description":
+    "Invite anyone with a Courtly account by email straight from your reservation — they can see it and check in with you.",
+  "help.social.split.title": "Split the cost",
+  "help.social.split.description":
+    "Open a reservation and choose Split cost to see an even share of the court's hourly rate across everyone attached to it.",
+  "help.social.teammates.title": "Frequent teammates",
+  "help.social.teammates.description": "Play with the same guests a few times and they'll show up as frequent teammates on your dashboard.",
+
+  "help.manage.eyebrow": "Staying on top of it",
+  "help.manage.title": "Keep your schedule under control",
+  "help.manage.description": "Tools for when plans change, or a court you want is already taken.",
+  "help.manage.waitlist.title": "Join a waitlist",
+  "help.manage.waitlist.description":
+    "A slot's already taken? Join its waitlist — if it's cancelled, rejected or expires, you're offered it automatically.",
+  "help.manage.calendar.title": "Sync to your calendar",
+  "help.manage.calendar.description":
+    "Generate a personal feed link from your profile and subscribe to it in Google or Apple Calendar — it updates on its own.",
+  "help.manage.recurring.title": "Book a recurring slot",
+  "help.manage.recurring.description":
+    "Book the same time every week for as many weeks as you like — each week is held and confirmed individually.",
+  "help.manage.reschedule.title": "Reschedule",
+  "help.manage.reschedule.description":
+    "Move a held or confirmed booking to a new date and time from your dashboard — the duration stays the same.",
+
+  "help.venueManagers.eyebrow": "For venue managers",
+  "help.venueManagers.title": "Running the venue",
+  "help.venueManagers.description": "Everything a venue manager account can do, from the Admin dashboard.",
+  "help.venueManagers.item1.title": "Manage courts and pricing",
+  "help.venueManagers.item1.description":
+    "Add or edit courts, set an hourly rate, upload a photo, and toggle whether a court is visible to players.",
+  "help.venueManagers.item2.title": "Review approval requests",
+  "help.venueManagers.item2.description":
+    "Mark a court as requiring approval, then approve or reject the requests it generates from the Reservations tab.",
+  "help.venueManagers.item3.title": "Block courts for maintenance",
+  "help.venueManagers.item3.description":
+    "Close a court for a time range — new bookings are rejected and any existing ones in that window are cancelled automatically.",
+  "help.venueManagers.item4.title": "Reports and exports",
+  "help.venueManagers.item4.description":
+    "See status breakdowns, no-show rate, busiest hours and per-court utilization, and export all reservations as CSV.",
+  "help.venueManagers.item5.title": "Manage player roles",
+  "help.venueManagers.item5.description": "Promote a player to venue manager, or demote one back, from the Users tab.",
+
+  "help.faq.eyebrow": "FAQ",
+  "help.faq.title": "Frequently asked questions",
+  "help.faq.duration.question": "What slot lengths and times can I book?",
+  "help.faq.duration.answer":
+    "60, 90 or 120 minutes, starting on the hour or half hour, between 07:00 and 22:00. You can book from 15 minutes up to 14 days ahead.",
+  "help.faq.guests.question": "Can I bring guests?",
+  "help.faq.guests.answer":
+    "Yes — invite anyone with a Courtly account by email from your reservation. They can see it and check in with you.",
+  "help.faq.split.question": "How does splitting the cost work?",
+  "help.faq.split.answer":
+    "Open the reservation and choose Split cost — it divides the court's hourly rate evenly across everyone attached to the booking. Nothing is charged automatically; it's just the number to settle up.",
+  "help.faq.openGames.question": "What are open games?",
+  "help.faq.openGames.answer":
+    "Any confirmed booking can be opened to other players from your dashboard. Anyone can then send a request to join, which you accept or decline.",
+  "help.faq.waitlist.question": "How does the waitlist work?",
+  "help.faq.waitlist.answer":
+    "If a slot's full, join its waitlist. When it's cancelled, rejected or expires, the next person in line is offered it automatically.",
+  "help.faq.calendar.question": "Can I see my bookings in my own calendar app?",
+  "help.faq.calendar.answer":
+    "Yes — generate a personal feed link from your profile and subscribe to it in Google Calendar, Apple Calendar or Outlook.",
+  "help.faq.noShow.question": "What happens if I don't show up?",
+  "help.faq.noShow.answer":
+    "A confirmed booking you never check in to is marked as a no-show. Three or more in 30 days temporarily blocks new bookings — cancel ahead of time if you can't make it.",
+  "help.faq.language.question": "Is Courtly available in Czech?",
+  "help.faq.language.answer": "Yes — switch languages any time with the EN/CS toggle in the navigation bar.",
+  "help.faq.free.question": "Does Courtly cost anything?",
+  "help.faq.free.answer":
+    "No — Courtly is a student project built for a software engineering course, and every feature is free to use during the pilot.",
+  "help.faq.becomeManager.question": "How do I get venue manager access?",
+  "help.faq.becomeManager.answer": "An existing venue manager can promote your account from the Admin → Users tab.",
+
+  "help.cta.title": "Still have a question?",
+  "help.cta.description": "Jump straight in — the fastest way to understand Courtly is to book a slot.",
+  "help.cta.button": "Create a free account",
+  "help.cta.button.authed": "Book a court",
 } as const
 
 export default en

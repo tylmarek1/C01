@@ -34,6 +34,7 @@ function Footer() {
       heading: t("footer.company"),
       links: [
         { label: t("footer.about"), to: "/about" },
+        { label: t("footer.help"), to: "/help" },
         { label: t("footer.courseProject"), to: "https://github.com/tylmarek1/C01" },
         { label: t("footer.contact"), to: "/contact" },
       ],

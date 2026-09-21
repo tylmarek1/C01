@@ -20,6 +20,7 @@ import { Button } from "@/components/shared/button"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/shared/dialog"
 import { EmptyState } from "@/components/shared/empty-state"
+import { ErrorState } from "@/components/shared/error-state"
 import { ReservationCard } from "@/components/shared/reservation-card"
 import { ReservationDetailDialog } from "@/components/shared/reservation-detail-dialog"
 import { SectionHeader } from "@/components/shared/section-header"
@@ -45,7 +46,12 @@ function DashboardPage() {
   const [detailReservation, setDetailReservation] = useState<Reservation | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
 
-  const { data: reservations, isLoading } = useQuery({
+  const {
+    data: reservations,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["reservations"],
     queryFn: () => api.listReservations(token!),
     enabled: Boolean(token),
@@ -293,6 +299,15 @@ function DashboardPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {isError && (
+        <ErrorState
+          className="mt-10"
+          title={t("common.error.title")}
+          description={t("common.error.description")}
+          onRetry={() => refetch()}
+        />
       )}
 
       <div className="mt-10 flex items-center justify-end gap-1 rounded-xl border border-hairline bg-card p-1 shadow-sm w-fit ml-auto">
