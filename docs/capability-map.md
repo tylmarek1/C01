@@ -117,6 +117,32 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Real-time chat — the first WebSocket infrastructure in this codebase.
+  `Conversation` (DM/RESERVATION/TEAM kind), `ConversationParticipant`
+  (membership + per-user `last_read_at`), `Message`. DM: `POST /chat/dm/
+  {user_id}` (idempotent get-or-create, looked up by a sorted `dm_key`).
+  Reservation group chat: `GET /reservations/{id}/chat` (booker + accepted
+  guests only; re-syncs participants to the reservation's *current* guest
+  list on every call rather than needing a separate membership-change
+  hook). `GET/POST /conversations/{id}/messages`, `GET /conversations`
+  (list mine, with last-message preview + unread count). Delivery:
+  `@router.websocket("/ws/chat")` — client authenticates by sending
+  `{"type":"auth","token":...}` as the first frame after connecting
+  (deliberately not a `?token=` query string, which risks the JWT landing
+  in access logs), then only *receives* live pushes; sending stays on the
+  REST POST so there's one message-validation path, not two. Connection
+  registry is an in-process `dict[user_id, set[WebSocket]]`
+  (`chat_hub.py`) — same single-process tradeoff already accepted by
+  `rate_limit.py`/`worker.py`, not warranted at this scale. Chat messages
+  are deliberately **not** wired into `notify()`/push — a notification per
+  message would spam the mute-respecting system built for everything
+  else; unread state is tracked via `last_read_at` instead. New
+  `PlayerProfilePage` gained a "Message" button; the reservation detail
+  dialog gained a "Chat" button (booker and guest views both); a navbar
+  icon shows a live+polled unread badge. New tables only — no manual
+  reseed cycle needed. Verified: 7 backend tests including a real
+  WebSocket round-trip (one client posts, another connected client
+  receives the broadcast frame over its socket).
 - Review comments — `ReviewComment` (open discussion, any signed-in player
   can reply to someone else's review, not just the author), `GET/POST
   /reviews/{id}/comments`, `DELETE .../comments/{comment_id}` (comment

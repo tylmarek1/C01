@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { ApiError, api } from "@/lib/api"
+import { connectChatSocket, disconnectChatSocket } from "@/lib/chat-socket"
 import type { User } from "@/types"
 
 const TOKEN_STORAGE_KEY = "courtly.token"
@@ -47,6 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
+  }, [token])
+
+  useEffect(() => {
+    if (token) connectChatSocket(token)
+    else disconnectChatSocket()
+    return () => disconnectChatSocket()
   }, [token])
 
   const applySession = useCallback((accessToken: string, sessionUser: User) => {

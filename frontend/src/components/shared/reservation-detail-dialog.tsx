@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, X } from "lucide-react"
+import { Check, MessageCircle, X } from "lucide-react"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/shared/badge"
@@ -37,6 +38,7 @@ interface ReservationDetailDialogProps {
 function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDialogProps) {
   const { token } = useAuth()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const statusLabels = useStatusLabels()
   const queryClient = useQueryClient()
 
@@ -91,6 +93,17 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
 
   const canManageGuests =
     reservation && (reservation.status === "PENDING" || reservation.status === "CONFIRMED" || reservation.status === "CHECKED_IN")
+  const canChat =
+    reservation && reservation.status !== "CANCELLED" && reservation.status !== "EXPIRED" && reservation.status !== "REJECTED"
+
+  const openChatMutation = useMutation({
+    mutationFn: () => api.openReservationChat(token!, reservation!.id),
+    onSuccess: (conversation) => {
+      onClose()
+      navigate(`/app/chat?conversation=${conversation.id}`)
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationDetail.error.chat")),
+  })
 
   return (
     <>
@@ -226,9 +239,20 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
               </div>
             </div>
 
-            <Button variant="outline" onClick={onClose} className="mt-2">
-              {t("common.close")}
-            </Button>
+            <div className="mt-2 flex items-center gap-2">
+              {canChat && (
+                <Button
+                  variant="dark"
+                  disabled={openChatMutation.isPending}
+                  onClick={() => openChatMutation.mutate()}
+                >
+                  <MessageCircle className="size-4" /> {t("reservationDetail.chat")}
+                </Button>
+              )}
+              <Button variant="outline" onClick={onClose}>
+                {t("common.close")}
+              </Button>
+            </div>
           </>
         )}
         </DialogContent>

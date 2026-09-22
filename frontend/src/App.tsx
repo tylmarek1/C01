@@ -20,6 +20,7 @@ const DashboardPage = lazy(() => import("@/pages/app/DashboardPage").then((m) =>
 const BookCourtPage = lazy(() => import("@/pages/app/BookCourtPage").then((m) => ({ default: m.BookCourtPage })))
 const ProfilePage = lazy(() => import("@/pages/app/ProfilePage").then((m) => ({ default: m.ProfilePage })))
 const PlayerProfilePage = lazy(() => import("@/pages/app/PlayerProfilePage").then((m) => ({ default: m.PlayerProfilePage })))
+const ChatPage = lazy(() => import("@/pages/app/ChatPage").then((m) => ({ default: m.ChatPage })))
 const AdminPage = lazy(() => import("@/pages/app/AdminPage").then((m) => ({ default: m.AdminPage })))
 
 function App() {
@@ -80,6 +81,14 @@ function App() {
           element={
             <ProtectedRoute>
               <PlayerProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="app/chat"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
             </ProtectedRoute>
           }
         />
