@@ -7,7 +7,7 @@ interface NotificationCategory {
 }
 
 // The backend mutes/unmutes individual NotificationType values, but toggling
-// 19 of them one by one isn't a settings UI anyone wants — these are the
+// 22 of them one by one isn't a settings UI anyone wants — these are the
 // user-facing groups shown instead. Every NotificationType must appear in
 // exactly one group.
 export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
@@ -29,7 +29,15 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   { key: "achievements", types: ["ACHIEVEMENT_UNLOCKED", "CHALLENGE_COMPLETED"] },
   { key: "joinRequests", types: ["JOIN_REQUEST_RECEIVED", "JOIN_REQUEST_ACCEPTED", "JOIN_REQUEST_DECLINED"] },
   { key: "social", types: ["NEW_FOLLOWER"] },
-  { key: "teams", types: ["TEAM_MEMBER_ADDED"] },
+  {
+    key: "teams",
+    types: [
+      "TEAM_MEMBER_ADDED",
+      "TEAM_JOIN_REQUEST_RECEIVED",
+      "TEAM_JOIN_REQUEST_ACCEPTED",
+      "TEAM_JOIN_REQUEST_DECLINED",
+    ],
+  },
   { key: "matches", types: ["MATCH_RESULT_REPORTED"] },
 ]
 

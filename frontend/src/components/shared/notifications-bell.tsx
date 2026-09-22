@@ -51,6 +51,9 @@ const NOTIFICATION_DESTINATION: Record<NotificationType, string> = {
   TEAM_MEMBER_ADDED: "/app/teams",
   MATCH_RESULT_REPORTED: "/app/profile",
   CHALLENGE_COMPLETED: "/app/profile",
+  TEAM_JOIN_REQUEST_RECEIVED: "/app/teams",
+  TEAM_JOIN_REQUEST_ACCEPTED: "/app/teams",
+  TEAM_JOIN_REQUEST_DECLINED: "/app/teams",
 }
 
 function NotificationRow({

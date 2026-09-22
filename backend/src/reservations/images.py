@@ -84,6 +84,10 @@ def compress_and_store_avatar(upload: UploadFile, raw: bytes) -> str:
     return _compress_and_store(upload, raw, "avatars", AVATAR_MAX_DIMENSION)
 
 
+def compress_and_store_team_avatar(upload: UploadFile, raw: bytes) -> str:
+    return _compress_and_store(upload, raw, "team_avatars", AVATAR_MAX_DIMENSION)
+
+
 def compress_and_store_court_image(upload: UploadFile, raw: bytes) -> str:
     return _compress_and_store(upload, raw, "courts", COURT_IMAGE_MAX_DIMENSION)
 
