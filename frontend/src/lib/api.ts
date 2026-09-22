@@ -25,6 +25,7 @@ import type {
   ReservationSplit,
   ReservationStatus,
   Review,
+  ReviewComment,
   SportType,
   Teammate,
   User,
@@ -405,6 +406,16 @@ export const api = {
   // Review helpfulness
   toggleReviewHelpful: (token: string, reviewId: string) =>
     request<Review>(`/reviews/${reviewId}/helpful`, { method: "POST" }, token),
+
+  // Review comments
+  listReviewComments: (token: string, reviewId: string) =>
+    request<ReviewComment[]>(`/reviews/${reviewId}/comments`, {}, token),
+
+  addReviewComment: (token: string, reviewId: string, body: string) =>
+    request<ReviewComment>(`/reviews/${reviewId}/comments`, { method: "POST", body: JSON.stringify({ body }) }, token),
+
+  deleteReviewComment: (token: string, reviewId: string, commentId: string) =>
+    request<void>(`/reviews/${reviewId}/comments/${commentId}`, { method: "DELETE" }, token),
 
   // Player profiles + follow
   getPlayerProfile: (token: string, userId: string) =>

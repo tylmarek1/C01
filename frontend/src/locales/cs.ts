@@ -385,6 +385,12 @@ const cs: Record<TranslationKey, string> = {
   "courtDetail.reviews.replyPlaceholder": "Napište veřejnou odpověď na tuto recenzi…",
   "courtDetail.reviews.replySubmit": "Odeslat odpověď",
   "courtDetail.reviews.replyError": "Odpověď se nepodařilo uložit",
+  "courtDetail.reviews.comment": "Komentář",
+  "courtDetail.reviews.commentCount": "Komentáře ({count})",
+  "courtDetail.reviews.commentsEmpty": "Zatím žádné komentáře.",
+  "courtDetail.reviews.commentPlaceholder": "Napište komentář…",
+  "courtDetail.reviews.commentSubmit": "Odeslat",
+  "courtDetail.reviews.commentError": "Komentář se nepodařilo uložit",
   "courtDetail.facilityBlock": "Zavřeno {range}: {reason}",
 
   "occupancy.booked": "Obsazeno",

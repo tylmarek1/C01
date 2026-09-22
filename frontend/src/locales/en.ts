@@ -383,6 +383,12 @@ const en = {
   "courtDetail.reviews.replyPlaceholder": "Write a public reply to this review…",
   "courtDetail.reviews.replySubmit": "Post reply",
   "courtDetail.reviews.replyError": "Could not save the reply",
+  "courtDetail.reviews.comment": "Comment",
+  "courtDetail.reviews.commentCount": "Comments ({count})",
+  "courtDetail.reviews.commentsEmpty": "No comments yet.",
+  "courtDetail.reviews.commentPlaceholder": "Write a comment…",
+  "courtDetail.reviews.commentSubmit": "Post",
+  "courtDetail.reviews.commentError": "Could not update the comment",
   "courtDetail.facilityBlock": "Closed {range}: {reason}",
 
   "occupancy.booked": "Booked",

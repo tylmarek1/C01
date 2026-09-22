@@ -17,11 +17,19 @@ from reservations.models import (
     Reservation,
     ReservationStatus,
     Review,
+    ReviewComment,
     ReviewImage,
     ReviewVote,
     User,
+    UserRole,
 )
-from reservations.schemas.review import ReviewCreate, ReviewOut, ReviewReplyCreate
+from reservations.schemas.review import (
+    ReviewCommentCreate,
+    ReviewCommentOut,
+    ReviewCreate,
+    ReviewOut,
+    ReviewReplyCreate,
+)
 
 router = APIRouter(tags=["reviews"])
 
@@ -55,6 +63,22 @@ def _attach_helpful_votes(
     for review in reviews:
         review.helpful_count = counts.get(review.id, 0)
         review.voted_helpful_by_me = review.id in voted_by_me
+    return reviews
+
+
+def _attach_comment_counts(db: Session, reviews: list[Review]) -> list[Review]:
+    if not reviews:
+        return reviews
+    review_ids = [r.id for r in reviews]
+    counts = dict(
+        db.execute(
+            select(ReviewComment.review_id, func.count())
+            .where(ReviewComment.review_id.in_(review_ids))
+            .group_by(ReviewComment.review_id)
+        ).all()
+    )
+    for review in reviews:
+        review.comment_count = counts.get(review.id, 0)
     return reviews
 
 
@@ -124,7 +148,9 @@ def list_court_reviews(
         .order_by(Review.created_at.desc())
     )
     reviews = list(db.scalars(stmt))
-    return _attach_images(db, _attach_helpful_votes(db, reviews, current_user))
+    return _attach_comment_counts(
+        db, _attach_images(db, _attach_helpful_votes(db, reviews, current_user))
+    )
 
 
 @router.get("/reviews/mine", response_model=list[ReviewOut])
@@ -137,7 +163,9 @@ def list_my_reviews(
         .order_by(Review.created_at.desc())
     )
     reviews = list(db.scalars(stmt))
-    return _attach_images(db, _attach_helpful_votes(db, reviews, current_user))
+    return _attach_comment_counts(
+        db, _attach_images(db, _attach_helpful_votes(db, reviews, current_user))
+    )
 
 
 @router.post("/reviews/{review_id}/helpful", response_model=ReviewOut)
@@ -161,7 +189,9 @@ def toggle_review_helpful(
         db.delete(existing_vote)
     db.commit()
 
-    return _attach_images(db, _attach_helpful_votes(db, [review], current_user))[0]
+    return _attach_comment_counts(
+        db, _attach_images(db, _attach_helpful_votes(db, [review], current_user))
+    )[0]
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -175,14 +205,22 @@ def delete_review(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
     if review.user_id != current_user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your review")
-    # ReviewImage has no relationship() back to Review, so the unit-of-work
-    # won't order its DELETE before this one on its own — same fix as the
-    # CourtImage/Court cascade (courts.py's delete_court). Per-object ORM
-    # deletes, matching that endpoint's convention.
+    # None of ReviewImage/ReviewVote/ReviewComment has a relationship() back
+    # to Review, so the unit-of-work won't order their DELETEs before this
+    # one on its own — same fix as the CourtImage/Court cascade (courts.py's
+    # delete_court). Per-object ORM deletes, matching that endpoint's
+    # convention. ReviewVote's cleanup was missing before this change — a
+    # review with any "helpful" votes couldn't be deleted at all.
     for image in db.scalars(
         select(ReviewImage).where(ReviewImage.review_id == review.id)
     ):
         db.delete(image)
+    for vote in db.scalars(select(ReviewVote).where(ReviewVote.review_id == review.id)):
+        db.delete(vote)
+    for comment in db.scalars(
+        select(ReviewComment).where(ReviewComment.review_id == review.id)
+    ):
+        db.delete(comment)
     db.flush()
     db.delete(review)
     db.commit()
@@ -202,7 +240,9 @@ def reply_to_review(
     review.manager_reply_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(review)
-    return _attach_images(db, _attach_helpful_votes(db, [review], current_user))[0]
+    return _attach_comment_counts(
+        db, _attach_images(db, _attach_helpful_votes(db, [review], current_user))
+    )[0]
 
 
 @router.delete("/reviews/{review_id}/reply", response_model=ReviewOut)
@@ -218,7 +258,9 @@ def delete_review_reply(
     review.manager_reply_at = None
     db.commit()
     db.refresh(review)
-    return _attach_images(db, _attach_helpful_votes(db, [review], current_user))[0]
+    return _attach_comment_counts(
+        db, _attach_images(db, _attach_helpful_votes(db, [review], current_user))
+    )[0]
 
 
 @router.post(
@@ -254,7 +296,9 @@ def add_review_image(
     db.add(ReviewImage(review_id=review.id, url=url, position=existing_count))
     db.commit()
     db.refresh(review)
-    return _attach_images(db, _attach_helpful_votes(db, [review], current_user))[0]
+    return _attach_comment_counts(
+        db, _attach_images(db, _attach_helpful_votes(db, [review], current_user))
+    )[0]
 
 
 @router.delete("/reviews/{review_id}/images/{image_id}", response_model=ReviewOut)
@@ -276,4 +320,66 @@ def delete_review_image(
     db.delete(image)
     db.commit()
     db.refresh(review)
-    return _attach_images(db, _attach_helpful_votes(db, [review], current_user))[0]
+    return _attach_comment_counts(
+        db, _attach_images(db, _attach_helpful_votes(db, [review], current_user))
+    )[0]
+
+
+@router.get("/reviews/{review_id}/comments", response_model=list[ReviewCommentOut])
+def list_review_comments(
+    review_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+) -> list[ReviewComment]:
+    review = db.get(Review, review_id)
+    if review is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
+    return list(
+        db.scalars(
+            select(ReviewComment)
+            .where(ReviewComment.review_id == review_id)
+            .order_by(ReviewComment.created_at)
+        )
+    )
+
+
+@router.post(
+    "/reviews/{review_id}/comments",
+    response_model=ReviewCommentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_review_comment(
+    review_id: uuid.UUID,
+    payload: ReviewCommentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ReviewComment:
+    review = db.get(Review, review_id)
+    if review is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
+
+    comment = ReviewComment(
+        review_id=review_id, user_id=current_user.id, body=payload.body
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+@router.delete(
+    "/reviews/{review_id}/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+def delete_review_comment(
+    review_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    comment = db.get(ReviewComment, comment_id)
+    if comment is None or comment.review_id != review_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Comment not found")
+    if comment.user_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your comment")
+    db.delete(comment)
+    db.commit()

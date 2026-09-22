@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, ArrowLeft, CalendarClock, Heart, MapPin, ThumbsUp } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CalendarClock, Heart, MapPin, MessageCircle, ThumbsUp } from "lucide-react"
 import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -32,6 +32,85 @@ function initials(name: string) {
     .toUpperCase()
 }
 
+function ReviewCommentThread({ reviewId, courtId }: { reviewId: string; courtId: string }) {
+  const { token, user } = useAuth()
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [draft, setDraft] = useState("")
+
+  const { data: comments, isLoading } = useQuery({
+    queryKey: ["review-comments", reviewId],
+    queryFn: () => api.listReviewComments(token!, reviewId),
+    enabled: Boolean(token),
+  })
+
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ["review-comments", reviewId] })
+    queryClient.invalidateQueries({ queryKey: ["court-reviews", courtId] })
+  }
+
+  const addMutation = useMutation({
+    mutationFn: (body: string) => api.addReviewComment(token!, reviewId, body),
+    onSuccess: () => {
+      setDraft("")
+      refresh()
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("courtDetail.reviews.commentError")),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (commentId: string) => api.deleteReviewComment(token!, reviewId, commentId),
+    onSuccess: refresh,
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("courtDetail.reviews.commentError")),
+  })
+
+  return (
+    <div className="mt-1 flex flex-col gap-2 rounded-xl bg-pebble/60 p-3">
+      {isLoading && <Skeleton className="h-9 w-full" />}
+      {!isLoading && comments?.length === 0 && (
+        <p className="text-xs text-slate-gray">{t("courtDetail.reviews.commentsEmpty")}</p>
+      )}
+      {comments?.map((comment) => (
+        <div key={comment.id} className="flex items-start justify-between gap-2">
+          <div className="flex flex-col">
+            <Link to={`/app/players/${comment.user.id}`} className="text-xs font-medium text-ink-navy hover:underline">
+              {comment.user.name}
+            </Link>
+            <p className="text-sm text-slate-gray">{comment.body}</p>
+          </div>
+          {user && (comment.user.id === user.id || user.role === "ADMIN") && (
+            <button
+              type="button"
+              onClick={() => deleteMutation.mutate(comment.id)}
+              className="shrink-0 text-xs text-slate-gray transition-colors hover:text-destructive"
+            >
+              {t("common.remove")}
+            </button>
+          )}
+        </div>
+      ))}
+      {user && (
+        <div className="flex items-center gap-2">
+          <Input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={t("courtDetail.reviews.commentPlaceholder")}
+            maxLength={500}
+            className="h-9 text-sm"
+          />
+          <Button
+            size="sm"
+            disabled={addMutation.isPending || draft.trim().length === 0}
+            onClick={() => addMutation.mutate(draft.trim())}
+          >
+            {t("courtDetail.reviews.commentSubmit")}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function CourtDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user, token } = useAuth()
@@ -44,7 +123,17 @@ function CourtDetailPage() {
   const [activePhoto, setActivePhoto] = useState<string | null>(null)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyDraft, setReplyDraft] = useState("")
+  const [openComments, setOpenComments] = useState<Set<string>>(new Set())
   const canReplyToReviews = user?.role === "VENUE_MANAGER" || user?.role === "ADMIN"
+
+  function toggleComments(reviewId: string) {
+    setOpenComments((current) => {
+      const next = new Set(current)
+      if (next.has(reviewId)) next.delete(reviewId)
+      else next.add(reviewId)
+      return next
+    })
+  }
 
   const { data: court, isLoading: isLoadingCourt, isError } = useQuery({
     queryKey: ["court", id],
@@ -274,6 +363,19 @@ function CourtDetailPage() {
                             : t("courtDetail.reviews.helpful")}
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => toggleComments(review.id)}
+                        className={cn(
+                          "flex items-center gap-1 text-xs font-medium transition-colors",
+                          openComments.has(review.id) ? "text-signal-blue" : "text-slate-gray hover:text-ink-navy",
+                        )}
+                      >
+                        <MessageCircle className="size-3.5" />
+                        {review.comment_count > 0
+                          ? t("courtDetail.reviews.commentCount", { count: review.comment_count })
+                          : t("courtDetail.reviews.comment")}
+                      </button>
                       {canReplyToReviews && !review.manager_reply && replyingTo !== review.id && (
                         <button
                           type="button"
@@ -306,6 +408,8 @@ function CourtDetailPage() {
                         <p className="text-sm text-slate-gray">{review.manager_reply}</p>
                       </div>
                     )}
+
+                    {openComments.has(review.id) && <ReviewCommentThread reviewId={review.id} courtId={id!} />}
 
                     {replyingTo === review.id && (
                       <div className="mt-1 flex flex-col gap-2">

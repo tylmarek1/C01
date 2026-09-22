@@ -23,6 +23,19 @@ class ReviewImageOut(BaseModel):
     url: str
 
 
+class ReviewCommentCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=500)
+
+
+class ReviewCommentOut(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    user: UserOut
+    body: str
+    created_at: datetime
+
+
 class ReviewOut(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -40,3 +53,4 @@ class ReviewOut(BaseModel):
     helpful_count: int = 0
     voted_helpful_by_me: bool = False
     images: list[ReviewImageOut] = []
+    comment_count: int = 0
