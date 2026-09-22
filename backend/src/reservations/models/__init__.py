@@ -1,4 +1,6 @@
 from reservations.models.achievement import UserAchievement
+from reservations.models.challenge import Challenge, ChallengeMetric
+from reservations.models.challenge_completion import ChallengeCompletion
 from reservations.models.conversation import Conversation, ConversationKind
 from reservations.models.conversation_participant import ConversationParticipant
 from reservations.models.court import Amenity, Court, SportType
@@ -67,4 +69,7 @@ __all__ = [
     "TeamMember",
     "SkillRating",
     "MatchResult",
+    "Challenge",
+    "ChallengeMetric",
+    "ChallengeCompletion",
 ]
