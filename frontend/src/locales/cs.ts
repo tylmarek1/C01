@@ -642,6 +642,7 @@ const cs: Record<TranslationKey, string> = {
   "admin.challenges.metric.GUESTS_INVITED": "Pozvaní hosté",
   "admin.challenges.metric.REVIEWS_WRITTEN": "Napsané recenze",
   "admin.challenges.target": "Cíl: {target}",
+  "admin.challenges.completedCount": "Splnilo: {count}",
   "admin.challenges.toast.created": "Výzva vytvořena",
   "admin.challenges.error.create": "Výzvu se nepodařilo vytvořit",
   "admin.challenges.empty": "Zatím žádné výzvy — vytvořte první sezónní výzvu.",
@@ -718,6 +719,7 @@ const cs: Record<TranslationKey, string> = {
   "admin.error.reservationCheckIn": "Rezervaci se nepodařilo přihlásit",
   "admin.reservations.historyDialog.title": "Historie rezervace",
   "admin.reservations.historyDialog.empty": "Zatím žádná historie.",
+  "admin.reservations.historyDialog.systemActor": "Systém",
 
   "admin.availability.blockTitle": "Zablokovat kurt",
   "admin.availability.blockDescription": "Nové rezervace v tomto okně budou odmítnuty; existující se zruší.",

@@ -309,8 +309,11 @@ def test_reschedule_moves_reservation_and_frees_old_slot(
     ) == datetime.fromisoformat(at(20))
 
     history = client.get(f"/reservations/{created['id']}/history", headers=headers)
-    event_types = [event["event_type"] for event in history.json()]
+    events = history.json()
+    event_types = [event["event_type"] for event in events]
     assert "TIME_CHANGED" in event_types
+    time_changed = next(e for e in events if e["event_type"] == "TIME_CHANGED")
+    assert time_changed["actor"]["email"] == "xena@example.com"
 
     # The original 18:00 slot should be free again.
     other_token = register_and_login(client, "yusuf@example.com")
@@ -394,9 +397,15 @@ def test_manager_lists_all_reservations_with_booker(
     client = TestClient(app)
     court_id = seed_court(session_factory)
     player_token = register_and_login(client, "mia@example.com")
-    client.post(
+    created = client.post(
         "/reservations",
         json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers={"Authorization": f"Bearer {player_token}"},
+    ).json()
+    register_and_login(client, "guest-of-mia@example.com")
+    client.post(
+        f"/reservations/{created['id']}/guests",
+        json={"email": "guest-of-mia@example.com"},
         headers={"Authorization": f"Bearer {player_token}"},
     )
 
@@ -414,6 +423,9 @@ def test_manager_lists_all_reservations_with_booker(
     body = response.json()
     assert len(body) == 1
     assert body[0]["user"]["email"] == "mia@example.com"
+    assert [g["user"]["email"] for g in body[0]["guests"]] == [
+        "guest-of-mia@example.com"
+    ]
 
 
 def test_list_my_reservations_respects_limit_and_offset(

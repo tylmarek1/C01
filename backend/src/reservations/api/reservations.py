@@ -59,6 +59,26 @@ from reservations.waitlist_service import offer_next
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
 
+def _attach_guests(db: Session, reservations: list[Reservation]) -> list[Reservation]:
+    """Bulk-query-then-transient-attribute pattern (same as reviews.py's
+    `_attach_images`) — one query for the whole admin list, not one per
+    reservation."""
+    if not reservations:
+        return reservations
+    reservation_ids = [r.id for r in reservations]
+    stmt = (
+        select(ReservationGuest)
+        .where(ReservationGuest.reservation_id.in_(reservation_ids))
+        .order_by(ReservationGuest.created_at)
+    )
+    by_reservation: dict[uuid.UUID, list[ReservationGuest]] = {}
+    for guest in db.scalars(stmt):
+        by_reservation.setdefault(guest.reservation_id, []).append(guest)
+    for reservation in reservations:
+        reservation.guests = by_reservation.get(reservation.id, [])
+    return reservations
+
+
 def _guest_count(db: Session, reservation_id: uuid.UUID) -> int:
     return (
         db.scalar(
@@ -157,7 +177,7 @@ def list_all_reservations(
     if status_filter is not None:
         stmt = stmt.where(Reservation.status == status_filter)
     stmt = stmt.offset(offset).limit(limit)
-    return list(db.scalars(stmt))
+    return _attach_guests(db, list(db.scalars(stmt)))
 
 
 @router.get("/shared-with-me", response_model=list[ReservationOut])

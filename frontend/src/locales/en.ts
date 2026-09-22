@@ -640,6 +640,7 @@ const en = {
   "admin.challenges.metric.GUESTS_INVITED": "Guests invited",
   "admin.challenges.metric.REVIEWS_WRITTEN": "Reviews written",
   "admin.challenges.target": "Target: {target}",
+  "admin.challenges.completedCount": "{count} completed",
   "admin.challenges.toast.created": "Challenge created",
   "admin.challenges.error.create": "Could not create the challenge",
   "admin.challenges.empty": "No challenges yet — create one to run a seasonal push.",
@@ -716,6 +717,7 @@ const en = {
   "admin.error.reservationCheckIn": "Could not check in reservation",
   "admin.reservations.historyDialog.title": "Reservation history",
   "admin.reservations.historyDialog.empty": "No history yet.",
+  "admin.reservations.historyDialog.systemActor": "System",
 
   "admin.availability.blockTitle": "Block a court",
   "admin.availability.blockDescription": "New bookings are rejected in this window; existing ones get cancelled.",

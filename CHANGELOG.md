@@ -10,6 +10,16 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **A venue manager's reservation queue and history now show what was
+  previously hidden.** The admin reservation list includes each booking's
+  guests (previously only the booker was visible — a real gap for
+  resolving a group check-in/no-show dispute), the reservation history
+  dialog now shows who performed each action instead of just what
+  happened, and a `PENDING`/`PENDING_APPROVAL` row shows its hold/approval
+  expiry so the queue can be triaged by urgency. Court cards in the admin
+  Courts tab now show the same star rating the public court page does,
+  and a challenge card in the admin Challenges tab shows how many players
+  have completed it.
 - **Recurring bookings are now visibly marked as a group.** A "Recurring"
   badge on `ReservationCard` and the reservation detail dialog when a
   reservation belongs to a series — previously all 8+ weekly occurrences

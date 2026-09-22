@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from reservations.models import ReservationEventType, ReservationStatus
 from reservations.schemas.auth import UserOut
 from reservations.schemas.court import CourtOut
+from reservations.schemas.reservation_guest import ReservationGuestOut
 
 ALLOWED_DURATIONS_MINUTES = {60, 90, 120}
 OPENING_HOUR = 7
@@ -35,7 +36,9 @@ def validate_slot_shape(start_time: datetime, end_time: datetime) -> None:
         raise ValueError("reservation must start on the hour or half hour")
 
     opens_at = local_start.replace(hour=OPENING_HOUR, minute=0, second=0, microsecond=0)
-    closes_at = local_start.replace(hour=CLOSING_HOUR, minute=0, second=0, microsecond=0)
+    closes_at = local_start.replace(
+        hour=CLOSING_HOUR, minute=0, second=0, microsecond=0
+    )
     if local_start < opens_at or local_end > closes_at:
         raise ValueError("reservation must lie within opening hours 07:00-22:00")
 
@@ -131,6 +134,7 @@ class ReservationAdminOut(ReservationOut):
     """Same as ReservationOut, plus who booked it — for venue-manager views only."""
 
     user: UserOut
+    guests: list[ReservationGuestOut] = []
 
 
 class OpenGameOut(ReservationOut):
@@ -161,6 +165,7 @@ class ReservationEventOut(BaseModel):
     id: uuid.UUID
     event_type: ReservationEventType
     actor_id: uuid.UUID | None
+    actor: UserOut | None
     note: str | None
     created_at: datetime
 
