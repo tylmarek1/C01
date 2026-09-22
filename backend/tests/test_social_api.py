@@ -215,6 +215,70 @@ def test_search_players_requires_at_least_two_characters(
     assert client.get("/users/search?q=", headers=headers).json() == []
 
 
+def test_empty_search_query_browses_public_profiles(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token, _user_id = register_named(client, "Browser Bella", "s1@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    _tok_pub, _pub_id = register_named(client, "Pavla Public", "s2@example.com")
+    token_priv, _priv_id = register_named(client, "Petr Private", "s3@example.com")
+    client.put(
+        "/users/me/profile",
+        json={"profile_public": False},
+        headers={"Authorization": f"Bearer {token_priv}"},
+    )
+
+    directory = client.get("/users/search", headers=headers).json()
+    names = [r["name"] for r in directory]
+    assert "Pavla Public" in names
+    assert "Petr Private" not in names
+    assert "Browser Bella" not in names  # self excluded
+
+
+def test_empty_search_query_respects_limit_and_offset(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token, _user_id = register_named(client, "Paginator", "t1@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    for i in range(3):
+        register_named(client, f"Public {i}", f"t{i + 2}@example.com")
+
+    first_page = client.get(
+        "/users/search", params={"limit": 2, "offset": 0}, headers=headers
+    ).json()
+    second_page = client.get(
+        "/users/search", params={"limit": 2, "offset": 2}, headers=headers
+    ).json()
+    assert len(first_page) == 2
+    assert len(second_page) == 1
+    assert {r["id"] for r in first_page}.isdisjoint({r["id"] for r in second_page})
+
+
+def test_follower_list_hidden_for_private_profile(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token_owner, owner_id = register_named(client, "Owner Olga", "u1@example.com")
+    token_other, _other_id = register_named(client, "Other Oskar", "u2@example.com")
+    headers_owner = {"Authorization": f"Bearer {token_owner}"}
+    headers_other = {"Authorization": f"Bearer {token_other}"}
+
+    client.put(
+        "/users/me/profile", json={"profile_public": False}, headers=headers_owner
+    )
+    client.post(f"/users/{owner_id}/follow", headers=headers_other)
+
+    forbidden = client.get(f"/users/{owner_id}/followers", headers=headers_other)
+    assert forbidden.status_code == 403
+
+    # The owner can still see their own list, same as get_player_profile's rule.
+    own_view = client.get(f"/users/{owner_id}/followers", headers=headers_owner)
+    assert own_view.status_code == 200
+    assert len(own_view.json()) == 1
+
+
 def test_profile_shows_recent_completed_matches_with_opponent_and_result(
     session_factory: sessionmaker,
 ) -> None:

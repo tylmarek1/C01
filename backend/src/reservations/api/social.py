@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -39,13 +39,30 @@ router = APIRouter(prefix="/users", tags=["social"])
 
 @router.get("/search", response_model=list[PlayerSearchResult])
 def search_players(
-    q: str,
+    q: str = "",
+    limit: int = Query(default=20, ge=1, le=50),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[PlayerSearchResult]:
     query = q.strip()
+
     if len(query) < 2:
-        return []
+        # No search text — browse public profiles instead of an always-empty
+        # result, so /app/players is an actual directory (PlayersDirectoryPage)
+        # and not only reachable by already knowing someone's name.
+        matches = db.scalars(
+            select(User)
+            .where(User.id != current_user.id)
+            .where(User.profile_public.is_(True))
+            .order_by(User.name)
+            .offset(offset)
+            .limit(limit)
+        ).all()
+        return [
+            PlayerSearchResult(id=u.id, name=u.name, avatar_url=u.avatar_url)
+            for u in matches
+        ]
 
     # Name search only surfaces public profiles — searching by name must not
     # let someone discover a private profile exists. An exact email match is
@@ -60,7 +77,7 @@ def search_players(
             | (func.lower(User.email) == query.lower())
         )
         .order_by(User.name)
-        .limit(10)
+        .limit(limit)
     ).all()
     return [
         PlayerSearchResult(id=u.id, name=u.name, avatar_url=u.avatar_url)
@@ -270,12 +287,29 @@ def unfollow_player(
         db.commit()
 
 
+def _require_visible_profile(
+    db: Session, user_id: uuid.UUID, current_user: User
+) -> User:
+    """Same visibility rule get_player_profile applies to bio/stats — a
+    private profile's follower/following *list* is at least as sensitive as
+    those, so it needs the same gate rather than being open to anyone
+    signed in."""
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Player not found")
+    is_self = user.id == current_user.id
+    if not (is_self or user.profile_public or current_user.role == UserRole.ADMIN):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This profile is private")
+    return user
+
+
 @router.get("/{user_id}/followers", response_model=list[FollowerOut])
 def list_followers(
     user_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> list[FollowerOut]:
+    _require_visible_profile(db, user_id, current_user)
     rows = db.execute(
         select(User, PlayerFollow.created_at)
         .join(PlayerFollow, PlayerFollow.follower_id == User.id)
@@ -292,8 +326,9 @@ def list_followers(
 def list_following(
     user_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> list[FollowerOut]:
+    _require_visible_profile(db, user_id, current_user)
     rows = db.execute(
         select(User, PlayerFollow.created_at)
         .join(PlayerFollow, PlayerFollow.followee_id == User.id)

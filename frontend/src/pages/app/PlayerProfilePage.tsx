@@ -40,7 +40,7 @@ function FollowListDialog({
 }) {
   const [open, setOpen] = useState(false)
   const { t } = useTranslation()
-  const { data, isLoading } = useQuery({ queryKey, queryFn, enabled: open })
+  const { data, isLoading, isError } = useQuery({ queryKey, queryFn, enabled: open })
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -50,10 +50,13 @@ function FollowListDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {isLoading && <Skeleton className="h-40 w-full" />}
-        {!isLoading && (data?.length ?? 0) === 0 && (
+        {!isLoading && isError && (
+          <p className="py-6 text-center text-sm text-slate-gray">{t("playerProfile.followList.private")}</p>
+        )}
+        {!isLoading && !isError && (data?.length ?? 0) === 0 && (
           <p className="py-6 text-center text-sm text-slate-gray">{t("playerProfile.followList.empty")}</p>
         )}
-        {!isLoading && data && data.length > 0 && (
+        {!isLoading && !isError && data && data.length > 0 && (
           <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
             {data.map((entry) => (
               <Link
