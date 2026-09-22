@@ -274,6 +274,7 @@ function CourtDetailPage() {
                 <h1 className="text-3xl font-bold text-ink-navy">{court.name}</h1>
                 <Badge>{sportLabels[court.sport_type]}</Badge>
                 <Badge variant="secondary">{court.indoor ? t("courts.indoor") : t("courts.outdoor")}</Badge>
+                {court.requires_approval && <Badge variant="warning">{t("courts.requiresApproval")}</Badge>}
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {court.review_count > 0 && (

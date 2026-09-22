@@ -126,7 +126,9 @@ export interface ReservationSeriesResult {
 export interface BusySlot {
   start_time: string
   end_time: string
-  status: ReservationStatus
+  source: "RESERVATION" | "FACILITY_BLOCK"
+  status: ReservationStatus | null
+  reason: string | null
 }
 
 export interface CourtAvailability {

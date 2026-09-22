@@ -375,6 +375,11 @@ function ReservationCard({
 
       <div className="flex flex-wrap items-center gap-2.5">
         <Badge variant={STATUS_VARIANT[status]}>{statusLabels[status]}</Badge>
+        {reservation.series_id && (
+          <Badge variant="secondary">
+            <Repeat className="size-3" /> {t("reservationCard.recurring")}
+          </Badge>
+        )}
 
         {status === "PENDING" && onConfirm && (
           <Button size="sm" disabled={isBusy} onClick={() => onConfirm(reservation)}>

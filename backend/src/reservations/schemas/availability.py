@@ -11,7 +11,12 @@ from reservations.schemas.reservation import validate_slot_shape
 class BusySlot(BaseModel):
     start_time: datetime
     end_time: datetime
-    status: ReservationStatus
+    source: Literal["RESERVATION", "FACILITY_BLOCK"]
+    # Only set when source=RESERVATION.
+    status: ReservationStatus | None = None
+    # Only set when source=FACILITY_BLOCK — the manager's free-text reason
+    # (e.g. "Court maintenance").
+    reason: str | None = None
 
 
 class CourtAvailability(BaseModel):

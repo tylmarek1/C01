@@ -243,15 +243,44 @@ def get_court_availability(
     )
     busy = list(db.scalars(stmt))
 
+    # A facility block rejects a new booking the same way an active
+    # reservation does (booking_validation.check_facility_available) — the
+    # availability timeline must show both, or a slot can look free here and
+    # still 409 at submit.
+    block_stmt = (
+        select(FacilityBlock)
+        .where(FacilityBlock.court_id == court.id)
+        .where(FacilityBlock.start_time < closes_at)
+        .where(FacilityBlock.end_time > opens_at)
+        .order_by(FacilityBlock.start_time)
+    )
+    blocks = list(db.scalars(block_stmt))
+
+    slots = [
+        BusySlot(
+            start_time=r.start_time,
+            end_time=r.end_time,
+            source="RESERVATION",
+            status=r.status,
+        )
+        for r in busy
+    ] + [
+        BusySlot(
+            start_time=b.start_time,
+            end_time=b.end_time,
+            source="FACILITY_BLOCK",
+            reason=b.reason,
+        )
+        for b in blocks
+    ]
+    slots.sort(key=lambda slot: slot.start_time)
+
     return CourtAvailability(
         court_id=str(court.id),
         date=date.isoformat(),
         opens_at=opens_at.isoformat(),
         closes_at=closes_at.isoformat(),
-        busy=[
-            BusySlot(start_time=r.start_time, end_time=r.end_time, status=r.status)
-            for r in busy
-        ],
+        busy=slots,
     )
 
 

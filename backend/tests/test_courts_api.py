@@ -100,7 +100,46 @@ def test_availability_reflects_existing_reservation(
     assert response.status_code == 200
     body = response.json()
     assert len(body["busy"]) == 1
+    assert body["busy"][0]["source"] == "RESERVATION"
     assert body["busy"][0]["status"] == "PENDING"
+
+
+def test_availability_includes_facility_block(session_factory: sessionmaker) -> None:
+    """A facility block rejects a booking the same way an active reservation
+    does (booking_validation.check_facility_available) — the availability
+    timeline must reflect that, or a slot can look free here and still 409
+    at submit."""
+    client = TestClient(app)
+    court_id = seed_court(session_factory, name="Tennis Block")
+    manager_token = register_and_login(client, "block-manager@example.com")
+    promote_to_manager(session_factory, "block-manager@example.com")
+
+    day = (datetime.now(PRAGUE) + timedelta(days=5)).date()
+    start = datetime(day.year, day.month, day.day, 9, tzinfo=PRAGUE)
+    end = start + timedelta(hours=2)
+    create_response = client.post(
+        "/facility-blocks",
+        json={
+            "court_id": court_id,
+            "start_time": start.isoformat(),
+            "end_time": end.isoformat(),
+            "reason": "Court maintenance",
+        },
+        headers={"Authorization": f"Bearer {manager_token}"},
+    )
+    assert create_response.status_code == 201
+
+    response = client.get(
+        f"/courts/{court_id}/availability", params={"date": day.isoformat()}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["busy"]) == 1
+    slot = body["busy"][0]
+    assert slot["source"] == "FACILITY_BLOCK"
+    assert slot["status"] is None
+    assert slot["reason"] == "Court maintenance"
 
 
 def test_non_manager_cannot_create_court(session_factory: sessionmaker) -> None:

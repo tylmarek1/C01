@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, MessageCircle, X } from "lucide-react"
+import { Check, MessageCircle, Repeat, X } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
@@ -128,7 +128,14 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                     {formatDateRange(reservation.start_time, reservation.end_time)}
                   </span>
                 </div>
-                <Badge variant={STATUS_VARIANT[reservation.status]}>{statusLabels[reservation.status]}</Badge>
+                <div className="flex items-center gap-2">
+                  {reservation.series_id && (
+                    <Badge variant="secondary">
+                      <Repeat className="size-3" /> {t("reservationCard.recurring")}
+                    </Badge>
+                  )}
+                  <Badge variant={STATUS_VARIANT[reservation.status]}>{statusLabels[reservation.status]}</Badge>
+                </div>
               </div>
 
               {reservation.status === "PENDING" && reservation.hold_expires_at && (
