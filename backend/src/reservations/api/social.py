@@ -1,15 +1,19 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from reservations import achievements
 from reservations.activity import emit_activity
 from reservations.deps import get_current_user, get_db
 from reservations.models import (
+    MatchResult,
     NotificationType,
     PlayerFollow,
+    Reservation,
+    ReservationGuest,
+    ReservationStatus,
     SkillRating,
     User,
     UserAchievement,
@@ -25,7 +29,10 @@ from reservations.schemas.social import (
     PlayerProfileStats,
     PlayerSearchResult,
     ProfileUpdate,
+    RecentMatchOut,
 )
+
+RECENT_MATCHES_LIMIT = 5
 
 router = APIRouter(prefix="/users", tags=["social"])
 
@@ -70,6 +77,62 @@ def _follow_count(db: Session, column, user_id: uuid.UUID) -> int:
     )
 
 
+def _recent_matches(db: Session, user_id: uuid.UUID) -> list[RecentMatchOut]:
+    """Last few COMPLETED reservations this player was part of, as booker or
+    accepted guest. Opponent/result are only filled in for a 1-on-1
+    reservation with a reported MatchResult — same scope as ratings.py."""
+    reservations = db.scalars(
+        select(Reservation)
+        .outerjoin(ReservationGuest, ReservationGuest.reservation_id == Reservation.id)
+        .where(Reservation.status == ReservationStatus.COMPLETED)
+        .where(or_(Reservation.user_id == user_id, ReservationGuest.user_id == user_id))
+        .order_by(Reservation.start_time.desc())
+        .distinct()
+        .limit(RECENT_MATCHES_LIMIT)
+    ).all()
+
+    matches = []
+    for reservation in reservations:
+        guest_ids = db.scalars(
+            select(ReservationGuest.user_id).where(
+                ReservationGuest.reservation_id == reservation.id
+            )
+        ).all()
+        participant_ids = {reservation.user_id, *guest_ids}
+        opponent = None
+        result = None
+        if len(participant_ids) == 2:
+            opponent_user = db.get(User, next(iter(participant_ids - {user_id})))
+            if opponent_user is not None:
+                opponent = PlayerSearchResult(
+                    id=opponent_user.id,
+                    name=opponent_user.name,
+                    avatar_url=opponent_user.avatar_url,
+                )
+            match_result = db.scalar(
+                select(MatchResult).where(MatchResult.reservation_id == reservation.id)
+            )
+            if match_result is not None:
+                result = (
+                    "draw"
+                    if match_result.winner_user_id is None
+                    else "win"
+                    if match_result.winner_user_id == user_id
+                    else "loss"
+                )
+        matches.append(
+            RecentMatchOut(
+                reservation_id=reservation.id,
+                court_name=reservation.court.name,
+                sport_type=reservation.court.sport_type,
+                played_at=reservation.start_time,
+                opponent=opponent,
+                result=result,
+            )
+        )
+    return matches
+
+
 def _profile_stats(db: Session, user_id: uuid.UUID) -> PlayerProfileStats:
     stats = achievements.player_stats(db, user_id)
     earned_at_by_key = dict(
@@ -101,6 +164,7 @@ def _profile_stats(db: Session, user_id: uuid.UUID) -> PlayerProfileStats:
         current_streak_weeks=stats.current_streak_weeks,
         achievements=earned,
         ratings=ratings,
+        recent_matches=_recent_matches(db, user_id),
     )
 
 

@@ -10,6 +10,11 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **A "Recent games" section on player profiles.** The last 5 `COMPLETED`
+  reservations a player was part of (as booker or accepted guest), with
+  court/sport/date; a 1-on-1 game with a reported match result also shows
+  the opponent and win/loss/draw. Respects the existing profile-visibility
+  gate — hidden whenever the rest of a private profile's stats are.
 - **Photos when writing a review**, not just afterward. Review photos
   shipped earlier (up to 4 per review, shown on the court detail page)
   but the only way to attach one was to add it after the fact from

@@ -1,7 +1,48 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
 from reservations.main import app
+from reservations.models import (
+    Court,
+    MatchResult,
+    Reservation,
+    ReservationGuest,
+    ReservationStatus,
+    SportType,
+)
+
+
+def seed_completed_reservation(
+    session_factory: sessionmaker,
+    booker_id: str,
+    guest_ids: list[str],
+    court_name: str = "Recent Games Court",
+) -> str:
+    with session_factory() as session:
+        court = Court(name=court_name, sport_type=SportType.TENNIS, indoor=False)
+        session.add(court)
+        session.flush()
+        reservation = Reservation(
+            court_id=court.id,
+            user_id=booker_id,
+            start_time=datetime.now(timezone.utc) - timedelta(hours=3),
+            end_time=datetime.now(timezone.utc) - timedelta(hours=2),
+            status=ReservationStatus.COMPLETED,
+        )
+        session.add(reservation)
+        session.flush()
+        for guest_id in guest_ids:
+            session.add(
+                ReservationGuest(
+                    reservation_id=reservation.id,
+                    user_id=guest_id,
+                    invited_by_id=booker_id,
+                )
+            )
+        session.commit()
+        return str(reservation.id)
 
 
 def register_and_login(client: TestClient, email: str) -> tuple[str, str]:
@@ -172,3 +213,62 @@ def test_search_players_requires_at_least_two_characters(
 
     assert client.get("/users/search?q=a", headers=headers).json() == []
     assert client.get("/users/search?q=", headers=headers).json() == []
+
+
+def test_profile_shows_recent_completed_matches_with_opponent_and_result(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token_a, user_a = register_named(client, "Rex Recent", "q@example.com")
+    _token_b, user_b = register_named(client, "Sable Opponent", "r@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+
+    reservation_id = seed_completed_reservation(session_factory, user_a, [user_b])
+    with session_factory() as session:
+        session.add(
+            MatchResult(
+                reservation_id=reservation_id,
+                reported_by=user_a,
+                winner_user_id=user_a,
+            )
+        )
+        session.commit()
+
+    profile = client.get(f"/users/{user_a}/profile", headers=headers_a).json()
+    matches = profile["stats"]["recent_matches"]
+    assert len(matches) == 1
+    assert matches[0]["reservation_id"] == reservation_id
+    assert matches[0]["court_name"] == "Recent Games Court"
+    assert matches[0]["opponent"]["name"] == "Sable Opponent"
+    assert matches[0]["result"] == "win"
+
+    # The opponent's own profile shows the mirrored loss.
+    opponent_profile = client.get(f"/users/{user_b}/profile", headers=headers_a).json()
+    assert opponent_profile["stats"]["recent_matches"][0]["result"] == "loss"
+
+
+def test_recent_matches_empty_for_no_completed_games(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token, user_id = register_named(client, "No Games", "s@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    profile = client.get(f"/users/{user_id}/profile", headers=headers).json()
+    assert profile["stats"]["recent_matches"] == []
+
+
+def test_recent_matches_hidden_for_a_private_profile(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token_a, user_a = register_named(client, "Private Rex", "u@example.com")
+    token_b, user_b = register_named(client, "Viewer", "v@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    seed_completed_reservation(session_factory, user_a, [user_b])
+    client.put("/users/me/profile", json={"profile_public": False}, headers=headers_a)
+
+    profile = client.get(f"/users/{user_a}/profile", headers=headers_b).json()
+    assert profile["stats"] is None

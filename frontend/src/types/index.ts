@@ -251,6 +251,15 @@ export interface LeaderboardEntry {
   rank: number
 }
 
+export interface RecentMatch {
+  reservation_id: string
+  court_name: string
+  sport_type: SportType
+  played_at: string
+  opponent: PlayerSearchResult | null
+  result: "win" | "loss" | "draw" | null
+}
+
 export interface PlayerProfileStats {
   completed_reservations: number
   distinct_courts_played: number
@@ -258,6 +267,7 @@ export interface PlayerProfileStats {
   current_streak_weeks: number
   achievements: Achievement[]
   ratings: SkillRatingEntry[]
+  recent_matches: RecentMatch[]
 }
 
 export interface PlayerProfile {
