@@ -39,6 +39,9 @@ export type NotificationType =
   | "JOIN_REQUEST_ACCEPTED"
   | "JOIN_REQUEST_DECLINED"
   | "NEW_FOLLOWER"
+  | "TEAM_MEMBER_ADDED"
+  | "MATCH_RESULT_REPORTED"
+  | "CHALLENGE_COMPLETED"
 export type ReservationEventType =
   | "CREATED"
   | "SUBMITTED"

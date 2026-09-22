@@ -7,7 +7,7 @@ interface NotificationCategory {
 }
 
 // The backend mutes/unmutes individual NotificationType values, but toggling
-// 16 of them one by one isn't a settings UI anyone wants — these are the
+// 19 of them one by one isn't a settings UI anyone wants — these are the
 // user-facing groups shown instead. Every NotificationType must appear in
 // exactly one group.
 export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
@@ -26,9 +26,11 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   { key: "approvals", types: ["APPROVAL_REQUESTED"] },
   { key: "facility", types: ["FACILITY_UNAVAILABLE"] },
   { key: "waitlist", types: ["WAITLIST_JOINED", "WAITLIST_SLOT_OFFERED"] },
-  { key: "achievements", types: ["ACHIEVEMENT_UNLOCKED"] },
+  { key: "achievements", types: ["ACHIEVEMENT_UNLOCKED", "CHALLENGE_COMPLETED"] },
   { key: "joinRequests", types: ["JOIN_REQUEST_RECEIVED", "JOIN_REQUEST_ACCEPTED", "JOIN_REQUEST_DECLINED"] },
   { key: "social", types: ["NEW_FOLLOWER"] },
+  { key: "teams", types: ["TEAM_MEMBER_ADDED"] },
+  { key: "matches", types: ["MATCH_RESULT_REPORTED"] },
 ]
 
 export function useNotificationCategoryLabels(): Record<string, { title: string; description: string }> {
@@ -65,6 +67,14 @@ export function useNotificationCategoryLabels(): Record<string, { title: string;
     social: {
       title: t("notificationPrefs.social.title"),
       description: t("notificationPrefs.social.description"),
+    },
+    teams: {
+      title: t("notificationPrefs.teams.title"),
+      description: t("notificationPrefs.teams.description"),
+    },
+    matches: {
+      title: t("notificationPrefs.matches.title"),
+      description: t("notificationPrefs.matches.description"),
     },
   }
 }

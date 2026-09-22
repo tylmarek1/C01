@@ -157,6 +157,11 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Fixed
 
+- Clicking a "added to a team," "match result reported" or "challenge
+  completed" notification no longer goes nowhere, and all three can now be
+  muted from Profile → Notifications — the frontend's `NotificationType`
+  list had drifted out of sync with the backend's since the PRs that added
+  them.
 - Confirming a hold whose 5 minutes had passed (but was not yet swept), or on a
   court that was deactivated, no longer succeeds.
 - A late Confirm can no longer overwrite a Cancel that won the race, and the
