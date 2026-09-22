@@ -674,11 +674,12 @@ def invite_guest(
             f"A reservation can have at most {rules.MAX_GUESTS_PER_RESERVATION} guests",
         )
 
-    invitee = db.scalar(select(User).where(User.email == payload.email))
+    if payload.user_id is not None:
+        invitee = db.get(User, payload.user_id)
+    else:
+        invitee = db.scalar(select(User).where(User.email == payload.email))
     if invitee is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, "No Courtly account with that email yet"
-        )
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No Courtly account found")
     if invitee.id == reservation.user_id:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "That's you — you're already on this reservation"

@@ -10,6 +10,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Player search and a players directory** (`/app/players`, navbar
+  "Players" link). `GET /users/search?q=` matches public profiles by name
+  (an exact email match still resolves a private profile, same as before)
+  — this is what actually makes the profile pages from the "Courtly
+  Communities" epic discoverable instead of only reachable by stumbling
+  onto a link.
 - **Public player profiles and follow.** A profile page per player
   (`/app/players/:id`) showing bio, achievements, skill ratings and a
   follow button; a profile is public by default with an opt-out toggle,
@@ -103,6 +109,11 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Changed
 
+- Inviting a guest to a reservation and adding a team member now search
+  players by name in the UI instead of requiring their exact email
+  address; both endpoints accept a `user_id` as an alternative to
+  `email` (email still works, e.g. for a private profile you already
+  know the address of).
 - Gallery/list photos (court grids, admin/profile galleries, leaderboard
   and teammate avatars) now lazy-load instead of downloading immediately;
   the one true hero photo per page still loads eagerly. Uploaded files

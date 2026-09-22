@@ -1,13 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Send, Users } from "lucide-react"
+import { ArrowLeft, Send, SquarePen, Users } from "lucide-react"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Button } from "@/components/shared/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/shared/dialog"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Input } from "@/components/shared/input"
+import { PlayerSearch } from "@/components/shared/player-search"
 import { Skeleton } from "@/components/shared/skeleton"
 import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
@@ -68,6 +70,7 @@ function ChatPage() {
   const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [draft, setDraft] = useState("")
+  const [newMessageOpen, setNewMessageOpen] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const selectedId = searchParams.get("conversation")
@@ -116,6 +119,16 @@ function ChatPage() {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("chat.error.sendFailed")),
   })
 
+  const startDmMutation = useMutation({
+    mutationFn: (userId: string) => api.openDirectMessage(token!, userId),
+    onSuccess: (conversation) => {
+      setNewMessageOpen(false)
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      setSearchParams({ conversation: conversation.id })
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("chat.error.startFailed")),
+  })
+
   function handleSend(event: FormEvent) {
     event.preventDefault()
     const body = draft.trim()
@@ -128,7 +141,12 @@ function ChatPage() {
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">
       <div className={cn("flex w-full flex-col gap-2 overflow-y-auto sm:w-80 sm:shrink-0", selectedId && "hidden sm:flex")}>
-        <h1 className="px-1 text-lg font-bold text-ink-navy">{t("chat.title")}</h1>
+        <div className="flex items-center justify-between px-1">
+          <h1 className="text-lg font-bold text-ink-navy">{t("chat.title")}</h1>
+          <Button variant="ghost" size="icon" aria-label={t("chat.newMessage")} onClick={() => setNewMessageOpen(true)}>
+            <SquarePen className="size-4" />
+          </Button>
+        </div>
         {isLoadingConversations && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
         {!isLoadingConversations && conversations?.length === 0 && (
           <EmptyState title={t("chat.empty.title")} description={t("chat.empty.description")} />
@@ -215,6 +233,19 @@ function ChatPage() {
           </>
         )}
       </div>
+
+      <Dialog open={newMessageOpen} onOpenChange={setNewMessageOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("chat.newMessage")}</DialogTitle>
+          </DialogHeader>
+          <PlayerSearch
+            autoFocus
+            placeholder={t("playerSearch.placeholder")}
+            onSelect={(player) => startDmMutation.mutate(player.id)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

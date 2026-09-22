@@ -247,3 +247,44 @@ def test_removing_a_member_revokes_their_chat_access_immediately(
         ).status_code
         == 403
     )
+
+
+def test_owner_can_add_a_member_by_user_id(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    owner_token, _owner_id = register_and_login(client, "aria@example.com")
+    _member_token, member_id = register_and_login(client, "beau@example.com")
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
+
+    team_id = client.post(
+        "/teams", json={"name": "Aria's Crew"}, headers=owner_headers
+    ).json()["id"]
+
+    added = client.post(
+        f"/teams/{team_id}/members",
+        json={"user_id": member_id},
+        headers=owner_headers,
+    )
+    assert added.status_code == 200
+    assert member_id in {m["user"]["id"] for m in added.json()["members"]}
+
+
+def test_add_member_requires_exactly_one_of_email_or_user_id(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    owner_token, _owner_id = register_and_login(client, "cleo@example.com")
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
+
+    team_id = client.post(
+        "/teams", json={"name": "Cleo's Crew"}, headers=owner_headers
+    ).json()["id"]
+
+    neither = client.post(f"/teams/{team_id}/members", json={}, headers=owner_headers)
+    assert neither.status_code == 422
+
+    both = client.post(
+        f"/teams/{team_id}/members",
+        json={"email": "cleo@example.com", "user_id": _owner_id},
+        headers=owner_headers,
+    )
+    assert both.status_code == 422

@@ -23,6 +23,7 @@ import type {
   NotificationType,
   OpenGame,
   PlayerProfile,
+  PlayerSearchResult,
   PlayerStats,
   RatingLeaderboardEntry,
   Reservation,
@@ -117,6 +118,15 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
   }
   const query = search.toString()
   return query ? `?${query}` : ""
+}
+
+// Shared shape for "add this person" endpoints (guest invite, team member
+// add) now that a player-search result gives us an id directly — email
+// stays as the fallback for a known address without searching.
+export type PlayerTarget = { userId: string } | { email: string }
+
+function playerTargetBody(target: PlayerTarget): { user_id: string } | { email: string } {
+  return "userId" in target ? { user_id: target.userId } : { email: target.email }
 }
 
 export const api = {
@@ -331,10 +341,10 @@ export const api = {
   listGuests: (token: string, reservationId: string) =>
     request<ReservationGuest[]>(`/reservations/${reservationId}/guests`, {}, token),
 
-  inviteGuest: (token: string, reservationId: string, email: string) =>
+  inviteGuest: (token: string, reservationId: string, target: PlayerTarget) =>
     request<ReservationGuest>(
       `/reservations/${reservationId}/guests`,
-      { method: "POST", body: JSON.stringify({ email }) },
+      { method: "POST", body: JSON.stringify(playerTargetBody(target)) },
       token,
     ),
 
@@ -471,8 +481,11 @@ export const api = {
 
   openTeamChat: (token: string, teamId: string) => request<Conversation>(`/teams/${teamId}/chat`, {}, token),
 
-  addTeamMember: (token: string, teamId: string, email: string) =>
-    request<Team>(`/teams/${teamId}/members`, { method: "POST", body: JSON.stringify({ email }) }, token),
+  addTeamMember: (token: string, teamId: string, target: PlayerTarget) =>
+    request<Team>(`/teams/${teamId}/members`, { method: "POST", body: JSON.stringify(playerTargetBody(target)) }, token),
+
+  searchPlayers: (token: string, q: string) =>
+    request<PlayerSearchResult[]>(`/users/search${buildQuery({ q })}`, {}, token),
 
   removeTeamMember: (token: string, teamId: string, userId: string) =>
     request<Team>(`/teams/${teamId}/members/${userId}`, { method: "DELETE" }, token),

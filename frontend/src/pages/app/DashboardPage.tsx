@@ -38,7 +38,7 @@ import { formatDateRange } from "@/lib/format"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import { cn } from "@/lib/utils"
-import type { OpenGame, Reservation } from "@/types"
+import type { OpenGame, PlayerSearchResult, Reservation } from "@/types"
 
 type ViewMode = "list" | "calendar" | "open" | "feed"
 
@@ -121,8 +121,8 @@ function DashboardPage() {
   }
 
   const inviteGuestMutation = useMutation({
-    mutationFn: ({ reservation, email }: { reservation: Reservation; email: string }) =>
-      api.inviteGuest(token!, reservation.id, email),
+    mutationFn: ({ reservation, player }: { reservation: Reservation; player: PlayerSearchResult }) =>
+      api.inviteGuest(token!, reservation.id, { userId: player.id }),
     onSuccess: () => toast.success(t("dashboard.toast.inviteSent")),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("dashboard.error.invite")),
   })
@@ -342,7 +342,7 @@ function DashboardPage() {
               onCheckIn={(r) => checkInMutation.mutate(r)}
               onReschedule={(reservation, startTime, endTime) => rescheduleMutation.mutate({ reservation, startTime, endTime })}
               onOpenDetail={setDetailReservation}
-              onInviteGuest={(reservation, email) => inviteGuestMutation.mutate({ reservation, email })}
+              onInviteGuest={(reservation, player) => inviteGuestMutation.mutate({ reservation, player })}
               onSetOpen={(reservation, openToJoin, note) => setOpenMutation.mutate({ reservation, openToJoin, note })}
               isSettingOpen={setOpenMutation.isPending}
               hasReview={reviewedReservationIds.has(reservation.id)}

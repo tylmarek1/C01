@@ -16,6 +16,18 @@ def register_and_login(client: TestClient, email: str) -> tuple[str, str]:
     return body["access_token"], body["user"]["id"]
 
 
+def register_named(client: TestClient, name: str, email: str) -> tuple[str, str]:
+    client.post(
+        "/auth/register",
+        json={"name": name, "email": email, "password": "supersecret"},
+    )
+    response = client.post(
+        "/auth/login", json={"email": email, "password": "supersecret"}
+    )
+    body = response.json()
+    return body["access_token"], body["user"]["id"]
+
+
 def test_follow_and_unfollow_round_trip(session_factory: sessionmaker) -> None:
     client = TestClient(app)
     _token_a, user_a = register_and_login(client, "a@example.com")
@@ -110,3 +122,53 @@ def test_getting_an_unknown_players_profile_is_404(
         "/users/00000000-0000-0000-0000-000000000000/profile", headers=headers
     )
     assert response.status_code == 404
+
+
+def test_search_players_matches_public_profile_by_name(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token, _user_id = register_named(client, "Searcher", "k@example.com")
+    register_named(client, "Zdenka Novotna", "l@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    results = client.get("/users/search?q=Zdenka", headers=headers).json()
+    assert [r["name"] for r in results] == ["Zdenka Novotna"]
+
+
+def test_search_players_excludes_self(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    token, _user_id = register_named(client, "Sam Self", "m@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    results = client.get("/users/search?q=Sam", headers=headers).json()
+    assert results == []
+
+
+def test_search_players_hides_private_profile_from_name_search_but_email_still_resolves(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token_a, _user_a = register_named(client, "Private Pavel", "n@example.com")
+    token_b, _user_b = register_named(client, "Searcher Two", "o@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    client.put("/users/me/profile", json={"profile_public": False}, headers=headers_a)
+
+    by_name = client.get("/users/search?q=Pavel", headers=headers_b).json()
+    assert by_name == []
+
+    by_email = client.get("/users/search?q=n@example.com", headers=headers_b).json()
+    assert [r["name"] for r in by_email] == ["Private Pavel"]
+
+
+def test_search_players_requires_at_least_two_characters(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token, _user_id = register_named(client, "Searcher Three", "p@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    assert client.get("/users/search?q=a", headers=headers).json() == []
+    assert client.get("/users/search?q=", headers=headers).json() == []

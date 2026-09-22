@@ -20,6 +20,9 @@ const DashboardPage = lazy(() => import("@/pages/app/DashboardPage").then((m) =>
 const BookCourtPage = lazy(() => import("@/pages/app/BookCourtPage").then((m) => ({ default: m.BookCourtPage })))
 const ProfilePage = lazy(() => import("@/pages/app/ProfilePage").then((m) => ({ default: m.ProfilePage })))
 const PlayerProfilePage = lazy(() => import("@/pages/app/PlayerProfilePage").then((m) => ({ default: m.PlayerProfilePage })))
+const PlayersDirectoryPage = lazy(() =>
+  import("@/pages/app/PlayersDirectoryPage").then((m) => ({ default: m.PlayersDirectoryPage })),
+)
 const ChatPage = lazy(() => import("@/pages/app/ChatPage").then((m) => ({ default: m.ChatPage })))
 const TeamsPage = lazy(() => import("@/pages/app/TeamsPage").then((m) => ({ default: m.TeamsPage })))
 const TeamDetailPage = lazy(() => import("@/pages/app/TeamDetailPage").then((m) => ({ default: m.TeamDetailPage })))
@@ -75,6 +78,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="app/players"
+          element={
+            <ProtectedRoute>
+              <PlayersDirectoryPage />
             </ProtectedRoute>
           }
         />
