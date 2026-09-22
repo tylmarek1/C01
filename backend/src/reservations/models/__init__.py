@@ -11,6 +11,7 @@ from reservations.models.favorite import Favorite
 from reservations.models.join_request import JoinRequest, JoinRequestStatus
 from reservations.models.match_result import MatchResult
 from reservations.models.message import Message
+from reservations.models.message_reaction import ALLOWED_REACTION_EMOJI, MessageReaction
 from reservations.models.notification import Notification, NotificationType
 from reservations.models.player_follow import PlayerFollow
 from reservations.models.push_subscription import PushSubscription
@@ -66,6 +67,8 @@ __all__ = [
     "ConversationKind",
     "ConversationParticipant",
     "Message",
+    "MessageReaction",
+    "ALLOWED_REACTION_EMOJI",
     "Team",
     "TeamRole",
     "TeamMember",

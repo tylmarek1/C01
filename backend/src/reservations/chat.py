@@ -191,7 +191,14 @@ def to_conversation_out(
 ) -> ConversationOut:
     """The one canonical way to build a ConversationOut — shared by every
     router that returns one (chat.py's DM/reservation/list endpoints,
-    teams.py's team-chat endpoint) so the shape can't drift between them."""
+    teams.py's team-chat endpoint) so the shape can't drift between them.
+
+    last_message.reactions is always [] here rather than a real per-viewer
+    count: the conversation list only ever renders last_message.body as a
+    preview snippet, never its reactions, so computing them for every
+    conversation in a list would be pure wasted work."""
+    if last_message is not None:
+        last_message.reactions = []
     return ConversationOut(
         id=conversation.id,
         kind=conversation.kind,

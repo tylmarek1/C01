@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Send, SquarePen, Users } from "lucide-react"
-import { useEffect, useRef, useState, type FormEvent } from "react"
+import { ArrowLeft, Paperclip, Send, SmilePlus, SquarePen, Trash2, Users } from "lucide-react"
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react"
 import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Button } from "@/components/shared/button"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/shared/dialog"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Input } from "@/components/shared/input"
@@ -13,10 +14,13 @@ import { PlayerSearch } from "@/components/shared/player-search"
 import { Skeleton } from "@/components/shared/skeleton"
 import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { onChatMessage } from "@/lib/chat-socket"
+import { onChatEvent } from "@/lib/chat-socket"
+import { compressImageFile } from "@/lib/image"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import type { Conversation, Message } from "@/types"
+
+const REACTION_EMOJI = ["👍", "❤️", "😂", "😮", "😢", "🎉"]
 
 function initials(name: string) {
   return name
@@ -64,6 +68,123 @@ function ConversationAvatar({ conversation, selfId }: { conversation: Conversati
   )
 }
 
+function MessageBubble({
+  message,
+  isMine,
+  pickerOpen,
+  onTogglePicker,
+  onToggleReaction,
+  onDelete,
+}: {
+  message: Message
+  isMine: boolean
+  pickerOpen: boolean
+  onTogglePicker: () => void
+  onToggleReaction: (emoji: string) => void
+  onDelete: () => void
+}) {
+  const { t } = useTranslation()
+  const isDeleted = Boolean(message.deleted_at)
+
+  return (
+    <div className={cn("flex flex-col", isMine ? "items-end" : "items-start")}>
+      <div className={cn("flex items-end gap-1.5", isMine && "flex-row-reverse")}>
+        <div
+          className={cn(
+            "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm",
+            isDeleted
+              ? "border border-dashed border-hairline text-slate-gray italic"
+              : isMine
+                ? "bg-signal-blue text-paper"
+                : "bg-pebble text-ink-navy",
+          )}
+        >
+          {isDeleted ? (
+            t("chat.messageDeleted")
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {message.image_url && (
+                <img
+                  src={assetUrl(message.image_url)}
+                  alt=""
+                  loading="lazy"
+                  className="max-h-64 rounded-xl object-cover"
+                />
+              )}
+              {message.body && <span>{message.body}</span>}
+            </div>
+          )}
+        </div>
+        {!isDeleted && (
+          <div className="relative flex shrink-0 items-center gap-0.5">
+            <button
+              type="button"
+              onClick={onTogglePicker}
+              className="flex size-6 items-center justify-center rounded-full text-mist-gray hover:bg-pebble hover:text-slate-gray"
+              aria-label={t("chat.react")}
+            >
+              <SmilePlus className="size-3.5" />
+            </button>
+            {isMine && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="flex size-6 items-center justify-center rounded-full text-mist-gray hover:bg-pebble hover:text-destructive"
+                aria-label={t("chat.deleteMessage")}
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            )}
+            {pickerOpen && (
+              <div
+                className={cn(
+                  "absolute bottom-7 z-10 flex gap-1 rounded-full border border-hairline bg-card p-1 shadow-lg",
+                  isMine ? "right-0" : "left-0",
+                )}
+              >
+                {REACTION_EMOJI.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => onToggleReaction(emoji)}
+                    className="flex size-7 items-center justify-center rounded-full text-base hover:bg-pebble"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {!isDeleted && message.reactions.length > 0 && (
+        <div className={cn("mt-1 flex flex-wrap gap-1", isMine && "justify-end")}>
+          {message.reactions.map((reaction) => (
+            <button
+              key={reaction.emoji}
+              type="button"
+              onClick={() => onToggleReaction(reaction.emoji)}
+              className={cn(
+                "flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs",
+                reaction.reacted_by_me ? "border-signal-blue bg-[#eaf3ff]" : "border-hairline bg-card",
+              )}
+            >
+              <span>{reaction.emoji}</span>
+              <span className="text-[10px] text-slate-gray">{reaction.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <span className="mt-0.5 px-1 text-[10px] text-mist-gray">
+        {!isMine && `${message.sender.name} · `}
+        {timeOf(message.created_at)}
+      </span>
+    </div>
+  )
+}
+
 function ChatPage() {
   const { token, user } = useAuth()
   const queryClient = useQueryClient()
@@ -71,7 +192,10 @@ function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [draft, setDraft] = useState("")
   const [newMessageOpen, setNewMessageOpen] = useState(false)
+  const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const selectedId = searchParams.get("conversation")
 
@@ -97,11 +221,24 @@ function ChatPage() {
   })
 
   useEffect(() => {
-    return onChatMessage((frame) => {
-      queryClient.setQueryData<Message[]>(["chat-messages", frame.conversation_id], (old) =>
-        old ? appendUnique(old, frame.message) : old,
-      )
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+    return onChatEvent((frame) => {
+      if (frame.type === "message") {
+        queryClient.setQueryData<Message[]>(["chat-messages", frame.conversation_id], (old) =>
+          old ? appendUnique(old, frame.message) : old,
+        )
+        queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      } else if (frame.type === "message_deleted") {
+        queryClient.setQueryData<Message[]>(["chat-messages", frame.conversation_id], (old) =>
+          old?.map((m) => (m.id === frame.message_id ? { ...m, body: "", image_url: null, deleted_at: new Date().toISOString() } : m)),
+        )
+      } else if (frame.type === "reaction") {
+        // A delta-applied count (+1/-1 per event) isn't safe against a
+        // duplicate delivery of the same frame — nothing in this event
+        // carries enough identity to dedupe against, unlike appendUnique's
+        // per-message id above. Refetching this one message's true state
+        // is idempotent no matter how many times the same frame arrives.
+        queryClient.invalidateQueries({ queryKey: ["chat-messages", frame.conversation_id] })
+      }
     })
   }, [queryClient])
 
@@ -119,6 +256,42 @@ function ChatPage() {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("chat.error.sendFailed")),
   })
 
+  const sendImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const compressed = await compressImageFile(file, 1200, 0.85)
+      return api.sendMessageImage(token!, selectedId!, compressed, draft.trim() || undefined)
+    },
+    onSuccess: (message) => {
+      setDraft("")
+      queryClient.setQueryData<Message[]>(["chat-messages", selectedId], (old) => appendUnique(old, message))
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("chat.error.sendImageFailed")),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (messageId: string) => api.deleteMessage(token!, selectedId!, messageId),
+    onSuccess: (_void, messageId) => {
+      setDeleteTarget(null)
+      queryClient.setQueryData<Message[]>(["chat-messages", selectedId], (old) =>
+        old?.map((m) => (m.id === messageId ? { ...m, body: "", image_url: null, deleted_at: new Date().toISOString() } : m)),
+      )
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("chat.error.deleteFailed")),
+  })
+
+  const reactionMutation = useMutation({
+    mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
+      api.toggleMessageReaction(token!, selectedId!, messageId, emoji),
+    onSuccess: (message) => {
+      setReactionPickerFor(null)
+      queryClient.setQueryData<Message[]>(["chat-messages", selectedId], (old) =>
+        old?.map((m) => (m.id === message.id ? message : m)),
+      )
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("chat.error.reactFailed")),
+  })
+
   const startDmMutation = useMutation({
     mutationFn: (userId: string) => api.openDirectMessage(token!, userId),
     onSuccess: (conversation) => {
@@ -134,6 +307,13 @@ function ChatPage() {
     const body = draft.trim()
     if (!body) return
     sendMutation.mutate(body)
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+    sendImageMutation.mutate(file)
   }
 
   if (!user) return null
@@ -165,7 +345,13 @@ function ChatPage() {
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-sm font-medium text-ink-navy">{conversationTitle(conversation, user.id)}</span>
               <span className="truncate text-xs text-slate-gray">
-                {conversation.last_message ? conversation.last_message.body : t("chat.noMessagesYet")}
+                {conversation.last_message
+                  ? conversation.last_message.deleted_at
+                    ? t("chat.messageDeleted")
+                    : conversation.last_message.image_url && !conversation.last_message.body
+                      ? t("chat.photoMessage")
+                      : conversation.last_message.body
+                  : t("chat.noMessagesYet")}
               </span>
             </div>
             {conversation.unread_count > 0 && (
@@ -193,33 +379,42 @@ function ChatPage() {
               <span className="font-medium text-ink-navy">{conversationTitle(selected, user.id)}</span>
             </div>
 
-            <div ref={scrollRef} className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
+            <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
               {isLoadingMessages && <Skeleton className="h-10 w-2/3" />}
               {!isLoadingMessages && messages?.length === 0 && (
                 <p className="m-auto text-sm text-slate-gray">{t("chat.noMessagesYet")}</p>
               )}
-              {messages?.map((message) => {
-                const isMine = message.sender.id === user.id
-                return (
-                  <div key={message.id} className={cn("flex flex-col", isMine ? "items-end" : "items-start")}>
-                    <div
-                      className={cn(
-                        "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm",
-                        isMine ? "bg-signal-blue text-paper" : "bg-pebble text-ink-navy",
-                      )}
-                    >
-                      {message.body}
-                    </div>
-                    <span className="mt-0.5 px-1 text-[10px] text-mist-gray">
-                      {!isMine && `${message.sender.name} · `}
-                      {timeOf(message.created_at)}
-                    </span>
-                  </div>
-                )
-              })}
+              {messages?.map((message) => (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  isMine={message.sender.id === user.id}
+                  pickerOpen={reactionPickerFor === message.id}
+                  onTogglePicker={() => setReactionPickerFor((current) => (current === message.id ? null : message.id))}
+                  onToggleReaction={(emoji) => reactionMutation.mutate({ messageId: message.id, emoji })}
+                  onDelete={() => setDeleteTarget(message.id)}
+                />
+              ))}
             </div>
 
             <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-hairline p-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={sendImageMutation.isPending}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label={t("chat.attachImage")}
+              >
+                <Paperclip className="size-4" />
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={handleFileChange}
+              />
               <Input
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -246,6 +441,16 @@ function ChatPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={t("confirmDialog.deleteMessage.title")}
+        description={t("confirmDialog.deleteMessage.description")}
+        confirmLabel={t("chat.deleteMessage")}
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+      />
     </div>
   )
 }
