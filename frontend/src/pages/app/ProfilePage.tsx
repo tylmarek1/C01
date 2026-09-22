@@ -41,6 +41,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 import { compressImageFile } from "@/lib/image"
 import { NOTIFICATION_CATEGORIES, useNotificationCategoryLabels } from "@/lib/notification-categories"
+import { getExistingPushSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "@/lib/push"
 import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
 import type { Court, NotificationType, Review } from "@/types"
@@ -91,6 +92,22 @@ function OverviewTab() {
     mutationFn: (nextMuted: NotificationType[]) => api.updateNotificationPreferences(token!, nextMuted),
     onSuccess: (result) => queryClient.setQueryData(["notification-preferences"], result),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("notificationPrefs.error")),
+  })
+
+  const pushSupported = isPushSupported()
+  const { data: isPushSubscribed } = useQuery({
+    queryKey: ["push-subscription-status"],
+    queryFn: async () => Boolean(await getExistingPushSubscription()),
+    enabled: pushSupported,
+  })
+
+  const pushMutation = useMutation({
+    mutationFn: async (enable: boolean) => {
+      if (enable) await subscribeToPush(token!)
+      else await unsubscribeFromPush(token!)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["push-subscription-status"] }),
+    onError: (error) => toast.error(error instanceof Error ? error.message : t("notificationPrefs.push.error")),
   })
 
   function toggleCategory(types: NotificationType[], enabled: boolean) {
@@ -214,6 +231,20 @@ function OverviewTab() {
           <CardTitle>{t("notificationPrefs.title")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
+          {pushSupported && (
+            <div className="flex items-center justify-between gap-4 border-b border-hairline py-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-ink-navy">{t("notificationPrefs.push.title")}</span>
+                <span className="text-xs text-slate-gray">{t("notificationPrefs.push.description")}</span>
+              </div>
+              <Switch
+                checked={Boolean(isPushSubscribed)}
+                disabled={pushMutation.isPending}
+                onCheckedChange={(next) => pushMutation.mutate(next)}
+                aria-label={t("notificationPrefs.push.title")}
+              />
+            </div>
+          )}
           {NOTIFICATION_CATEGORIES.map(({ key, types }) => {
             const enabled = !types.every((type) => mutedTypes.includes(type))
             return (

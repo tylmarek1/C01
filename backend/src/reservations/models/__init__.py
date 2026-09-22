@@ -5,6 +5,7 @@ from reservations.models.facility_block import FacilityBlock
 from reservations.models.favorite import Favorite
 from reservations.models.join_request import JoinRequest, JoinRequestStatus
 from reservations.models.notification import Notification, NotificationType
+from reservations.models.push_subscription import PushSubscription
 from reservations.models.reservation import (
     ACTIVE_RESERVATION_STATUSES,
     Reservation,
@@ -33,6 +34,7 @@ __all__ = [
     "ReservationEventType",
     "Notification",
     "NotificationType",
+    "PushSubscription",
     "WaitlistEntry",
     "WaitlistStatus",
     "ReservationSeries",

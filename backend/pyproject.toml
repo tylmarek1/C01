@@ -13,6 +13,7 @@ dependencies = [
     "pillow>=12.3.0",
     "psycopg[binary]>=3.3.5",
     "pyjwt>=2.10.1",
+    "pywebpush>=2.5.0",
     "sqlalchemy>=2.0.52",
 ]
 

@@ -16,6 +16,7 @@ from reservations.api import (
     facility_blocks,
     favorites,
     notifications,
+    push,
     reservations,
     reviews,
     stats,
@@ -69,6 +70,7 @@ app.include_router(reviews.router)
 app.include_router(favorites.router)
 app.include_router(admin.router)
 app.include_router(stats.router)
+app.include_router(push.router)
 
 
 @app.exception_handler(Exception)
