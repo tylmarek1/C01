@@ -484,8 +484,12 @@ export const api = {
   addTeamMember: (token: string, teamId: string, target: PlayerTarget) =>
     request<Team>(`/teams/${teamId}/members`, { method: "POST", body: JSON.stringify(playerTargetBody(target)) }, token),
 
-  searchPlayers: (token: string, q: string) =>
-    request<PlayerSearchResult[]>(`/users/search${buildQuery({ q })}`, {}, token),
+  searchPlayers: (token: string, q: string, options?: { limit?: number; offset?: number }) =>
+    request<PlayerSearchResult[]>(
+      `/users/search${buildQuery({ q, limit: options?.limit, offset: options?.offset })}`,
+      {},
+      token,
+    ),
 
   removeTeamMember: (token: string, teamId: string, userId: string) =>
     request<Team>(`/teams/${teamId}/members/${userId}`, { method: "DELETE" }, token),

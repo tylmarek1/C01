@@ -130,6 +130,9 @@ function TeamDetailPage() {
             </div>
           </div>
           {team.description && <p className="text-sm text-slate-gray">{team.description}</p>}
+          <span className="text-xs text-slate-gray">
+            {t("teams.createdAt", { date: new Date(team.created_at).toLocaleDateString() })}
+          </span>
         </CardContent>
       </Card>
 
@@ -147,7 +150,10 @@ function TeamDetailPage() {
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-ink-navy">{member.user.name}</span>
-                  {member.role === "OWNER" && <span className="text-xs text-slate-gray">{t("teams.role.owner")}</span>}
+                  <span className="text-xs text-slate-gray">
+                    {member.role === "OWNER" && `${t("teams.role.owner")} · `}
+                    {t("teams.roster.joinedAt", { date: new Date(member.joined_at).toLocaleDateString() })}
+                  </span>
                 </div>
               </Link>
               {(isOwner || member.user.id === user?.id) && (

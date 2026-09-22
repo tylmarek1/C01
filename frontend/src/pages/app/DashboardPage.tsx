@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils"
 import type { OpenGame, PlayerSearchResult, Reservation } from "@/types"
 
 type ViewMode = "list" | "calendar" | "open" | "feed"
+const ACTIVITY_FEED_PAGE_SIZE = 30
 
 function DashboardPage() {
   const { user, token } = useAuth()
@@ -50,6 +51,7 @@ function DashboardPage() {
   const queryClient = useQueryClient()
   const [detailReservation, setDetailReservation] = useState<Reservation | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
+  const [feedLimit, setFeedLimit] = useState(ACTIVITY_FEED_PAGE_SIZE)
 
   const {
     data: reservations,
@@ -99,8 +101,8 @@ function DashboardPage() {
     isError: isFeedError,
     refetch: refetchFeed,
   } = useQuery({
-    queryKey: ["activity-feed"],
-    queryFn: () => api.getActivityFeed(token!, 30),
+    queryKey: ["activity-feed", feedLimit],
+    queryFn: () => api.getActivityFeed(token!, feedLimit),
     enabled: Boolean(token) && viewMode === "feed",
   })
 
@@ -427,6 +429,17 @@ function DashboardPage() {
           )}
 
           {activityFeed?.map((event) => <ActivityFeedItem key={event.id} event={event} />)}
+
+          {activityFeed && activityFeed.length > 0 && activityFeed.length >= feedLimit && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={() => setFeedLimit((current) => current + ACTIVITY_FEED_PAGE_SIZE)}
+            >
+              {t("common.loadMore")}
+            </Button>
+          )}
         </div>
       )}
 

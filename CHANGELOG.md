@@ -10,6 +10,15 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **The players directory is now actually browsable**, not just a search
+  box that returns nothing until you already know someone's name.
+  `GET /users/search` with an empty/short `q` now returns a paginated
+  list of public profiles instead of `[]`; `/app/players` shows it as a
+  card grid with "load more".
+- Team detail now shows when the team was created and when each member
+  joined — both were already returned by the API, never rendered.
+- The dashboard activity feed has a "Load more" button instead of being
+  hard-capped at the most recent 30 events.
 - **A venue manager's reservation queue and history now show what was
   previously hidden.** The admin reservation list includes each booking's
   guests (previously only the booker was visible — a real gap for
@@ -172,6 +181,13 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Fixed
 
+- **A private profile's follower/following list is no longer readable by
+  anyone signed in.** `GET /users/{id}/followers`/`/following` never applied
+  the same visibility gate `get_player_profile` already uses for
+  bio/stats — found during a UX audit of the social pages, fixed
+  alongside it since it's the same file and a two-line permission check.
+  Follower/following *counts* are unaffected (same as most social apps,
+  a private account's counts are still visible, only the list isn't).
 - **A facility-maintenance block is now visible before you try to book it.**
   `GET /courts/{id}/availability` only ever reflected reservations, never
   `FacilityBlock`s, even though booking into a blocked window was already
