@@ -92,7 +92,7 @@ here just because it exists, only ones worth tracking status on.
 | Onboarding (new player) | Strong | Real empty state + CTA on a zero-reservation dashboard | 2026-09-22 |
 | Onboarding (new venue manager) | Strong | Correction to the earlier framing: courts aren't per-manager here (`Court` has no owner/manager FK — any manager sees the whole shared venue catalog), so "a fresh manager sees zero courts" isn't really the scenario. The real gap was narrower but real: `CourtsTab` had no empty state at all (rendered nothing) for a genuinely empty catalog. Fixed with the existing `EmptyState` component + an "Add your first court" CTA, matching the pattern already used elsewhere on this page | 2026-09-22 |
 | Account recovery | **Missing** | Cross-ref Security | 2026-09-22 |
-| Social / community features (profiles, follow, chat, teams, skill rating, seasonal challenges, activity feed) | Strong | The "Courtly Communities" expansion, PRs [#38](https://github.com/tylmarek1/C01/pull/38)–[#44](https://github.com/tylmarek1/C01/pull/44) — see "Recently closed" below for each. Every piece has real-browser verification, not just backend tests. One deliberate scope boundary: skill rating only applies to a 1-on-1 booking (exactly one guest) — a group booking has no well-defined winner/loser pairing, so it stays unrated rather than getting a team-assignment UI bolted on. Starts empty for every fresh seed — `seed.py` doesn't create demo teams/chats/challenges/follows, see `docs/codebase-map.md` | 2026-09-22 |
+| Social / community features (profiles, follow, chat, teams, skill rating, seasonal challenges, activity feed) | Strong | The "Courtly Communities" expansion, PRs [#38](https://github.com/tylmarek1/C01/pull/38)–[#44](https://github.com/tylmarek1/C01/pull/44), plus a UX follow-up pass (PRs [#46](https://github.com/tylmarek1/C01/pull/46)–[#49](https://github.com/tylmarek1/C01/pull/49)) after a full user review found the epic's UX was thinner than the feature list suggested: profiles existed but were undiscoverable (no search, no directory), review photos couldn't be attached at creation time, player profiles had no game history, and the Help Center never mentioned any of it — see "Recently closed" below for each. Every piece has real-browser verification, not just backend tests. One deliberate scope boundary: skill rating only applies to a 1-on-1 booking (exactly one guest) — a group booking has no well-defined winner/loser pairing, so it stays unrated rather than getting a team-assignment UI bolted on. Starts empty for every fresh seed — `seed.py` doesn't create demo teams/chats/challenges/follows, see `docs/codebase-map.md` | 2026-09-22 |
 
 ## Engineering system (`.claude/`)
 
@@ -114,6 +114,17 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - **[Med]** No password-reset flow — needs an email-delivery decision first; a product decision, not silent scaffolding. **Not implementing autonomously** — needs the team to pick an email provider.
 
 ### Product / UX
+- **[Med]** Teams and chat are functionally complete but feature-thin —
+  flagged by a user review of the whole "Courtly Communities" epic.
+  Teams: no discovery/join of a public team (owner-invite-only), no team
+  avatar, no role beyond OWNER/MEMBER, no team events/shared bookings.
+  Chat: no message edit/delete, no reactions, no attachments, no
+  typing/online indicators. Explicitly scoped out of the PR #46–#49
+  follow-up pass — asked the user how deep to go and they chose the
+  narrower "wire in player search only" option, deferring the rest here
+  rather than guessing at a bigger feature set. Needs a product decision
+  on which of these (if any) are actually wanted before implementing —
+  not a small, obviously-correct extension the way the search wiring was.
 - **[Future idea]** Leagues and bracket tournaments — considered as part of
   the "Courtly Communities" expansion (PRs #38–#44) and deliberately left
   out: both are a different order of complexity than the rest of that
@@ -126,6 +137,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Courtly Communities UX follow-up (4 PRs, [#46](https://github.com/tylmarek1/C01/pull/46)–[#49](https://github.com/tylmarek1/C01/pull/49)) — a user review of the whole epic found it shipped thinner on UX than the feature list suggested. `GET /users/search` (name search over public profiles, exact-email fallback preserved) plus a `/app/players` directory closes "profiles exist but can't be found"; a `PlayerSearch` combobox replaces the raw email `<input>` on team add-member, guest invite, and adds a "New message" entry point on chat (#46). The review-creation dialog gets the same photo picker that editing an existing review already had — photos were unreachable at the point players actually write most reviews (#47). Player profiles gained a "Recent games" card (last 5 `COMPLETED` reservations, opponent + win/loss/draw for a rated 1-on-1) (#48). The Help Center's "Playing with others" section and FAQ, which had zero mentions of chat/teams/profiles/rating/challenges/activity-feed/review-photos despite all seven shipping in the same session, now cover all of them (#49). Deliberately **not** done this round: a deeper teams/chat feature set (see Backlog) — scoped out after asking the user, who chose the narrower search-only fix.
 - Activity feed — the 7th and final PR of the "Courtly Communities" plan.
   `ActivityEvent` (`user_id`, a plain-string `type` — deliberately not a
   Postgres enum, so a future event type is a pure code change, never
