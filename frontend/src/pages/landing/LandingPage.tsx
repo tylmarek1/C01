@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { Bell, CalendarCheck2, CalendarSync, Clock3, Coins, ShieldCheck, Trophy, Users } from "lucide-react"
+import { Bell, CalendarCheck2, CalendarSync, Clock3, Coins, MessageCircle, ShieldCheck, Star, Trophy, UserPlus, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/shared/badge"
@@ -39,6 +39,9 @@ function LandingPage() {
     { icon: CalendarSync, titleKey: "landing.why.calendarSync.title", descriptionKey: "landing.why.calendarSync.description" },
     { icon: Clock3, titleKey: "landing.why.recurring.title", descriptionKey: "landing.why.recurring.description" },
     { icon: Trophy, titleKey: "landing.why.achievements.title", descriptionKey: "landing.why.achievements.description" },
+    { icon: UserPlus, titleKey: "landing.why.teams.title", descriptionKey: "landing.why.teams.description" },
+    { icon: MessageCircle, titleKey: "landing.why.chat.title", descriptionKey: "landing.why.chat.description" },
+    { icon: Star, titleKey: "landing.why.rating.title", descriptionKey: "landing.why.rating.description" },
   ]
 
   const faqTeaser: { questionKey: TranslationKey; answerKey: TranslationKey }[] = [
