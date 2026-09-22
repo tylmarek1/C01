@@ -118,7 +118,7 @@ docs/course/                        the course assignments, verbatim (C01.md, C0
 docs/project-state.md               current phase, gates, drivers — layer 3
 docs/definition-of-done.md          the evidence-backed-completion rule (not a checklist)
 docs/intent-and-change.md           Project Frame (domain, states, rules) — graded, still accurate as decisions
-docs/architecture-and-decisions.md  ADR-000..003 — stack choice, exclusion-constraint design, repo split, JWT auth
+docs/architecture-and-decisions.md  ADR-000..004 — stack choice, exclusion-constraint design, repo split, JWT auth, WebSocket chat delivery
 docs/evidence-and-evolution.md      the executed C01 spike write-up + the C02 evidence (spec -> running app)
 docs/specification.md               C02 specification, current version v0.2 (approval process); v0.1 frozen in specification-v0.1.md
 docs/change-c02-impact.md           impact analysis of the C02 change + architectural drivers handed to C03

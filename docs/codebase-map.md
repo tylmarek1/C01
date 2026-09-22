@@ -26,6 +26,11 @@ React SPA (frontend/) ──fetch, JWT bearer──► FastAPI (backend/src/rese
                                                  │  (business logic lives here, not in routers)
                                                  ▼
                                               SQLAlchemy models/ ──► PostgreSQL 16 (docker-compose)
+
+React SPA (frontend/lib/chat-socket.ts) ──WebSocket──► FastAPI (api/chat.py's /ws/chat)
+                                                 │  a second, parallel delivery path alongside the
+                                                 ▼  request/response one above — see chat_hub.py below
+                                              chat_hub.py's in-process connection registry
 ```
 
 Two independent toolchains — `uv` for backend, `npm` for frontend — never
@@ -36,16 +41,17 @@ mixed (ADR-002).
 | Path | Responsible for |
 |---|---|
 | `main.py` | FastAPI app, CORS, router registration |
-| `api/*.py` | One thin `APIRouter` per resource (`auth`, `courts`, `reservations`, `admin`, `facility_blocks`, `favorites`, `notifications`, `reviews`, `stats`, `waitlist`) — parse/validate, call a service module, return a schema. Real logic doesn't live here. |
+| `api/*.py` | One thin `APIRouter` per resource — booking domain: `auth`, `courts`, `reservations`, `admin`, `facility_blocks`, `favorites`, `notifications`, `reviews`, `stats`, `waitlist`, `push`; community domain (see below): `social`, `chat`, `teams`, `ratings`, `challenges`, `activity`. Parse/validate, call a service module, return a schema — real logic doesn't live here. |
 | `lifecycle.py` | The reservation state machine — the *only* place a reservation's status should change |
 | `rules.py`, `booking_validation.py` | Booking business rules (lead time, slot length/alignment, opening hours, per-user limits) |
-| `achievements.py`, `approval_service.py`, `calendar_export.py`, `waitlist_service.py`, `notifications.py`, `images.py` | One feature-specific service module per concern — the real logic behind each feature |
+| `achievements.py`, `approval_service.py`, `calendar_export.py`, `waitlist_service.py`, `notifications.py`, `images.py`, `rate_limit.py` | One feature-specific service module per concern — the real logic behind each booking-domain feature |
+| `chat.py`, `chat_hub.py`, `ratings.py`, `challenges.py`, `activity.py` | The "Courtly Communities" social layer's service modules: `chat.py` owns Conversation/participant persistence (DM/reservation/team chat all share it); `chat_hub.py` is the in-process `dict[user_id, set[WebSocket]]` live-delivery registry for `/ws/chat` — same single-process tradeoff already accepted by `rate_limit.py`/`worker.py`, not built to survive a multi-process deployment; `ratings.py` is the Elo update; `challenges.py` mirrors `achievements.py`'s compute-fresh/store-the-marker shape but time-boxed; `activity.py`'s `emit_activity()` is called from across several of the above (and from `achievements.py`/`reservations.py`) to populate the activity feed at the point of action |
 | `worker.py` | In-process background tasks (hold expiry, reminders, auto-complete, waitlist cascade) |
-| `models/` | One SQLAlchemy model per file (`Court`, `User`, `Reservation`, `ReservationEvent`, `ReservationGuest`, `ReservationSeries`, `Favorite`, `Review`, `ReviewVote`, `Notification`, `FacilityBlock`, `Waitlist`, `Achievement`, `JoinRequest`) |
+| `models/` | One SQLAlchemy model per file. Booking domain: `Court`, `CourtImage`, `User`, `Reservation`, `ReservationEvent`, `ReservationGuest`, `ReservationSeries`, `Favorite`, `Review`, `ReviewImage`, `ReviewVote`, `ReviewComment`, `Notification`, `PushSubscription`, `FacilityBlock`, `Waitlist`, `Achievement`, `JoinRequest`. Community domain: `PlayerFollow`, `Conversation`, `ConversationParticipant`, `Message`, `Team`, `TeamMember`, `SkillRating`, `MatchResult`, `Challenge`, `ChallengeCompletion`, `ActivityEvent` |
 | `schemas/` | Pydantic request/response models, mirroring `models/` roughly 1:1 |
 | `deps.py`, `security.py` | Current-user/DB-session dependencies; password hashing + JWT |
 | `db.py` | Engine/session factory, schema create/drop (**no Alembic** — see `backend/CLAUDE.md`) |
-| `seed.py` | Idempotent demo-data seeder |
+| `seed.py` | Idempotent demo-data seeder — booking domain only; the community-domain tables above start empty for every fresh seed (no demo teams/chats/challenges/follows) |
 
 The no-double-booking guarantee lives in `models/reservation.py`'s
 PostgreSQL exclusion constraint, not in application code (ADR-001) — see
@@ -59,6 +65,7 @@ PostgreSQL exclusion constraint, not in application code (ADR-001) — see
 | `pages/{landing,auth,app,courts}/` | Page-level composition per area; `app/` is behind `ProtectedRoute` |
 | `pages/` (top level) | `AboutPage`, `ContactPage`, `HelpPage`, `NotFoundPage` — standalone pages that don't belong to one of the areas above |
 | `lib/api.ts` | The only fetch wrapper — throws `ApiError`; never call raw `fetch()` from a component |
+| `lib/chat-socket.ts` | The one WebSocket client — a module-level singleton connection, opened/closed by `auth-context.tsx` alongside the JWT session; not per-component |
 | `lib/auth-context.tsx` | `AuthProvider`/`useAuth` — JWT held client-side |
 | `lib/i18n.tsx` | `t()` + the EN/CS language switcher |
 | `locales/en.ts` / `cs.ts` | `en.ts` defines `TranslationKey`; `cs.ts` is typed against it, so a *missing* translation is a compile error — a hardcoded string that never became a key is not (see `i18n-check`) |

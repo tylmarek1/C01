@@ -42,8 +42,8 @@ here just because it exists, only ones worth tracking status on.
 
 | Capability | Status | Evidence | Last reviewed |
 |---|---|---|---|
-| Authentication (JWT + bcrypt) | Strong | ADR-003, `security.py`, `security-review` | 2026-09-22 |
-| Authorization (ownership/role checks) | Strong | Three clean dependency tiers (`get_current_user`/`_manager`/`_admin`); no missing ownership check found in an `auth.py`/`deps.py` audit | 2026-09-22 |
+| Authentication (JWT + bcrypt) | Strong | ADR-003, `security.py`, `security-review`. The one non-bearer-header transport, `/ws/chat`, authenticates via a first-frame `{"type":"auth","token":...}` message instead of a `?token=` query string specifically to avoid the JWT landing in access/proxy logs (ADR-004) | 2026-09-22 |
+| Authorization (ownership/role checks) | Strong | Three clean dependency tiers (`get_current_user`/`_manager`/`_admin`); no missing ownership check found in an `auth.py`/`deps.py` audit. The six new "Courtly Communities" routers each gate correctly on the pattern that fits them: `chat.py`/`teams.py` on live participant/membership checks (not a stored role flag alone — a removed team member loses `ConversationParticipant` access immediately), `ratings.py` on being one of the two reservation participants, `challenges.py`'s only mutating endpoint on `get_current_manager` | 2026-09-22 |
 | Auth abuse-resistance (brute-force/rate-limit) | Adequate | In-memory per-process throttle on `/auth/login` (per-email, 10/5min, resets on success) and `/auth/register` (per-IP, 10/hr) — `rate_limit.py`, tested in `test_auth.py`. Adequate not Strong: single-process only, no shared store if ever scaled | 2026-09-22 |
 | Input validation / injection | Strong | Pydantic + ORM-first, `security-review` | 2026-09-22 |
 | File upload handling | Strong | Server-generated filenames; decode+re-encode defeats polyglot files. Explicit 50MP pixel-dimension cap now asserted before decode (`images.py`), not just inherited from Pillow's default — tested | 2026-09-22 |
@@ -55,7 +55,7 @@ here just because it exists, only ones worth tracking status on.
 
 | Capability | Status | Evidence | Last reviewed |
 |---|---|---|---|
-| Backend test coverage | Strong | 177 tests against real Postgres. Feature areas without an identically-named test file (`achievements.py`, `approval_service.py`, `waitlist_service.py`, `images.py`) are well-exercised indirectly — verified, not a gap | 2026-09-22 |
+| Backend test coverage | Strong | 269 tests against real Postgres (177 from the C02-baseline era + 92 added across the "Courtly Communities" PRs #38–#44). Feature areas without an identically-named test file (`achievements.py`, `approval_service.py`, `waitlist_service.py`, `images.py`, `challenges.py`, `activity.py`) are well-exercised indirectly — verified, not a gap | 2026-09-22 |
 | Concurrency/regression testing | Strong | `test_persistence_spike.py` pattern, timezone regression test | 2026-09-22 |
 | Frontend automated testing | **Missing** (deliberate) | `accessibility-responsive`'s manual checklist is the current substitute; documented and monitored, not silently accepted | 2026-09-22 |
 | Schema-change safety net | Adequate | No Alembic, no codegen — `schema-change-sweep`'s grep-based sweep mitigates, doesn't automate | 2026-09-22 |
@@ -88,10 +88,11 @@ here just because it exists, only ones worth tracking status on.
 
 | Capability | Status | Evidence | Last reviewed |
 |---|---|---|---|
-| Core booking/approval/waitlist flow | Strong | C02 spec, 177 backend tests | 2026-09-22 |
+| Core booking/approval/waitlist flow | Strong | C02 spec, regression-tested (`test_spec_baseline.py`/`test_approval_api.py`) | 2026-09-22 |
 | Onboarding (new player) | Strong | Real empty state + CTA on a zero-reservation dashboard | 2026-09-22 |
 | Onboarding (new venue manager) | Strong | Correction to the earlier framing: courts aren't per-manager here (`Court` has no owner/manager FK — any manager sees the whole shared venue catalog), so "a fresh manager sees zero courts" isn't really the scenario. The real gap was narrower but real: `CourtsTab` had no empty state at all (rendered nothing) for a genuinely empty catalog. Fixed with the existing `EmptyState` component + an "Add your first court" CTA, matching the pattern already used elsewhere on this page | 2026-09-22 |
 | Account recovery | **Missing** | Cross-ref Security | 2026-09-22 |
+| Social / community features (profiles, follow, chat, teams, skill rating, seasonal challenges, activity feed) | Strong | The "Courtly Communities" expansion, PRs [#38](https://github.com/tylmarek1/C01/pull/38)–[#44](https://github.com/tylmarek1/C01/pull/44) — see "Recently closed" below for each. Every piece has real-browser verification, not just backend tests. One deliberate scope boundary: skill rating only applies to a 1-on-1 booking (exactly one guest) — a group booking has no well-defined winner/loser pairing, so it stays unrated rather than getting a team-assignment UI bolted on. Starts empty for every fresh seed — `seed.py` doesn't create demo teams/chats/challenges/follows, see `docs/codebase-map.md` | 2026-09-22 |
 
 ## Engineering system (`.claude/`)
 
@@ -113,6 +114,14 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - **[Med]** No password-reset flow — needs an email-delivery decision first; a product decision, not silent scaffolding. **Not implementing autonomously** — needs the team to pick an email provider.
 
 ### Product / UX
+- **[Future idea]** Leagues and bracket tournaments — considered as part of
+  the "Courtly Communities" expansion (PRs #38–#44) and deliberately left
+  out: both are a different order of complexity than the rest of that
+  expansion (an auto-scheduling engine that has to respect the exclusion
+  constraint, or a full bracket-elimination state machine), not a small
+  extension of anything already built. Not started, not designed —
+  recorded here so the deferral reads as a considered decision, not a gap
+  nobody noticed.
 - **[Low]** The booking form's date `<input>` has a `min` (today) but no `max` — a date beyond the 14-day advance-booking window (`rules.py`'s `MAX_ADVANCE_DAYS`) can be picked and only gets rejected at submit time. The rejection toast is clear and correct, so this isn't broken, just later feedback than it could be. Found while verifying keyboard completability, not fixed since it's UX polish rather than a defect — a `max={todayPlusNDaysString()}` on the input would close it.
 
 ## Recently closed

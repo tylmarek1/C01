@@ -101,10 +101,17 @@ where, so a session doesn't have to search for them.
 
 - `cd backend && uv run pytest -v` — **177 passed** (176 baseline + one
   test added closing a spec↔test coverage gap, VE-06.2) against real
-  PostgreSQL. Last run: 2026-09-21.
-- `cd frontend && npm run build && npm run lint` — build and lint pass
-  (per `docs/evidence-and-evolution.md`'s C02 evidence; not re-run as part
-  of this pass since no frontend code changed).
+  PostgreSQL. Last run: 2026-09-21. This remains the C02-baseline
+  evidence figure — **the suite has since grown to 269 passed** via
+  seven product-feature PRs (#38–#44: player profiles/follow, review
+  comments, real-time chat, teams, skill rating, seasonal challenges,
+  activity feed — see `docs/capability-map.md`), none of which are C02
+  spec/VE-xx tests or change C02's phase status. Running the full suite
+  today legitimately returns 269, not 177 — that's this addition, not a
+  regression.
+- `cd frontend && npm run build && npm run lint` — build and lint pass;
+  re-run and green after every one of PRs #38–#44 (each changed frontend
+  code).
 
 ## Latest evidence
 
