@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CalendarClock, CalendarPlus, Clock3, Coins, MoreHorizontal, Repeat, Star, Trophy, UserPlus, Users } from "lucide-react"
-import { useState } from "react"
+import { CalendarClock, CalendarPlus, Clock3, Coins, MoreHorizontal, Plus, Repeat, Star, Trophy, UserPlus, Users, X } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -37,6 +37,10 @@ import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import type { PlayerSearchResult, Reservation } from "@/types"
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" })
+// Mirrors the backend's MAX_REVIEW_IMAGES (backend/src/reservations/api/reviews.py) — kept
+// in sync by hand since there's no generated client (frontend/CLAUDE.md's "Types are
+// hand-maintained" gap); the server rejects a 5th image regardless of this UI cap.
+const MAX_REVIEW_IMAGES = 4
 
 function SplitCostDialog({
   reservation,
@@ -244,7 +248,7 @@ interface ReservationCardProps {
   onSetOpen?: (reservation: Reservation, openToJoin: boolean, note: string) => void
   isSettingOpen?: boolean
   hasReview?: boolean
-  onSubmitReview?: (reservation: Reservation, rating: number, comment: string) => void
+  onSubmitReview?: (reservation: Reservation, rating: number, comment: string, photos: File[]) => void
   isBusy?: boolean
 }
 
@@ -274,6 +278,12 @@ function ReservationCard({
   const [openToJoinOpen, setOpenToJoinOpen] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
+  const [reviewPhotos, setReviewPhotos] = useState<File[]>([])
+  const reviewPhotoInputRef = useRef<HTMLInputElement>(null)
+  const reviewPhotoPreviews = useMemo(() => reviewPhotos.map((file) => URL.createObjectURL(file)), [reviewPhotos])
+  useEffect(() => {
+    return () => reviewPhotoPreviews.forEach((url) => URL.revokeObjectURL(url))
+  }, [reviewPhotoPreviews])
   const start = new Date(reservation.start_time)
   const end = new Date(reservation.end_time)
   const durationMs = end.getTime() - start.getTime()
@@ -317,8 +327,9 @@ function ReservationCard({
   }
 
   function submitReview() {
-    onSubmitReview?.(reservation, rating, comment.trim())
+    onSubmitReview?.(reservation, rating, comment.trim(), reviewPhotos)
     setReviewOpen(false)
+    setReviewPhotos([])
   }
 
   return (
@@ -471,7 +482,13 @@ function ReservationCard({
         )}
 
         {canReview && (
-          <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+          <Dialog
+            open={reviewOpen}
+            onOpenChange={(open) => {
+              setReviewOpen(open)
+              if (!open) setReviewPhotos([])
+            }}
+          >
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" disabled={isBusy}>
                 <Star className="size-3.5" /> {t("reservationCard.rateIt")}
@@ -490,9 +507,54 @@ function ReservationCard({
                   placeholder={t("reservationCard.review.commentPlaceholder")}
                   maxLength={1000}
                 />
+                <div className="flex flex-col gap-2">
+                  <Label>{t("reservationCard.review.photos")}</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {reviewPhotos.map((file, index) => (
+                      <div key={`${file.name}-${index}`} className="group relative size-14 shrink-0 overflow-hidden rounded-lg border border-hairline">
+                        <img src={reviewPhotoPreviews[index]} alt="" className="size-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setReviewPhotos((files) => files.filter((_, i) => i !== index))}
+                          aria-label={t("profile.reviews.removePhoto")}
+                          className="absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-ink-navy/70 text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {reviewPhotos.length < MAX_REVIEW_IMAGES && (
+                      <button
+                        type="button"
+                        onClick={() => reviewPhotoInputRef.current?.click()}
+                        aria-label={t("profile.reviews.addPhoto")}
+                        className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-hairline text-slate-gray transition-colors hover:border-signal-blue hover:text-signal-blue"
+                      >
+                        <Plus className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={reviewPhotoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      event.target.value = ""
+                      if (file) setReviewPhotos((files) => [...files, file])
+                    }}
+                  />
+                </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setReviewOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setReviewOpen(false)
+                    setReviewPhotos([])
+                  }}
+                >
                   {t("common.cancel")}
                 </Button>
                 <Button onClick={submitReview}>{t("reservationCard.review.submit")}</Button>

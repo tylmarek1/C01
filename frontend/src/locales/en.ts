@@ -509,6 +509,7 @@ const en = {
   "reservationCard.review.title": "Rate {court}",
   "reservationCard.review.description": "How was your game? Other players will see this.",
   "reservationCard.review.commentPlaceholder": "Anything worth mentioning? (optional)",
+  "reservationCard.review.photos": "Photos (optional)",
   "reservationCard.review.submit": "Submit review",
   "reservationCard.openToJoin.button": "Open to players",
   "reservationCard.openToJoin.title": "Open this reservation to players",

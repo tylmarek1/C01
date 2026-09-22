@@ -511,6 +511,7 @@ const cs: Record<TranslationKey, string> = {
   "reservationCard.review.title": "Ohodnotit {court}",
   "reservationCard.review.description": "Jaký byl váš zápas? Ostatní hráči uvidí toto hodnocení.",
   "reservationCard.review.commentPlaceholder": "Chcete něco doplnit? (nepovinné)",
+  "reservationCard.review.photos": "Fotky (nepovinné)",
   "reservationCard.review.submit": "Odeslat recenzi",
   "reservationCard.openToJoin.button": "Otevřít pro hráče",
   "reservationCard.openToJoin.title": "Otevřít rezervaci pro hráče",

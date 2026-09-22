@@ -10,6 +10,11 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Photos when writing a review**, not just afterward. Review photos
+  shipped earlier (up to 4 per review, shown on the court detail page)
+  but the only way to attach one was to add it after the fact from
+  Profile → My reviews; the "Rate it" dialog now has the same picker at
+  creation time too.
 - **Player search and a players directory** (`/app/players`, navbar
   "Players" link). `GET /users/search?q=` matches public profiles by name
   (an exact email match still resolves a private profile, same as before)
