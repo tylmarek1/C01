@@ -87,6 +87,32 @@ def test_non_manager_cannot_list_users(session_factory: sessionmaker) -> None:
     assert response.status_code == 403
 
 
+def test_admin_users_list_respects_limit_and_offset(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    manager_token = register_and_login(client, "yara-manager@example.com")
+    promote_to_manager(session_factory, "yara-manager@example.com")
+    for i in range(4):
+        register_and_login(client, f"paged-user-{i}@example.com")
+    headers = {"Authorization": f"Bearer {manager_token}"}
+
+    first_page = client.get(
+        "/admin/users", params={"limit": 2, "offset": 0}, headers=headers
+    )
+    assert first_page.status_code == 200
+    assert len(first_page.json()) == 2
+
+    second_page = client.get(
+        "/admin/users", params={"limit": 2, "offset": 2}, headers=headers
+    )
+    assert len(second_page.json()) == 2
+
+    first_ids = {u["id"] for u in first_page.json()}
+    second_ids = {u["id"] for u in second_page.json()}
+    assert first_ids.isdisjoint(second_ids)
+
+
 def test_manager_can_promote_and_view_user(session_factory: sessionmaker) -> None:
     client = TestClient(app)
     manager_token = register_and_login(client, "wade-manager@example.com")

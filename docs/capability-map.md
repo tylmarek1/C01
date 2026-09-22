@@ -67,7 +67,7 @@ here just because it exists, only ones worth tracking status on.
 | Reservation state machine | Strong | Exhaustive `ALLOWED_TRANSITIONS`, centralized guards. Concurrency safety is an API-layer convention (`lock=True` at call sites) — verified every call site follows it (`api/reservations.py`, `approval_service.py`, `facility_blocks.py`, `worker.py`), and `transition()`'s docstring now states the contract explicitly so a new call site can't miss it by accident | 2026-09-22 |
 | Double-booking guarantee | Strong | ADR-001, Postgres exclusion constraint, regression-tested | 2026-09-22 |
 | Background worker reliability | Strong | Each of the 5 housekeeping sub-tasks now runs in its own session/transaction (`worker.py`'s `_SUB_TASKS` loop) — one failing task is logged and skipped, the other 4 still commit. All 5 now consistently use `with_for_update(skip_locked=True)`. Regression-tested (`test_worker_tick_survives_one_failing_sub_task`) | 2026-09-22 |
-| API pagination | **Missing** | Every list endpoint is a full-table read — no `limit`/`offset` anywhere | 2026-09-22 |
+| API pagination | Adequate | `GET /courts`, `/reservations`, `/reservations/admin`, `/admin/users` now take bounded `limit`/`offset` query params (defaults preserve today's response size, so no caller had to change) — closes the unbounded-read risk. Adequate not Strong: no frontend "load more"/page UI yet, deliberately — none of today's data volumes need it | 2026-09-22 |
 | Observability / logging | Adequate | A global FastAPI exception handler (`main.py`) now logs any unhandled (non-`HTTPException`) exception with request context before returning a generic 500 — the minimal level `production-readiness` calls for, still deliberately not a platform. Tested (`test_error_handling.py`) | 2026-09-22 |
 | Migrations | **Missing** (deliberate) | No Alembic — known, documented gap (root `CLAUDE.md`) | 2026-09-22 |
 | CI/CD | **Missing** (deliberate) | Known, documented gap | 2026-09-22 |
@@ -112,14 +112,12 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 ### Security / reliability
 - **[Med]** No password-reset flow — needs an email-delivery decision first; a product decision, not silent scaffolding. **Not implementing autonomously** — needs the team to pick an email provider.
 
-### Backend / architecture
-- **[Med]** No pagination anywhere (`/reservations`, `/admin/reservations`, `/admin/users`, `/courts`) — full-stack feature; not urgent at current data scale.
-
 ### Product / UX
 - **[Low]** The booking form's date `<input>` has a `min` (today) but no `max` — a date beyond the 14-day advance-booking window (`rules.py`'s `MAX_ADVANCE_DAYS`) can be picked and only gets rejected at submit time. The rejection toast is clear and correct, so this isn't broken, just later feedback than it could be. Found while verifying keyboard completability, not fixed since it's UX polish rather than a defect — a `max={todayPlusNDaysString()}` on the input would close it.
 
 ## Recently closed
 
+- Bounded `limit`/`offset` pagination on `GET /courts`, `/reservations`, `/reservations/admin`, `/admin/users` — the four previously-unbounded full-table reads. Deliberately backend-only: defaults match today's response sizes so no existing caller needed to change, and no frontend "load more" UI was added since current data volume doesn't need one yet — closes the reliability risk without building unused UI.
 - Per-category notification mute preferences — `User.muted_notification_types`, `GET/PUT /notifications/preferences`, `notify()` now skips a muted type, 7-category settings UI on the profile page (backed by a shared type→category grouping, not 16 raw toggles). New column on an existing table — ran the manual drop/recreate/reseed cycle.
 - "Book again" shortcut on a past reservation's card (dashboard) — links straight into the booking flow with the same court pre-selected (`/app/book?court=`), for any completed/cancelled/expired/rejected/no-show reservation on a still-active court. Verified in a real browser.
 - Venue manager replies to reviews — `Review.manager_reply`/`manager_reply_at`, `PUT/DELETE /reviews/{id}/reply` (manager-only), rendered as a public "Venue reply" block on the court detail page with an inline reply composer for managers. Verified in a real browser (Playwright, separate anonymous browser context): the reply is public, but only a manager sees the reply/remove controls.

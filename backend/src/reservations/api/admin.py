@@ -118,9 +118,13 @@ def get_stats(
 
 @router.get("/users", response_model=list[UserAdminOut])
 def list_users(
-    db: Session = Depends(get_db), _manager: User = Depends(get_current_manager)
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    _manager: User = Depends(get_current_manager),
 ) -> list[UserAdminOut]:
-    users = list(db.scalars(select(User).order_by(User.created_at.desc())))
+    stmt = select(User).order_by(User.created_at.desc()).offset(offset).limit(limit)
+    users = list(db.scalars(stmt))
     if not users:
         return []
 
