@@ -12,6 +12,7 @@ import type {
   JoinRequestWithReservation,
   LeaderboardEntry,
   Notification,
+  NotificationType,
   OpenGame,
   PlayerStats,
   Reservation,
@@ -243,6 +244,16 @@ export const api = {
 
   markAllNotificationsRead: (token: string) =>
     request<{ updated: number }>("/notifications/read-all", { method: "POST" }, token),
+
+  getNotificationPreferences: (token: string) =>
+    request<{ muted_types: NotificationType[] }>("/notifications/preferences", {}, token),
+
+  updateNotificationPreferences: (token: string, mutedTypes: NotificationType[]) =>
+    request<{ muted_types: NotificationType[] }>(
+      "/notifications/preferences",
+      { method: "PUT", body: JSON.stringify({ muted_types: mutedTypes }) },
+      token,
+    ),
 
   listFacilityBlocks: (courtId?: string) => request<FacilityBlock[]>(`/facility-blocks${buildQuery({ court_id: courtId })}`),
 

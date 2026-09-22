@@ -81,7 +81,7 @@ here just because it exists, only ones worth tracking status on.
 | Admin reporting/export | Strong | Overview's "reservations in window" stat now has a 7/30/90-day selector (`/admin/stats?days=`); CSV export now respects the current status filter instead of silently ignoring it (a real bug found while touching this) | 2026-09-22 |
 | Mobile responsiveness (general) | Strong | `accessibility-responsive` checklist, whole-app polish pass (PR #19) | 2026-09-22 |
 | Mobile responsiveness (`week-calendar.tsx`) | Strong | Below `sm`, shows one day at a time (tappable day-chip strip) instead of a horizontally-scrolled 7-column grid — desktop/tablet unchanged. Verified in a real browser at 375px and 1280px (Playwright, no horizontal overflow, day-switching and "Today" reset both correct) | 2026-09-22 |
-| Notification UX | Adequate | Mark-all-read exists; no per-type mute/preferences (low urgency at current volume) | 2026-09-22 |
+| Notification UX | Strong | Mark-all-read, plus per-category mute preferences (`GET/PUT /notifications/preferences`, grouped into 7 user-facing categories on the profile page) — `notify()` now skips creating a row for a muted type | 2026-09-22 |
 | Keyboard-only completability (booking flow) | Strong | Actually walked end-to-end with a real browser and no mouse (Playwright: Tab-only navigation, Enter/ArrowDown on every `Select`, native date-input digit entry, final submit) — court card, date, duration, start time, repeat-weekly switch, and Reserve-slot button were all reachable and operable, error toast (advance-booking-window rejection) was clear, and a valid submission succeeded and appeared correctly on the dashboard. Found and fixed a real, systemic gap this surfaced: 5 `<Switch>` usages across 3 files had no accessible name for screen readers (a visible label sibling, never programmatically associated) — all 5 now have `aria-label` | 2026-09-22 |
 
 ## Product capabilities
@@ -116,11 +116,11 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 - **[Med]** No pagination anywhere (`/reservations`, `/admin/reservations`, `/admin/users`, `/courts`) — full-stack feature; not urgent at current data scale.
 
 ### Product / UX
-- **[Low]** No notification mute/preferences — defer until volume actually justifies it.
 - **[Low]** The booking form's date `<input>` has a `min` (today) but no `max` — a date beyond the 14-day advance-booking window (`rules.py`'s `MAX_ADVANCE_DAYS`) can be picked and only gets rejected at submit time. The rejection toast is clear and correct, so this isn't broken, just later feedback than it could be. Found while verifying keyboard completability, not fixed since it's UX polish rather than a defect — a `max={todayPlusNDaysString()}` on the input would close it.
 
 ## Recently closed
 
+- Per-category notification mute preferences — `User.muted_notification_types`, `GET/PUT /notifications/preferences`, `notify()` now skips a muted type, 7-category settings UI on the profile page (backed by a shared type→category grouping, not 16 raw toggles). New column on an existing table — ran the manual drop/recreate/reseed cycle.
 - "Book again" shortcut on a past reservation's card (dashboard) — links straight into the booking flow with the same court pre-selected (`/app/book?court=`), for any completed/cancelled/expired/rejected/no-show reservation on a still-active court. Verified in a real browser.
 - Venue manager replies to reviews — `Review.manager_reply`/`manager_reply_at`, `PUT/DELETE /reviews/{id}/reply` (manager-only), rendered as a public "Venue reply" block on the court detail page with an inline reply composer for managers. Verified in a real browser (Playwright, separate anonymous browser context): the reply is public, but only a manager sees the reply/remove controls.
 - Court photo gallery — `CourtImage` model, `POST/DELETE /courts/{id}/images` (manager-only, capped at 8), admin gallery editor and a clickable thumbnail strip on the court detail page. Verified in a real browser (Playwright): upload, detail-page render, and removal all round-trip correctly.

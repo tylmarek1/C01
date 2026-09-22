@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, String, func
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from reservations.db import Base
@@ -36,6 +37,13 @@ class User(Base):
     # any URL handed out before.
     calendar_token: Mapped[str | None] = mapped_column(
         String(64), unique=True, default=None
+    )
+    # NotificationType values the user has muted — `notify()` skips creating
+    # a Notification row for any type in this list. Stored as plain strings
+    # (like Court.amenities) rather than a second table since it's just a
+    # set of on/off toggles.
+    muted_notification_types: Mapped[list[str]] = mapped_column(
+        ARRAY(String(50)), default=list
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

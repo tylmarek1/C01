@@ -15,3 +15,11 @@ class NotificationOut(BaseModel):
     message: str
     read_at: datetime | None
     created_at: datetime
+
+
+class NotificationPreferencesOut(BaseModel):
+    muted_types: list[NotificationType]
+
+
+class NotificationPreferencesUpdate(BaseModel):
+    muted_types: list[NotificationType]
