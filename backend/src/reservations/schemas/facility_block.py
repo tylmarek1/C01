@@ -11,6 +11,9 @@ class FacilityBlockCreate(BaseModel):
     start_time: datetime
     end_time: datetime
     reason: str = Field(min_length=1, max_length=300)
+    # Omitted/None = a single one-off block (today's behaviour, unchanged).
+    # Set = create this many weekly occurrences, same weekday/time each week.
+    weeks: int | None = Field(default=None, ge=2, le=26)
 
     @field_validator("start_time")
     @classmethod
@@ -37,3 +40,4 @@ class FacilityBlockOut(BaseModel):
     end_time: datetime
     reason: str
     created_at: datetime
+    series_id: uuid.UUID | None

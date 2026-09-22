@@ -259,11 +259,14 @@ export const api = {
 
   createFacilityBlock: (
     token: string,
-    payload: { court_id: string; start_time: string; end_time: string; reason: string },
+    payload: { court_id: string; start_time: string; end_time: string; reason: string; weeks?: number },
   ) => request<FacilityBlock>("/facility-blocks", { method: "POST", body: JSON.stringify(payload) }, token),
 
   deleteFacilityBlock: (token: string, id: string) =>
     request<void>(`/facility-blocks/${id}`, { method: "DELETE" }, token),
+
+  deleteFacilityBlockSeries: (token: string, seriesId: string) =>
+    request<void>(`/facility-blocks/series/${seriesId}`, { method: "DELETE" }, token),
 
   // Reviews
   createReview: (token: string, reservationId: string, rating: number, comment?: string) =>

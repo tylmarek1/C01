@@ -22,7 +22,14 @@ class FacilityBlock(Base):
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     reason: Mapped[str] = mapped_column(String(300))
     created_by_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    # Groups every occurrence created by one "repeat weekly" request so they
+    # can be listed/cancelled together. Not a FK to another table — there's
+    # nothing else a series needs to own beyond the shared id — just a plain
+    # grouping value shared across rows, null for a one-off block.
+    series_id: Mapped[uuid.UUID | None] = mapped_column(default=None, index=True)
 
     court: Mapped[Court] = relationship()
     created_by: Mapped[User] = relationship()

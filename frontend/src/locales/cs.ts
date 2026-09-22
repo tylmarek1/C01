@@ -286,6 +286,8 @@ const cs: Record<TranslationKey, string> = {
   "confirmDialog.deleteReview.description": "Vaše hodnocení a komentář budou trvale odstraněny.",
   "confirmDialog.deleteBlock.title": "Odebrat tuto blokaci dostupnosti?",
   "confirmDialog.deleteBlock.description": "Kurt bude pro tento časový úsek okamžitě znovu rezervovatelný.",
+  "confirmDialog.deleteBlockSeries.title": "Odebrat všechny výskyty této série?",
+  "confirmDialog.deleteBlockSeries.description": "Všechny týdenní výskyty této blokace budou odebrány najednou; kurt bude pro ně okamžitě znovu rezervovatelný.",
 
   "sport.TENNIS": "Tenis",
   "sport.VOLLEYBALL": "Volejbal",
@@ -569,6 +571,11 @@ const cs: Record<TranslationKey, string> = {
   "admin.availability.to": "Do",
   "admin.availability.reason": "Důvod",
   "admin.availability.reasonPlaceholder": "Oprava povrchu, soukromá akce…",
+  "admin.availability.repeatWeekly": "Opakovat týdně",
+  "admin.availability.repeatWeeklyHint": "Vytvořit jednu blokaci každý týden ve stejný den/čas místo jedné jednorázové blokace.",
+  "admin.availability.weeks": "Počet týdnů",
+  "admin.availability.recurring": "Opakuje se",
+  "admin.availability.removeSeries": "Odebrat všechny výskyty",
   "admin.availability.submit": "Zablokovat kurt",
   "admin.availability.submitting": "Blokování…",
   "admin.availability.empty.title": "Žádné blokace",
@@ -580,6 +587,7 @@ const cs: Record<TranslationKey, string> = {
   "admin.toast.blockCreated": "Kurt zablokován — překrývající se rezervace byly zrušeny a jejich majitelé informováni",
   "admin.error.blockCreate": "Blokaci se nepodařilo vytvořit",
   "admin.toast.blockRemoved": "Blokace odebrána",
+  "admin.toast.blockSeriesRemoved": "Všechny výskyty odebrány",
   "admin.error.blockRemove": "Blokaci se nepodařilo odebrat",
 
   "admin.utilization.dialog.title": "Vytíženost — {court}",

@@ -149,6 +149,7 @@ export interface FacilityBlock {
   end_time: string
   reason: string
   created_at: string
+  series_id: string | null
 }
 
 export interface Notification {

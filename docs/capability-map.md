@@ -117,6 +117,12 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Recurring (weekly) facility blocks — `FacilityBlock.series_id` groups every
+  occurrence created by one "repeat weekly" request (2-26 weeks, same
+  pattern as `ReservationSeries`); `DELETE /facility-blocks/series/{id}`
+  removes a whole series at once, the single-occurrence delete still works
+  unchanged. New column on an existing table — ran the manual drop/recreate/
+  reseed cycle.
 - Bounded `limit`/`offset` pagination on `GET /courts`, `/reservations`, `/reservations/admin`, `/admin/users` — the four previously-unbounded full-table reads. Deliberately backend-only: defaults match today's response sizes so no existing caller needed to change, and no frontend "load more" UI was added since current data volume doesn't need one yet — closes the reliability risk without building unused UI.
 - Per-category notification mute preferences — `User.muted_notification_types`, `GET/PUT /notifications/preferences`, `notify()` now skips a muted type, 7-category settings UI on the profile page (backed by a shared type→category grouping, not 16 raw toggles). New column on an existing table — ran the manual drop/recreate/reseed cycle.
 - "Book again" shortcut on a past reservation's card (dashboard) — links straight into the booking flow with the same court pre-selected (`/app/book?court=`), for any completed/cancelled/expired/rejected/no-show reservation on a still-active court. Verified in a real browser.

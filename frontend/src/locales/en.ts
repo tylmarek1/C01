@@ -284,6 +284,8 @@ const en = {
   "confirmDialog.deleteReview.description": "Your rating and comment will be permanently removed.",
   "confirmDialog.deleteBlock.title": "Remove this availability block?",
   "confirmDialog.deleteBlock.description": "The court becomes bookable for this time range again immediately.",
+  "confirmDialog.deleteBlockSeries.title": "Remove every occurrence in this series?",
+  "confirmDialog.deleteBlockSeries.description": "All weekly occurrences of this block are removed at once; the court becomes bookable for all of them again immediately.",
 
   "sport.TENNIS": "Tennis",
   "sport.VOLLEYBALL": "Volleyball",
@@ -567,6 +569,11 @@ const en = {
   "admin.availability.to": "To",
   "admin.availability.reason": "Reason",
   "admin.availability.reasonPlaceholder": "Court resurfacing, private event…",
+  "admin.availability.repeatWeekly": "Repeat weekly",
+  "admin.availability.repeatWeeklyHint": "Create one block per week, same day/time, instead of a single one-off block.",
+  "admin.availability.weeks": "Number of weeks",
+  "admin.availability.recurring": "Recurring",
+  "admin.availability.removeSeries": "Remove all occurrences",
   "admin.availability.submit": "Block court",
   "admin.availability.submitting": "Blocking…",
   "admin.availability.empty.title": "No blocks right now",
@@ -578,6 +585,7 @@ const en = {
   "admin.toast.blockCreated": "Court blocked — overlapping reservations were cancelled and their owners notified",
   "admin.error.blockCreate": "Could not create the block",
   "admin.toast.blockRemoved": "Block removed",
+  "admin.toast.blockSeriesRemoved": "All occurrences removed",
   "admin.error.blockRemove": "Could not remove the block",
 
   "admin.utilization.dialog.title": "{court} utilization",
