@@ -87,7 +87,7 @@ function LandingPage() {
                   <Link
                     key={court.id}
                     to={`/courts/${court.id}`}
-                    className="flex items-center gap-3 rounded-xl border border-hairline p-3 transition-colors hover:border-signal-blue/40 hover:bg-[#eaf3ff]"
+                    className="flex items-center gap-3 rounded-xl border border-hairline p-3 transition-colors hover:border-signal-blue/40 hover:bg-highlight-blue"
                   >
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-pebble text-ink-navy">
                       <SportIcon sport={court.sport_type} className="size-4" />
@@ -204,7 +204,7 @@ function LandingPage() {
       <section className="mx-auto max-w-6xl px-6 pb-24">
         <div className="flex flex-col items-center gap-6 rounded-3xl border border-hairline bg-cloud px-8 py-14 text-center sm:flex-row sm:justify-between sm:text-left">
           <div className="flex flex-col gap-2">
-            <span className="w-fit rounded-full bg-[#e6f0ff] px-2.5 py-1 text-xs font-medium text-deep-cobalt sm:mx-0">
+            <span className="w-fit rounded-full bg-tint-blue px-2.5 py-1 text-xs font-medium text-deep-cobalt sm:mx-0">
               {t("landing.venueManager.eyebrow")}
             </span>
             <h2 className="text-2xl font-bold text-ink-navy sm:text-3xl">{t("landing.venueManager.title")}</h2>

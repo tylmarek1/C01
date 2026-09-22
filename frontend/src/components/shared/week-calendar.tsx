@@ -128,7 +128,7 @@ function WeekCalendar({ reservations, onSelectReservation }: WeekCalendarProps) 
         <div
           className={cn(
             "flex h-10 flex-col items-center justify-center border-b border-hairline text-xs",
-            isSameDay(day, today) && "bg-[#eaf3ff] font-semibold text-signal-blue",
+            isSameDay(day, today) && "bg-highlight-blue font-semibold text-signal-blue",
           )}
         >
           <span>{dayFormatter.format(day)}</span>
@@ -220,7 +220,7 @@ function WeekCalendar({ reservations, onSelectReservation }: WeekCalendarProps) 
                 dayIndex === mobileDayIndex
                   ? "bg-ink-navy text-paper"
                   : isSameDay(day, today)
-                    ? "bg-[#eaf3ff] font-semibold text-signal-blue"
+                    ? "bg-highlight-blue font-semibold text-signal-blue"
                     : "text-slate-gray",
               )}
             >

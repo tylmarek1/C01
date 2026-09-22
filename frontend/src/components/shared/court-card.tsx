@@ -150,7 +150,7 @@ function CourtCard({
       className={cn(
         "flex items-center gap-4 rounded-2xl border p-4 text-left transition-all",
         interactive && "cursor-pointer hover:-translate-y-0.5 hover:shadow-card",
-        selected ? "border-signal-blue bg-[#eaf3ff] shadow-card" : "border-hairline bg-card",
+        selected ? "border-signal-blue bg-highlight-blue shadow-card" : "border-hairline bg-card",
         !interactive && "cursor-default",
       )}
     >
@@ -162,9 +162,9 @@ function CourtCard({
       >
         <SportIcon sport={court.sport_type} className="size-5" />
       </span>
-      <span className="flex flex-col gap-1">
-        <span className="font-semibold text-ink-navy">{court.name}</span>
-        <span className="flex items-center gap-2 text-sm text-slate-gray">
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="truncate font-semibold text-ink-navy">{court.name}</span>
+        <span className="flex flex-wrap items-center gap-2 text-sm text-slate-gray">
           {sportLabels[court.sport_type]}
           <Badge variant="secondary">{indoorOutdoor}</Badge>
           {court.requires_approval && <Badge variant="warning">{t("courts.requiresApproval")}</Badge>}

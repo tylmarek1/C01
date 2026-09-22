@@ -166,7 +166,7 @@ function BookCourtPage() {
                         setSelectedCourt(court)
                         setStartTime(undefined)
                       }}
-                      className="rounded-full border border-signal-blue/40 bg-[#eaf3ff] px-2.5 py-1 text-xs font-medium text-signal-blue transition-colors hover:bg-signal-blue hover:text-paper"
+                      className="rounded-full border border-signal-blue/40 bg-highlight-blue px-2.5 py-1 text-xs font-medium text-signal-blue transition-colors hover:bg-signal-blue hover:text-paper"
                     >
                       {court.name}
                     </button>

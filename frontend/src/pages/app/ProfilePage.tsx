@@ -778,7 +778,7 @@ function LeaderboardTab() {
           to={`/app/players/${entry.user.id}`}
           className={cn(
             "flex items-center gap-4 rounded-2xl border p-4 shadow-card transition-colors hover:bg-pebble",
-            entry.user.id === user?.id ? "border-signal-blue bg-[#eaf3ff]" : "border-hairline bg-card",
+            entry.user.id === user?.id ? "border-signal-blue bg-highlight-blue" : "border-hairline bg-card",
           )}
         >
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-pebble text-sm font-semibold text-ink-navy">
@@ -880,7 +880,7 @@ function RatingLeaderboardTab() {
               to={`/app/players/${entry.user.id}`}
               className={cn(
                 "flex items-center gap-4 rounded-2xl border p-4 shadow-card transition-colors hover:bg-pebble",
-                entry.user.id === user?.id ? "border-signal-blue bg-[#eaf3ff]" : "border-hairline bg-card",
+                entry.user.id === user?.id ? "border-signal-blue bg-highlight-blue" : "border-hairline bg-card",
               )}
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-pebble text-sm font-semibold text-ink-navy">
@@ -916,15 +916,17 @@ function ProfilePage() {
       <SectionHeader align="left" title={t("profile.title")} description={t("profile.description")} />
 
       <Tabs defaultValue="overview" className="mt-10">
-        <TabsList>
-          <TabsTrigger value="overview">{t("profile.tabs.overview")}</TabsTrigger>
-          <TabsTrigger value="achievements">{t("profile.tabs.achievements")}</TabsTrigger>
-          <TabsTrigger value="challenges">{t("profile.tabs.challenges")}</TabsTrigger>
-          <TabsTrigger value="leaderboard">{t("profile.tabs.leaderboard")}</TabsTrigger>
-          <TabsTrigger value="rating">{t("profile.tabs.rating")}</TabsTrigger>
-          <TabsTrigger value="favorites">{t("profile.tabs.favorites")}</TabsTrigger>
-          <TabsTrigger value="reviews">{t("profile.tabs.reviews")}</TabsTrigger>
-        </TabsList>
+        <div className="-mx-6 overflow-x-auto px-6 pb-1">
+          <TabsList>
+            <TabsTrigger value="overview">{t("profile.tabs.overview")}</TabsTrigger>
+            <TabsTrigger value="achievements">{t("profile.tabs.achievements")}</TabsTrigger>
+            <TabsTrigger value="challenges">{t("profile.tabs.challenges")}</TabsTrigger>
+            <TabsTrigger value="leaderboard">{t("profile.tabs.leaderboard")}</TabsTrigger>
+            <TabsTrigger value="rating">{t("profile.tabs.rating")}</TabsTrigger>
+            <TabsTrigger value="favorites">{t("profile.tabs.favorites")}</TabsTrigger>
+            <TabsTrigger value="reviews">{t("profile.tabs.reviews")}</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="overview">
           <OverviewTab />
         </TabsContent>

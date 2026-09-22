@@ -10,6 +10,49 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **UI polish pass, round 1 — a real shared-component bug, a real mobile
+  overflow bug, and design-token cleanup.** A full visual audit of every
+  page (4 parallel passes, desktop + mobile) against the existing "navy
+  ink on cool marble" system found two genuine, reproduced defects and a
+  batch of small consistency fixes:
+  - **`TabsList` (`components/shared/tabs.tsx`) had no overflow handling.**
+    On a narrow screen, a page with enough tabs (Profile's 7, Admin's 6)
+    grew wider than the viewport with no scroll container, and activating
+    an off-screen tab auto-scrolled the whole page horizontally — every
+    panel on the page shifted with it, independently reproduced by two
+    separate audit passes (Admin: 2 of 6 tabs completely hidden; Profile:
+    tab content rendering with a large negative horizontal offset, verified
+    via `getBoundingClientRect()`, not a screenshot artifact). Fixed at the
+    shared-component level (`overflow-x-auto` + `max-w-full`), benefiting
+    every tabbed page at once; Profile additionally got the same
+    edge-bleeding scroll wrapper Admin already had, for a consistent feel.
+  - **`court-card.tsx`'s plain (`onSelect`) variant — used in Book a
+    court's court list — genuinely overflowed the viewport at 375px** when
+    a card had enough content (the `requires_approval` badge + a rating
+    line): `document.documentElement.scrollWidth` measured 400px against a
+    375px viewport. The text content block had no `min-w-0`, so the
+    non-shrinking price pushed past the card edge instead of wrapping.
+    Fixed with `min-w-0`/`flex-wrap`/`truncate`, verified back to exactly
+    375px.
+  - Chat: a short conversation's messages floated near the top of the
+    scroll area with a large empty gap before the composer instead of
+    sitting just above it; the per-message react/delete icon row was
+    always fully visible, reading as slightly cluttered next to the rest
+    of the app's cleaner styling — now dims to 60% opacity until hovered
+    (or while its reaction picker is open).
+  - Removed a duplicate Courtly logo on mobile Login/Register (the page
+    navbar already shows one) and a stray `overflow-hidden` on
+    About/Help's hero sections that clipped their decorative glow into a
+    hard edge, inconsistent with how the same component renders
+    everywhere else it's used.
+  - **Design-token cleanup**: 20 occurrences of two literal hex values
+    (`#e6f0ff`, `#eaf3ff`) across 15 files — a real violation of this
+    project's own "never hardcode a hex color" rule — replaced with two
+    new named tokens (`--tint-blue`, `--highlight-blue`) alongside the
+    existing palette in `index.css`; two button hover-state hex literals
+    got the same treatment (`--signal-blue-hover`, `--ink-navy-hover`).
+    Zero visual change — same colors, now named and reusable instead of
+    copy-pasted.
 - **A second UX-completeness pass**, this time auditing in the direction
   the first one didn't: every backend endpoint checked for a real,
   reachable frontend consumer (not just every page checked against its

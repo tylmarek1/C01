@@ -9,7 +9,7 @@ interface StatTileProps {
 function StatTile({ label, value, icon: Icon }: StatTileProps) {
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-hairline bg-card p-5 shadow-card">
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#e6f0ff] text-signal-blue">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-tint-blue text-signal-blue">
         <Icon className="size-5" />
       </span>
       <div className="flex flex-col">

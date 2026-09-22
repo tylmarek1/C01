@@ -70,7 +70,7 @@ function NotificationRow({
       onClick={() => onOpen(notification)}
       className={cn(
         "flex w-full flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-pebble",
-        isUnread && "bg-[#eaf3ff]",
+        isUnread && "bg-highlight-blue",
       )}
     >
       <span className="flex items-center gap-2">

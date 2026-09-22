@@ -87,7 +87,7 @@ function MessageBubble({
   const isDeleted = Boolean(message.deleted_at)
 
   return (
-    <div className={cn("flex flex-col", isMine ? "items-end" : "items-start")}>
+    <div className={cn("group flex flex-col", isMine ? "items-end" : "items-start")}>
       <div className={cn("flex items-end gap-1.5", isMine && "flex-row-reverse")}>
         <div
           className={cn(
@@ -116,7 +116,12 @@ function MessageBubble({
           )}
         </div>
         {!isDeleted && (
-          <div className="relative flex shrink-0 items-center gap-0.5">
+          <div
+            className={cn(
+              "relative flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100",
+              pickerOpen && "opacity-100",
+            )}
+          >
             <button
               type="button"
               onClick={onTogglePicker}
@@ -167,7 +172,7 @@ function MessageBubble({
               onClick={() => onToggleReaction(reaction.emoji)}
               className={cn(
                 "flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs",
-                reaction.reacted_by_me ? "border-signal-blue bg-[#eaf3ff]" : "border-hairline bg-card",
+                reaction.reacted_by_me ? "border-signal-blue bg-highlight-blue" : "border-hairline bg-card",
               )}
             >
               <span>{reaction.emoji}</span>
@@ -338,7 +343,7 @@ function ChatPage() {
             onClick={() => setSearchParams({ conversation: conversation.id })}
             className={cn(
               "flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors",
-              conversation.id === selectedId ? "border-signal-blue bg-[#eaf3ff]" : "border-hairline bg-card hover:bg-pebble",
+              conversation.id === selectedId ? "border-signal-blue bg-highlight-blue" : "border-hairline bg-card hover:bg-pebble",
             )}
           >
             <ConversationAvatar conversation={conversation} selfId={user.id} />
@@ -379,7 +384,7 @@ function ChatPage() {
               <span className="font-medium text-ink-navy">{conversationTitle(selected, user.id)}</span>
             </div>
 
-            <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+            <div ref={scrollRef} className="flex flex-1 flex-col justify-end gap-3 overflow-y-auto p-4">
               {isLoadingMessages && <Skeleton className="h-10 w-2/3" />}
               {!isLoadingMessages && messages?.length === 0 && (
                 <p className="m-auto text-sm text-slate-gray">{t("chat.noMessagesYet")}</p>
