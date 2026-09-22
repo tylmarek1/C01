@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -32,6 +33,54 @@ def list_facility_blocks(
     return list(db.scalars(stmt))
 
 
+def _create_one_block(
+    db: Session,
+    court: Court,
+    start_time: datetime,
+    end_time: datetime,
+    reason: str,
+    manager: User,
+    series_id: uuid.UUID | None,
+) -> FacilityBlock:
+    block = FacilityBlock(
+        court_id=court.id,
+        start_time=start_time,
+        end_time=end_time,
+        reason=reason,
+        created_by_id=manager.id,
+        series_id=series_id,
+    )
+    db.add(block)
+
+    # Cancel anything that now overlaps the block — no waitlist offer here,
+    # the court genuinely isn't available.
+    stmt = (
+        select(Reservation)
+        .where(Reservation.court_id == court.id)
+        .where(Reservation.status.in_(ACTIVE_RESERVATION_STATUSES))
+        .where(Reservation.start_time < end_time)
+        .where(Reservation.end_time > start_time)
+        .with_for_update()
+    )
+    for reservation in db.scalars(stmt):
+        transition(
+            db,
+            reservation,
+            ReservationStatus.CANCELLED,
+            actor_id=manager.id,
+            note=f"Court blocked: {reason}",
+        )
+        notify(
+            db,
+            reservation.user_id,
+            NotificationType.FACILITY_UNAVAILABLE,
+            "Reservation cancelled — court unavailable",
+            f"{court.name} is unavailable ({reason}), so your reservation was cancelled.",
+        )
+
+    return block
+
+
 @router.post("", response_model=FacilityBlockOut, status_code=status.HTTP_201_CREATED)
 def create_facility_block(
     payload: FacilityBlockCreate,
@@ -42,40 +91,44 @@ def create_facility_block(
     if court is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
 
-    block = FacilityBlock(
-        court_id=court.id,
-        start_time=payload.start_time,
-        end_time=payload.end_time,
-        reason=payload.reason,
-        created_by_id=manager.id,
-    )
-    db.add(block)
+    # A recurring request always gets its own series_id, even though this
+    # endpoint still only returns the first occurrence — the admin UI
+    # refetches the full list, so every occurrence (including this one)
+    # shows up there.
+    series_id = uuid.uuid4() if payload.weeks else None
+    duration = payload.end_time - payload.start_time
 
-    # Cancel anything that now overlaps the block — no waitlist offer here,
-    # the court genuinely isn't available.
-    stmt = (
-        select(Reservation)
-        .where(Reservation.court_id == court.id)
-        .where(Reservation.status.in_(ACTIVE_RESERVATION_STATUSES))
-        .where(Reservation.start_time < payload.end_time)
-        .where(Reservation.end_time > payload.start_time)
-        .with_for_update()
-    )
-    for reservation in db.scalars(stmt):
-        transition(
-            db, reservation, ReservationStatus.CANCELLED, actor_id=manager.id, note=f"Court blocked: {payload.reason}"
+    first_block: FacilityBlock | None = None
+    for week in range(payload.weeks or 1):
+        start_time = payload.start_time + timedelta(weeks=week)
+        end_time = start_time + duration
+        block = _create_one_block(
+            db, court, start_time, end_time, payload.reason, manager, series_id
         )
-        notify(
-            db,
-            reservation.user_id,
-            NotificationType.FACILITY_UNAVAILABLE,
-            "Reservation cancelled — court unavailable",
-            f"{court.name} is unavailable ({payload.reason}), so your reservation was cancelled.",
-        )
+        if first_block is None:
+            first_block = block
 
     db.commit()
-    db.refresh(block)
-    return block
+    db.refresh(first_block)
+    return first_block
+
+
+@router.delete("/series/{series_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_facility_block_series(
+    series_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _manager: User = Depends(get_current_manager),
+) -> None:
+    blocks = list(
+        db.scalars(select(FacilityBlock).where(FacilityBlock.series_id == series_id))
+    )
+    if not blocks:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Facility block series not found"
+        )
+    for block in blocks:
+        db.delete(block)
+    db.commit()
 
 
 @router.delete("/{block_id}", status_code=status.HTTP_204_NO_CONTENT)

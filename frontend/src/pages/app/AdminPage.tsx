@@ -899,7 +899,10 @@ function AvailabilityTab() {
   const [start, setStart] = useState("")
   const [end, setEnd] = useState("")
   const [reason, setReason] = useState("")
+  const [repeatWeekly, setRepeatWeekly] = useState(false)
+  const [weeks, setWeeks] = useState("4")
   const [deleteTarget, setDeleteTarget] = useState<FacilityBlock | null>(null)
+  const [deleteSeriesTarget, setDeleteSeriesTarget] = useState<FacilityBlock | null>(null)
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["facility-blocks"] })
 
@@ -910,10 +913,12 @@ function AvailabilityTab() {
         start_time: new Date(start).toISOString(),
         end_time: new Date(end).toISOString(),
         reason,
+        weeks: repeatWeekly ? Number(weeks) : undefined,
       }),
     onSuccess: () => {
       toast.success(t("admin.toast.blockCreated"))
       setReason("")
+      setRepeatWeekly(false)
       invalidate()
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.blockCreate")),
@@ -929,7 +934,21 @@ function AvailabilityTab() {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.blockRemove")),
   })
 
-  const canSubmit = Boolean(courtId && start && end && reason.trim()) && !createMutation.isPending
+  const deleteSeriesMutation = useMutation({
+    mutationFn: (seriesId: string) => api.deleteFacilityBlockSeries(token!, seriesId),
+    onSuccess: () => {
+      toast.success(t("admin.toast.blockSeriesRemoved"))
+      setDeleteSeriesTarget(null)
+      invalidate()
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.blockRemove")),
+  })
+
+  const weeksNumber = Number(weeks)
+  const canSubmit =
+    Boolean(courtId && start && end && reason.trim()) &&
+    (!repeatWeekly || (weeksNumber >= 2 && weeksNumber <= 26)) &&
+    !createMutation.isPending
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -973,6 +992,26 @@ function AvailabilityTab() {
               placeholder={t("admin.availability.reasonPlaceholder")}
             />
           </div>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-hairline p-3">
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor="block-repeat">{t("admin.availability.repeatWeekly")}</Label>
+              <span className="text-xs text-slate-gray">{t("admin.availability.repeatWeeklyHint")}</span>
+            </div>
+            <Switch id="block-repeat" checked={repeatWeekly} onCheckedChange={setRepeatWeekly} />
+          </div>
+          {repeatWeekly && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="block-weeks">{t("admin.availability.weeks")}</Label>
+              <Input
+                id="block-weeks"
+                type="number"
+                min={2}
+                max={26}
+                value={weeks}
+                onChange={(event) => setWeeks(event.target.value)}
+              />
+            </div>
+          )}
           <Button disabled={!canSubmit} onClick={() => createMutation.mutate()}>
             {createMutation.isPending ? t("admin.availability.submitting") : t("admin.availability.submit")}
           </Button>
@@ -1006,16 +1045,26 @@ function AvailabilityTab() {
         {blocks?.map((block) => (
           <DataRow key={block.id} className="gap-2 p-4">
             <div className="flex flex-col gap-1">
-              <span className="font-medium text-ink-navy">{block.court.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-ink-navy">{block.court.name}</span>
+                {block.series_id && <Badge variant="outline">{t("admin.availability.recurring")}</Badge>}
+              </div>
               <span className="text-sm text-slate-gray">{formatDateRange(block.start_time, block.end_time)}</span>
               <span className="text-xs text-slate-gray">{block.reason}</span>
               <span className="text-xs text-mist-gray">
                 {t("admin.availability.createdOn", { date: new Date(block.created_at).toLocaleDateString() })}
               </span>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setDeleteTarget(block)}>
-              {t("admin.availability.remove")}
-            </Button>
+            <div className="flex shrink-0 gap-2">
+              {block.series_id && (
+                <Button size="sm" variant="outline" onClick={() => setDeleteSeriesTarget(block)}>
+                  {t("admin.availability.removeSeries")}
+                </Button>
+              )}
+              <Button size="sm" variant="outline" onClick={() => setDeleteTarget(block)}>
+                {t("admin.availability.remove")}
+              </Button>
+            </div>
           </DataRow>
         ))}
       </div>
@@ -1028,6 +1077,16 @@ function AvailabilityTab() {
         confirmLabel={t("admin.availability.remove")}
         isLoading={deleteMutation.isPending}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteSeriesTarget)}
+        onOpenChange={(open) => !open && setDeleteSeriesTarget(null)}
+        title={t("confirmDialog.deleteBlockSeries.title")}
+        description={t("confirmDialog.deleteBlockSeries.description")}
+        confirmLabel={t("admin.availability.removeSeries")}
+        isLoading={deleteSeriesMutation.isPending}
+        onConfirm={() => deleteSeriesTarget?.series_id && deleteSeriesMutation.mutate(deleteSeriesTarget.series_id)}
       />
     </div>
   )
