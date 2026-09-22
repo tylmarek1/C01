@@ -1,7 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from reservations import challenges as challenges_service
@@ -19,8 +19,23 @@ router = APIRouter(prefix="/challenges", tags=["challenges"])
 @router.get("", response_model=list[ChallengeOut])
 def list_challenges(
     db: Session = Depends(get_db), _current_user: User = Depends(get_current_user)
-) -> list[Challenge]:
-    return list(db.scalars(select(Challenge).order_by(Challenge.starts_at.desc())))
+) -> list[ChallengeOut]:
+    all_challenges = list(
+        db.scalars(select(Challenge).order_by(Challenge.starts_at.desc()))
+    )
+    counts = dict(
+        db.execute(
+            select(ChallengeCompletion.challenge_id, func.count()).group_by(
+                ChallengeCompletion.challenge_id
+            )
+        ).all()
+    )
+    return [
+        ChallengeOut.model_validate(challenge).model_copy(
+            update={"completed_count": counts.get(challenge.id, 0)}
+        )
+        for challenge in all_challenges
+    ]
 
 
 @router.post("", response_model=ChallengeOut, status_code=201)

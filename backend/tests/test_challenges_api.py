@@ -155,6 +155,46 @@ def test_reaching_the_target_completes_the_challenge_and_notifies(
     assert len(challenge_notifications) == 1
 
 
+def test_list_challenges_reports_completed_count(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    manager_token, _manager_id = register_and_login(client, "fay@example.com")
+    promote_to_manager(session_factory, "fay@example.com")
+    player_token, player_id = register_and_login(client, "gil@example.com")
+    other_token, other_id = register_and_login(client, "hana-p@example.com")
+
+    court_id = seed_court(session_factory, "Completed Count Court")
+    now = datetime.now(timezone.utc)
+    for user_id in (player_id, other_id):
+        seed_completed_reservation(
+            session_factory, user_id, court_id, now - timedelta(days=1)
+        )
+        seed_completed_reservation(
+            session_factory, user_id, court_id, now - timedelta(days=2)
+        )
+
+    created = client.post(
+        "/challenges",
+        json=challenge_payload(),
+        headers={"Authorization": f"Bearer {manager_token}"},
+    ).json()
+
+    listing = client.get(
+        "/challenges", headers={"Authorization": f"Bearer {manager_token}"}
+    ).json()
+    assert next(c for c in listing if c["id"] == created["id"])["completed_count"] == 0
+
+    client.get("/challenges/mine", headers={"Authorization": f"Bearer {player_token}"})
+    client.get("/challenges/mine", headers={"Authorization": f"Bearer {other_token}"})
+
+    listing_after = client.get(
+        "/challenges", headers={"Authorization": f"Bearer {manager_token}"}
+    ).json()
+    assert (
+        next(c for c in listing_after if c["id"] == created["id"])["completed_count"]
+        == 2
+    )
+
+
 def test_reservations_outside_the_window_do_not_count(
     session_factory: sessionmaker,
 ) -> None:

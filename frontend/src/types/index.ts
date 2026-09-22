@@ -106,12 +106,14 @@ export interface Reservation {
 
 export interface ReservationAdmin extends Reservation {
   user: User
+  guests: ReservationGuest[]
 }
 
 export interface ReservationEvent {
   id: string
   event_type: ReservationEventType
   actor_id: string | null
+  actor: User | null
   note: string | null
   created_at: string
 }
@@ -345,6 +347,7 @@ export interface Challenge {
   starts_at: string
   ends_at: string
   created_by: string
+  completed_count: number
 }
 
 export interface ChallengeProgress extends Challenge {

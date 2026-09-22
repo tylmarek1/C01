@@ -34,6 +34,11 @@ class ChallengeOut(BaseModel):
     starts_at: datetime
     ends_at: datetime
     created_by: uuid.UUID
+    # How many players have completed it so far — cheap (a persisted
+    # ChallengeCompletion row per completion), unlike a live "how many are
+    # currently making progress" count, which isn't tracked anywhere and
+    # would mean scanning every player's progress on every list call.
+    completed_count: int = 0
 
 
 class ChallengeProgressOut(ChallengeOut):

@@ -3,9 +3,10 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from reservations.db import Base
+from reservations.models.user import User
 
 
 class ReservationEventType(enum.StrEnum):
@@ -29,8 +30,16 @@ class ReservationEvent(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     reservation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("reservations.id"))
-    event_type: Mapped[ReservationEventType] = mapped_column(Enum(ReservationEventType, name="reservation_event_type"))
+    event_type: Mapped[ReservationEventType] = mapped_column(
+        Enum(ReservationEventType, name="reservation_event_type")
+    )
     # Null actor means the system (background worker) made the change.
-    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), default=None)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id"), default=None
+    )
     note: Mapped[str | None] = mapped_column(String(500), default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    actor: Mapped[User | None] = relationship()

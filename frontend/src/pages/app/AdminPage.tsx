@@ -42,6 +42,7 @@ import { SectionHeader } from "@/components/shared/section-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shared/select"
 import { Skeleton } from "@/components/shared/skeleton"
 import { useSportLabels } from "@/components/shared/sport-icon"
+import { StarRating } from "@/components/shared/star-rating"
 import { StatTile } from "@/components/shared/stat-tile"
 import { Switch } from "@/components/shared/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/tabs"
@@ -565,6 +566,14 @@ function CourtsTab() {
                       ? t("courts.pricePerHour", { price: formatCurrency(court.price_per_hour) })
                       : t("courts.priceUnset")}
                   </span>
+                  {court.review_count > 0 && (
+                    <span className="mt-1 flex items-center gap-1.5">
+                      <StarRating value={court.average_rating ?? 0} />
+                      <span className="text-xs text-slate-gray">
+                        {court.average_rating?.toFixed(1)} ({court.review_count})
+                      </span>
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <CourtUtilizationDialog
@@ -682,7 +691,10 @@ function ReservationHistoryDialog({ reservation, trigger }: { reservation: Reser
               <span className="mt-1 size-2 shrink-0 rounded-full bg-signal-blue" />
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-ink-navy">{t(`event.${event.event_type}` as TranslationKey)}</span>
-                <span className="text-xs text-slate-gray">{new Date(event.created_at).toLocaleString()}</span>
+                <span className="text-xs text-slate-gray">
+                  {new Date(event.created_at).toLocaleString()} ·{" "}
+                  {event.actor ? event.actor.name : t("admin.reservations.historyDialog.systemActor")}
+                </span>
                 {event.note && <span className="text-xs text-slate-gray">{event.note}</span>}
               </div>
             </div>
@@ -819,10 +831,35 @@ function ReservationsTab() {
               <span className="text-xs text-slate-gray">
                 {reservation.user.name} · {reservation.user.email}
               </span>
+              {reservation.guests.length > 0 && (
+                <span className="flex flex-wrap items-center gap-1.5 text-xs text-slate-gray">
+                  <Users className="size-3.5 shrink-0" />
+                  {reservation.guests.map((guest) => guest.user.name).join(", ")}
+                </span>
+              )}
               {reservation.open_to_join && (
                 <Badge variant="secondary" className="w-fit">
-                  {t("admin.reservations.openBadge")}
+                  {reservation.open_note ? `${t("admin.reservations.openBadge")}: ${reservation.open_note}` : t("admin.reservations.openBadge")}
                 </Badge>
+              )}
+              {reservation.status === "PENDING" && reservation.hold_expires_at && (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600">
+                  <Clock3 className="size-3.5" />
+                  {t("reservationCard.holdExpires", { time: new Date(reservation.hold_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}
+                </span>
+              )}
+              {reservation.status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600">
+                  <Clock3 className="size-3.5" />
+                  {t("reservationCard.approvalExpires", {
+                    time: new Date(reservation.approval_expires_at).toLocaleString([], {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                  })}
+                </span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1434,6 +1471,7 @@ function ChallengesTab() {
               {new Date(challenge.starts_at).toLocaleDateString()} – {new Date(challenge.ends_at).toLocaleDateString()}
             </span>
           </div>
+          <Badge variant="secondary">{t("admin.challenges.completedCount", { count: challenge.completed_count })}</Badge>
         </DataRow>
       ))}
     </div>
