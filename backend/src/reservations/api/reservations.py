@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from reservations import achievements, approval_service, rules
+from reservations.activity import emit_activity
 from reservations.booking_validation import (
     check_active_reservation_limit,
     check_facility_available,
@@ -748,6 +749,16 @@ def set_open_to_join(
 
     reservation.open_to_join = payload.open_to_join
     reservation.open_note = payload.open_note if payload.open_to_join else None
+    if payload.open_to_join:
+        emit_activity(
+            db,
+            current_user.id,
+            "OPENED_GAME",
+            reservation_id=str(reservation.id),
+            court_name=reservation.court.name,
+            sport_type=reservation.court.sport_type.value,
+            start_time=reservation.start_time.isoformat(),
+        )
     db.commit()
     db.refresh(reservation)
     return reservation

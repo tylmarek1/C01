@@ -21,6 +21,7 @@ from reservations.models import (
     ReservationStatus,
     Review,
 )
+from reservations.activity import emit_activity
 from reservations.notifications import notify
 
 
@@ -120,5 +121,12 @@ def evaluate_and_award(
         NotificationType.CHALLENGE_COMPLETED,
         f"Challenge completed: {challenge.title}",
         challenge.description,
+    )
+    emit_activity(
+        db,
+        user_id,
+        "CHALLENGE_COMPLETED",
+        challenge_id=str(challenge.id),
+        challenge_title=challenge.title,
     )
     return True

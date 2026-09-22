@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from reservations import ratings
+from reservations.activity import emit_activity
 from reservations.deps import get_current_user, get_db
 from reservations.models import (
     MatchResult,
@@ -95,6 +96,7 @@ def report_match_result(
     db.add(result)
 
     other_user_id = next(uid for uid in participant_ids if uid != current_user.id)
+    other_user = db.get(User, other_user_id)
     notify(
         db,
         other_user_id,
@@ -102,6 +104,27 @@ def report_match_result(
         "Match result reported",
         f"{current_user.name} reported a result for your match on {reservation.court.name}.",
     )
+
+    def _outcome_for(user_id: uuid.UUID) -> str:
+        if payload.winner_user_id is None:
+            return "draw"
+        return "win" if payload.winner_user_id == user_id else "loss"
+
+    for user_id, opponent in (
+        (current_user.id, other_user),
+        (other_user_id, current_user),
+    ):
+        emit_activity(
+            db,
+            user_id,
+            "MATCH_RESULT",
+            reservation_id=str(reservation_id),
+            court_name=reservation.court.name,
+            sport_type=reservation.court.sport_type.value,
+            opponent_id=str(opponent.id),
+            opponent_name=opponent.name,
+            result=_outcome_for(user_id),
+        )
     db.commit()
     db.refresh(result)
     return result

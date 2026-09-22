@@ -21,6 +21,7 @@ from reservations.models import (
     SportType,
     UserAchievement,
 )
+from reservations.activity import emit_activity
 from reservations.notifications import notify
 from reservations.schemas.reservation import VENUE_TZ
 
@@ -62,31 +63,49 @@ def _compute_stats(db: Session, user_id: uuid.UUID) -> _Stats:
     stats.completed_count = len(completed)
     stats.distinct_courts_played = len({r.court_id for r in completed})
     stats.sports_played = len({r.court.sport_type for r in completed})
-    stats.early_bird_count = sum(1 for r in completed if r.start_time.astimezone(VENUE_TZ).hour < 8)
-    stats.night_owl_count = sum(1 for r in completed if r.start_time.astimezone(VENUE_TZ).hour >= 20)
+    stats.early_bird_count = sum(
+        1 for r in completed if r.start_time.astimezone(VENUE_TZ).hour < 8
+    )
+    stats.night_owl_count = sum(
+        1 for r in completed if r.start_time.astimezone(VENUE_TZ).hour >= 20
+    )
     for r in completed:
         local = r.start_time.astimezone(VENUE_TZ)
         stats.weeks_played.add(local.isocalendar()[:2])
 
-    stats.no_show_count = db.scalar(
-        select(func.count())
-        .select_from(Reservation)
-        .where(Reservation.user_id == user_id)
-        .where(Reservation.status == ReservationStatus.NO_SHOW)
-    ) or 0
+    stats.no_show_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(Reservation)
+            .where(Reservation.user_id == user_id)
+            .where(Reservation.status == ReservationStatus.NO_SHOW)
+        )
+        or 0
+    )
 
-    stats.guests_invited_total = db.scalar(
-        select(func.count()).select_from(ReservationGuest).where(ReservationGuest.invited_by_id == user_id)
-    ) or 0
-    stats.joined_games_count = db.scalar(
-        select(func.count())
-        .select_from(JoinRequest)
-        .where(JoinRequest.user_id == user_id)
-        .where(JoinRequest.status == JoinRequestStatus.ACCEPTED)
-    ) or 0
-    stats.reviews_written = db.scalar(
-        select(func.count()).select_from(Review).where(Review.user_id == user_id)
-    ) or 0
+    stats.guests_invited_total = (
+        db.scalar(
+            select(func.count())
+            .select_from(ReservationGuest)
+            .where(ReservationGuest.invited_by_id == user_id)
+        )
+        or 0
+    )
+    stats.joined_games_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(JoinRequest)
+            .where(JoinRequest.user_id == user_id)
+            .where(JoinRequest.status == JoinRequestStatus.ACCEPTED)
+        )
+        or 0
+    )
+    stats.reviews_written = (
+        db.scalar(
+            select(func.count()).select_from(Review).where(Review.user_id == user_id)
+        )
+        or 0
+    )
 
     streak = 0
     cursor = datetime.now(VENUE_TZ)
@@ -99,24 +118,90 @@ def _compute_stats(db: Session, user_id: uuid.UUID) -> _Stats:
 
 
 ACHIEVEMENTS: list[AchievementDef] = [
-    AchievementDef("FIRST_SERVE", "First Serve", "Complete your first reservation.", "🎾", lambda s: s.completed_count >= 1),
-    AchievementDef("REGULAR", "Regular", "Complete 5 reservations.", "📅", lambda s: s.completed_count >= 5),
-    AchievementDef("COURT_VETERAN", "Court Veteran", "Complete 20 reservations.", "🏆", lambda s: s.completed_count >= 20),
-    AchievementDef("EXPLORER", "Explorer", "Play at 3 different courts.", "🧭", lambda s: s.distinct_courts_played >= 3),
     AchievementDef(
-        "ALL_ROUNDER", "All-Rounder", f"Play all {len(SportType)} sports offered.", "🌟",
+        "FIRST_SERVE",
+        "First Serve",
+        "Complete your first reservation.",
+        "🎾",
+        lambda s: s.completed_count >= 1,
+    ),
+    AchievementDef(
+        "REGULAR",
+        "Regular",
+        "Complete 5 reservations.",
+        "📅",
+        lambda s: s.completed_count >= 5,
+    ),
+    AchievementDef(
+        "COURT_VETERAN",
+        "Court Veteran",
+        "Complete 20 reservations.",
+        "🏆",
+        lambda s: s.completed_count >= 20,
+    ),
+    AchievementDef(
+        "EXPLORER",
+        "Explorer",
+        "Play at 3 different courts.",
+        "🧭",
+        lambda s: s.distinct_courts_played >= 3,
+    ),
+    AchievementDef(
+        "ALL_ROUNDER",
+        "All-Rounder",
+        f"Play all {len(SportType)} sports offered.",
+        "🌟",
         lambda s: s.sports_played >= len(SportType),
     ),
-    AchievementDef("EARLY_BIRD", "Early Bird", "Play 3 sessions starting before 08:00.", "🌅", lambda s: s.early_bird_count >= 3),
-    AchievementDef("NIGHT_OWL", "Night Owl", "Play 3 sessions starting at 20:00 or later.", "🌙", lambda s: s.night_owl_count >= 3),
-    AchievementDef("SOCIAL_BUTTERFLY", "Social Butterfly", "Invite 5 guests to your reservations.", "🦋", lambda s: s.guests_invited_total >= 5),
-    AchievementDef("TEAM_PLAYER", "Team Player", "Join 3 games opened up by other players.", "🤝", lambda s: s.joined_games_count >= 3),
-    AchievementDef("ON_A_ROLL", "On a Roll", "Play at least once a week for 3 weeks running.", "🔥", lambda s: s.current_streak_weeks >= 3),
     AchievementDef(
-        "PERFECT_ATTENDANCE", "Perfect Attendance", "Complete 10 reservations with zero no-shows.", "✅",
+        "EARLY_BIRD",
+        "Early Bird",
+        "Play 3 sessions starting before 08:00.",
+        "🌅",
+        lambda s: s.early_bird_count >= 3,
+    ),
+    AchievementDef(
+        "NIGHT_OWL",
+        "Night Owl",
+        "Play 3 sessions starting at 20:00 or later.",
+        "🌙",
+        lambda s: s.night_owl_count >= 3,
+    ),
+    AchievementDef(
+        "SOCIAL_BUTTERFLY",
+        "Social Butterfly",
+        "Invite 5 guests to your reservations.",
+        "🦋",
+        lambda s: s.guests_invited_total >= 5,
+    ),
+    AchievementDef(
+        "TEAM_PLAYER",
+        "Team Player",
+        "Join 3 games opened up by other players.",
+        "🤝",
+        lambda s: s.joined_games_count >= 3,
+    ),
+    AchievementDef(
+        "ON_A_ROLL",
+        "On a Roll",
+        "Play at least once a week for 3 weeks running.",
+        "🔥",
+        lambda s: s.current_streak_weeks >= 3,
+    ),
+    AchievementDef(
+        "PERFECT_ATTENDANCE",
+        "Perfect Attendance",
+        "Complete 10 reservations with zero no-shows.",
+        "✅",
         lambda s: s.completed_count >= 10 and s.no_show_count == 0,
     ),
-    AchievementDef("CRITIC", "Critic", "Write 5 court reviews.", "✍️", lambda s: s.reviews_written >= 5),
+    AchievementDef(
+        "CRITIC",
+        "Critic",
+        "Write 5 court reviews.",
+        "✍️",
+        lambda s: s.reviews_written >= 5,
+    ),
 ]
 
 _BY_KEY = {a.key: a for a in ACHIEVEMENTS}
@@ -127,7 +212,9 @@ def evaluate_and_award(db: Session, user_id: uuid.UUID) -> list[AchievementDef]:
     newly-earned achievements, notifying them. Doesn't commit — callers
     already do that after their own transition/notify calls."""
     already_earned = set(
-        db.scalars(select(UserAchievement.key).where(UserAchievement.user_id == user_id))
+        db.scalars(
+            select(UserAchievement.key).where(UserAchievement.user_id == user_id)
+        )
     )
     newly_earned: list[AchievementDef] = []
     to_check = [a for a in ACHIEVEMENTS if a.key not in already_earned]
@@ -144,6 +231,14 @@ def evaluate_and_award(db: Session, user_id: uuid.UUID) -> list[AchievementDef]:
                 NotificationType.ACHIEVEMENT_UNLOCKED,
                 f"Achievement unlocked: {achievement.title}",
                 achievement.description,
+            )
+            emit_activity(
+                db,
+                user_id,
+                "ACHIEVEMENT_UNLOCKED",
+                achievement_key=achievement.key,
+                achievement_title=achievement.title,
+                achievement_icon=achievement.icon,
             )
             newly_earned.append(achievement)
     return newly_earned
