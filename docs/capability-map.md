@@ -121,6 +121,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Venue manager replies to reviews — `Review.manager_reply`/`manager_reply_at`, `PUT/DELETE /reviews/{id}/reply` (manager-only), rendered as a public "Venue reply" block on the court detail page with an inline reply composer for managers. Verified in a real browser (Playwright, separate anonymous browser context): the reply is public, but only a manager sees the reply/remove controls.
 - Court photo gallery — `CourtImage` model, `POST/DELETE /courts/{id}/images` (manager-only, capped at 8), admin gallery editor and a clickable thumbnail strip on the court detail page. Verified in a real browser (Playwright): upload, detail-page render, and removal all round-trip correctly.
 - Auth rate-limiting on `/auth/login`/`/auth/register` — `rate_limit.py`, PR merging `security/auth-rate-limit`.
 - Worker reliability: per-subtask transaction isolation + consistent row-locking — `worker.py`, PR merging `reliability/worker-tick-isolation`.

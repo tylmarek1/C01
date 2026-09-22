@@ -15,6 +15,7 @@ import { OccupancyTimeline } from "@/components/shared/occupancy-timeline"
 import { Skeleton } from "@/components/shared/skeleton"
 import { useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"
+import { Textarea } from "@/components/shared/textarea"
 import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAmenityLabels } from "@/lib/amenities"
 import { useAuth } from "@/lib/auth-context"
@@ -41,6 +42,9 @@ function CourtDetailPage() {
   const amenityLabels = useAmenityLabels()
   const [date, setDate] = useState(todayDateString())
   const [activePhoto, setActivePhoto] = useState<string | null>(null)
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyDraft, setReplyDraft] = useState("")
+  const canReplyToReviews = user?.role === "VENUE_MANAGER" || user?.role === "ADMIN"
 
   const { data: court, isLoading: isLoadingCourt, isError } = useQuery({
     queryKey: ["court", id],
@@ -85,6 +89,22 @@ function CourtDetailPage() {
     mutationFn: (reviewId: string) => api.toggleReviewHelpful(token!, reviewId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["court-reviews", id] }),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("courtDetail.reviews.helpfulError")),
+  })
+
+  const replyMutation = useMutation({
+    mutationFn: ({ reviewId, reply }: { reviewId: string; reply: string }) => api.replyToReview(token!, reviewId, reply),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["court-reviews", id] })
+      setReplyingTo(null)
+      setReplyDraft("")
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("courtDetail.reviews.replyError")),
+  })
+
+  const deleteReplyMutation = useMutation({
+    mutationFn: (reviewId: string) => api.deleteReviewReply(token!, reviewId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["court-reviews", id] }),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("courtDetail.reviews.replyError")),
   })
 
   function handleBook() {
@@ -242,7 +262,62 @@ function CourtDetailPage() {
                             : t("courtDetail.reviews.helpful")}
                         </button>
                       )}
+                      {canReplyToReviews && !review.manager_reply && replyingTo !== review.id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyingTo(review.id)
+                            setReplyDraft("")
+                          }}
+                          className="text-xs font-medium text-slate-gray transition-colors hover:text-ink-navy"
+                        >
+                          {t("courtDetail.reviews.reply")}
+                        </button>
+                      )}
                     </div>
+
+                    {review.manager_reply && (
+                      <div className="mt-1 flex flex-col gap-1 rounded-xl bg-cloud/60 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-ink-navy">{t("courtDetail.reviews.venueReply")}</span>
+                          {canReplyToReviews && (
+                            <button
+                              type="button"
+                              disabled={deleteReplyMutation.isPending}
+                              onClick={() => deleteReplyMutation.mutate(review.id)}
+                              className="text-xs text-slate-gray transition-colors hover:text-ink-navy"
+                            >
+                              {t("common.remove")}
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-gray">{review.manager_reply}</p>
+                      </div>
+                    )}
+
+                    {replyingTo === review.id && (
+                      <div className="mt-1 flex flex-col gap-2">
+                        <Textarea
+                          value={replyDraft}
+                          onChange={(event) => setReplyDraft(event.target.value)}
+                          placeholder={t("courtDetail.reviews.replyPlaceholder")}
+                          maxLength={1000}
+                          className="min-h-16"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            disabled={replyMutation.isPending || replyDraft.trim().length === 0}
+                            onClick={() => replyMutation.mutate({ reviewId: review.id, reply: replyDraft.trim() })}
+                          >
+                            {t("courtDetail.reviews.replySubmit")}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setReplyingTo(null)}>
+                            {t("common.cancel")}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
