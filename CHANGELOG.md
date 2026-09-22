@@ -10,6 +10,50 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Public player profiles and follow.** A profile page per player
+  (`/app/players/:id`) showing bio, achievements, skill ratings and a
+  follow button; a profile is public by default with an opt-out toggle,
+  which hides bio/stats (not name/avatar) from everyone but the owner.
+  **Breaking for the dev database:** new `User` columns and a new
+  notification type — run the drop/create/seed cycle from `backend/CLAUDE.md`.
+- **Review comments.** Any signed-in player can reply to someone else's
+  review, not just its author — the existing "helpful" vote already
+  covered reactions, this adds the discussion half.
+- **Real-time chat** — direct messages, a group chat per reservation, and
+  a group chat per team, delivered live over a WebSocket
+  (`/ws/chat`; see ADR-004) with REST as the fallback/history path. A
+  navbar icon shows a live+polled unread badge.
+- **Persistent teams/clubs**, each with its own roster and group chat
+  reusing the chat infrastructure above. Membership is added by email
+  (owner only); a removed member loses chat access immediately, unlike a
+  reservation guest. **Breaking for the dev database:** a new `Conversation`
+  column and a new notification type — run the drop/create/seed cycle.
+- **Match results and skill rating.** Either participant of a completed,
+  1-on-1 (exactly one guest) booking can report a win/loss/draw; ratings
+  update with a standard Elo formula, surfaced on player profiles and a
+  new sport-filterable leaderboard tab. Group bookings aren't rateable —
+  there's no well-defined winner/loser pairing without a team-assignment
+  UI this didn't seem worth building. **Breaking for the dev database:**
+  a new notification type — run the drop/create/seed cycle.
+- **Seasonal challenges.** A venue manager can run a time-boxed goal (e.g.
+  "play 10 sessions this autumn") from the admin panel; players see
+  progress bars on their profile. **Breaking for the dev database:** a new
+  notification type — run the drop/create/seed cycle.
+- **Activity feed** — a 4th tab on the dashboard showing what players you
+  follow have been up to (followed someone, joined a team, played a
+  rated match, completed a challenge or achievement, opened a game to
+  join).
+- **Web push notifications.** A "Browser notifications" toggle on the
+  profile page delivers the same notifications to the browser via a
+  service worker, even when the tab isn't open, respecting the existing
+  per-category mute preferences.
+- **Review photos** — up to 4 photos per review, shown publicly on the
+  court detail page.
+- **Recurring facility blocks.** A venue manager can repeat a maintenance
+  block weekly (2–26 weeks) and remove every occurrence at once.
+  **Breaking for the dev database:** a new `FacilityBlock` column — run
+  the drop/create/seed cycle.
+
 - **A new `ADMIN` role, above `VENUE_MANAGER`.** Inherits every venue-manager
   capability, plus two admin-only ones: changing anyone's role — including
   granting or revoking `ADMIN` itself (a venue manager keeps the existing
@@ -59,6 +103,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Changed
 
+- Gallery/list photos (court grids, admin/profile galleries, leaderboard
+  and teammate avatars) now lazy-load instead of downloading immediately;
+  the one true hero photo per page still loads eagerly. Uploaded files
+  under `/static/*` are now cached indefinitely by the browser (safe
+  because an upload never gets overwritten in place, always a fresh
+  filename).
 - A reservation can only be cancelled before its start time, from `PENDING`,
   `PENDING_APPROVAL` or `CONFIRMED` (previously any time, and from `CHECKED_IN`);
   the UI only offers Cancel when it will work.

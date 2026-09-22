@@ -35,9 +35,14 @@ concurrent demand (see [Architecture & decisions](#architecture--decisions)).
   when it frees up.
 - Social features: invite guests, open a booking to other players and
   accept join requests, split the cost with everyone attending.
-- Favorites, reviews, achievements, a leaderboard, and personal stats.
+- Favorites, reviews (with photos and comments), achievements, seasonal
+  challenges, skill ratings and a leaderboard, and personal stats.
+- A public player profile with a follow feature, real-time chat (direct
+  messages, plus a group chat for each reservation and each persistent
+  team/club you're in), and an activity feed of what players you follow
+  are up to.
 - A personal calendar feed (Google/Apple/Outlook) and in-app
-  notifications.
+  notifications, including browser push.
 - A built-in Help Center (getting-started guide, a plain-language
   reservation-status glossary, FAQ) and a full English/Czech UI.
 
@@ -52,6 +57,8 @@ concurrent demand (see [Architecture & decisions](#architecture--decisions)).
   export the lot to CSV.
 - An analytics dashboard: status breakdown, busiest hours, top courts,
   per-court utilization, no-show rate.
+- Run a seasonal challenge (e.g. "play 10 sessions this autumn") for
+  players to complete.
 - Promote or demote player accounts to venue manager.
 
 ### For admins
@@ -148,7 +155,7 @@ and executed evidence — lives in [`docs/`](docs/) rather than here:
 - [`docs/specification.md`](docs/specification.md) — the full behavioral
   specification: every operation, business rule, state and edge case.
 - [`docs/architecture-and-decisions.md`](docs/architecture-and-decisions.md)
-  — the architecture decision records (ADR-000…003).
+  — the architecture decision records (ADR-000…004).
 - [`docs/intent-and-change.md`](docs/intent-and-change.md) — the original
   domain frame (actors, concepts, rules).
 - [`docs/project-state.md`](docs/project-state.md) — current project phase

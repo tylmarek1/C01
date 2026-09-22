@@ -83,7 +83,7 @@ Use `update-docs` for the actual doc-sync mechanics. The versioning-relevant
 part: a breaking change (as defined above) is exactly the kind of thing
 `docs/architecture-and-decisions.md` should get a new ADR for if it reflects
 a real architectural decision (not just a bug fix) — follow the existing
-ADR-000..003 format.
+ADR-000..004 format.
 
 ## Git conventions
 

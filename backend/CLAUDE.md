@@ -12,7 +12,7 @@ here, extend it if something there goes stale.
 docker compose up -d --wait db          # from repo root — Postgres 16 on :5432
 cd backend
 uv sync                                 # install deps into backend/.venv
-uv run pytest -v                        # 170+ tests, real Postgres — see "Tests wipe the dev DB" below
+uv run pytest -v                        # 269+ tests, real Postgres — see "Tests wipe the dev DB" below
 uv run python -m reservations.seed      # idempotent demo data
 uv run fastapi dev src/reservations/main.py   # dev server w/ reload, :8000, Swagger at /docs
 curl localhost:8000/health
