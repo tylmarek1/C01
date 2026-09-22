@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
-import { CalendarPlus, LayoutDashboard, LogOut, MessageCircle, Menu, ShieldCheck, UserRound, X } from "lucide-react"
+import { CalendarPlus, LayoutDashboard, LogOut, MessageCircle, Menu, ShieldCheck, Users, UserRound, X } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Button } from "@/components/shared/button"
@@ -75,6 +75,7 @@ function Navbar() {
             <>
               <NavItem to="/app">{t("nav.dashboard")}</NavItem>
               <NavItem to="/app/book">{t("nav.book")}</NavItem>
+              <NavItem to="/app/teams">{t("nav.teams")}</NavItem>
               {canAccessAdmin && <NavItem to="/app/admin">{t("nav.admin")}</NavItem>}
             </>
           )}
@@ -119,6 +120,11 @@ function Navbar() {
                 <DropdownMenuItem asChild>
                   <NavLink to="/app/chat">
                     <MessageCircle /> {t("nav.chat")}
+                  </NavLink>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <NavLink to="/app/teams">
+                    <Users /> {t("nav.teams")}
                   </NavLink>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -180,6 +186,9 @@ function Navbar() {
                 </NavItem>
                 <NavItem to="/app/chat" onClick={() => setMobileOpen(false)}>
                   {t("nav.chat")}
+                </NavItem>
+                <NavItem to="/app/teams" onClick={() => setMobileOpen(false)}>
+                  {t("nav.teams")}
                 </NavItem>
                 <NavItem to="/app/profile" onClick={() => setMobileOpen(false)}>
                   {t("nav.profile")}

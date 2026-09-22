@@ -117,6 +117,32 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Persistent teams/clubs — `Team`, `TeamMember` (OWNER/MEMBER), reusing
+  PR 3's chat infrastructure for a team's own group chat
+  (`Conversation.team_id`, `GET /teams/{id}/chat`). Membership add is by
+  email (`POST /teams/{id}/members`, owner-only) matching how inviting a
+  reservation guest already works, rather than requiring the frontend to
+  know a raw user id. Unlike a reservation's guest list, a team member
+  removed from the team **immediately** loses conversation access (`chat.
+  get_or_create_team_conversation` prunes stale `ConversationParticipant`
+  rows on every membership change) — a deliberate asymmetry from PR 3's
+  reservation-chat behavior, since team membership is a stronger,
+  standing relationship than a one-off guest invite. A team must always
+  keep at least one owner (409 on the last owner trying to leave — delete
+  the team instead). Refactored `chat.py`/`api/chat.py` while wiring this
+  in: the per-conversation "build a `ConversationOut`" assembly logic that
+  three different endpoints needed (DM, reservation, now team) moved into
+  one shared `chat.get_conversation_context`/`to_conversation_out` pair
+  instead of a third near-duplicate copy. New `TeamsPage`/`TeamDetailPage`,
+  a "Teams" nav entry. Two real bugs found and fixed during a real-browser
+  verification pass (not just caught by tests): the frontend's
+  `addTeamMember` call had drifted out of sync with the backend's
+  email-based schema (still sending `user_id` — a live instance of exactly
+  the class of bug `schema-change-sweep` exists to catch), and the chat
+  WebSocket handler raised an unhandled exception when trying to close a
+  socket that had already disconnected during the auth handshake. New
+  tables + a new `team_id` column on `conversations` + a new
+  `NotificationType` value — ran the manual drop/recreate/reseed cycle.
 - Real-time chat — the first WebSocket infrastructure in this codebase.
   `Conversation` (DM/RESERVATION/TEAM kind), `ConversationParticipant`
   (membership + per-user `last_read_at`), `Message`. DM: `POST /chat/dm/

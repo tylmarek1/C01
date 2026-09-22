@@ -292,6 +292,25 @@ export interface Conversation {
   created_at: string
 }
 
+export type TeamRole = "OWNER" | "MEMBER"
+
+export interface TeamMemberEntry {
+  user: User
+  role: TeamRole
+  joined_at: string
+}
+
+export interface Team {
+  id: string
+  name: string
+  sport_type: SportType | null
+  description: string | null
+  created_by: string
+  created_at: string
+  members: TeamMemberEntry[]
+  my_role: TeamRole
+}
+
 export interface JoinRequest {
   id: string
   user: User

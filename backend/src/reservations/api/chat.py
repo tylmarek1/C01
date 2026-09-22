@@ -78,23 +78,6 @@ def _unread_count(
     return len(list(db.scalars(stmt)))
 
 
-def _to_out(
-    conversation: Conversation,
-    participants: list[User],
-    last_message: Message | None,
-    last_read_at: datetime | None,
-    unread_count: int,
-) -> ConversationOut:
-    return ConversationOut(
-        id=conversation.id,
-        kind=conversation.kind,
-        participants=participants,
-        last_message=MessageOut.model_validate(last_message) if last_message else None,
-        unread_count=unread_count,
-        created_at=conversation.created_at,
-    )
-
-
 @router.get("/conversations", response_model=list[ConversationOut])
 def list_my_conversations(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
@@ -125,11 +108,10 @@ def list_my_conversations(
         last_read_at = last_read_by_conversation.get(conversation.id)
         unread_count = _unread_count(db, conversation.id, current_user.id, last_read_at)
         results.append(
-            _to_out(
+            chat.to_conversation_out(
                 conversation,
                 participants_by_conversation.get(conversation.id, []),
                 last_messages.get(conversation.id),
-                last_read_at,
                 unread_count,
             )
         )
@@ -154,7 +136,12 @@ def open_dm(
 
     conversation = chat.get_or_create_dm_conversation(db, current_user.id, user_id)
     db.commit()
-    return _to_out(conversation, [current_user, other], None, None, 0)
+    participants, last_message, _last_read_at, unread_count = (
+        chat.get_conversation_context(db, conversation.id, current_user.id)
+    )
+    return chat.to_conversation_out(
+        conversation, participants, last_message, unread_count
+    )
 
 
 @router.get("/reservations/{reservation_id}/chat", response_model=ConversationOut)
@@ -182,20 +169,11 @@ def open_reservation_chat(
     conversation = chat.get_or_create_reservation_conversation(db, reservation)
     db.commit()
 
-    participants = _participants(db, [conversation.id]).get(conversation.id, [])
-    last_message = _last_messages(db, [conversation.id]).get(conversation.id)
-    my_row = db.scalar(
-        select(ConversationParticipant)
-        .where(ConversationParticipant.conversation_id == conversation.id)
-        .where(ConversationParticipant.user_id == current_user.id)
+    participants, last_message, _last_read_at, unread_count = (
+        chat.get_conversation_context(db, conversation.id, current_user.id)
     )
-    last_read_at = my_row.last_read_at if my_row else None
-    return _to_out(
-        conversation,
-        participants,
-        last_message,
-        last_read_at,
-        _unread_count(db, conversation.id, current_user.id, last_read_at),
+    return chat.to_conversation_out(
+        conversation, participants, last_message, unread_count
     )
 
 
@@ -291,7 +269,11 @@ async def chat_websocket(websocket: WebSocket, db: Session = Depends(get_db)) ->
         if not token:
             raise ValueError("missing token")
         user_id = uuid.UUID(decode_access_token(token))
-    except (TimeoutError, WebSocketDisconnect, ValueError, jwt.PyJWTError):
+    except WebSocketDisconnect:
+        # The client is already gone — closing an already-closed socket
+        # would itself raise, so there's nothing left to do here.
+        return
+    except (TimeoutError, ValueError, jwt.PyJWTError):
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 

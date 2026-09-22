@@ -22,6 +22,7 @@ from reservations.api import (
     reviews,
     social,
     stats,
+    teams,
     waitlist,
 )
 from reservations.config import settings
@@ -88,6 +89,7 @@ app.include_router(stats.router)
 app.include_router(push.router)
 app.include_router(social.router)
 app.include_router(chat.router)
+app.include_router(teams.router)
 
 
 @app.exception_handler(Exception)
