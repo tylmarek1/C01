@@ -121,6 +121,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Court photo gallery — `CourtImage` model, `POST/DELETE /courts/{id}/images` (manager-only, capped at 8), admin gallery editor and a clickable thumbnail strip on the court detail page. Verified in a real browser (Playwright): upload, detail-page render, and removal all round-trip correctly.
 - Auth rate-limiting on `/auth/login`/`/auth/register` — `rate_limit.py`, PR merging `security/auth-rate-limit`.
 - Worker reliability: per-subtask transaction isolation + consistent row-locking — `worker.py`, PR merging `reliability/worker-tick-isolation`.
 - Dependency-audit baseline run (`pip-audit`/`npm audit`, both clean), `images.py` pixel-dimension cap, `transition()`'s locking contract documented, unhandled-exception logging hook — one PR, `backend/architecture` hardening batch.

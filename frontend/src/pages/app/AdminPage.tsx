@@ -13,6 +13,7 @@ import {
   Plus,
   Trash2,
   Users,
+  X,
 } from "lucide-react"
 import { Fragment, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
@@ -110,6 +111,7 @@ function CourtFormDialog({
   const [values, setValues] = useState<CourtFormValues>(() => formValuesFromCourt(court))
   const [isSaving, setIsSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const imageMutation = useMutation({
     mutationFn: async (file: File) => api.uploadCourtImage(token!, court!.id, await compressImageFile(file, 1600, 0.85)),
@@ -118,6 +120,18 @@ function CourtFormDialog({
       onImageUploaded?.()
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.photoUpload")),
+  })
+
+  const galleryAddMutation = useMutation({
+    mutationFn: async (file: File) => api.addCourtGalleryImage(token!, court!.id, await compressImageFile(file, 1600, 0.85)),
+    onSuccess: () => onImageUploaded?.(),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.photoUpload")),
+  })
+
+  const galleryRemoveMutation = useMutation({
+    mutationFn: (imageId: string) => api.deleteCourtGalleryImage(token!, court!.id, imageId),
+    onSuccess: () => onImageUploaded?.(),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.error.galleryRemove")),
   })
 
   async function handleSubmit() {
@@ -176,6 +190,51 @@ function CourtFormDialog({
                   }}
                 />
               </div>
+            </div>
+          )}
+
+          {court && (
+            <div className="flex flex-col gap-2">
+              <Label>{t("admin.court.gallery")}</Label>
+              <div className="flex flex-wrap gap-2">
+                {court.images.map((image) => (
+                  <div key={image.id} className="group relative size-16 shrink-0 overflow-hidden rounded-lg border border-hairline">
+                    <img src={assetUrl(image.url)} alt="" className="size-full object-cover" />
+                    <button
+                      type="button"
+                      disabled={galleryRemoveMutation.isPending}
+                      onClick={() => galleryRemoveMutation.mutate(image.id)}
+                      aria-label={t("admin.court.gallery.remove")}
+                      className="absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-ink-navy/70 text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+                {court.images.length < 8 && (
+                  <button
+                    type="button"
+                    disabled={galleryAddMutation.isPending}
+                    onClick={() => galleryInputRef.current?.click()}
+                    aria-label={t("admin.court.gallery.add")}
+                    className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-hairline text-slate-gray transition-colors hover:border-signal-blue hover:text-signal-blue"
+                  >
+                    <Plus className="size-4" />
+                  </button>
+                )}
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    event.target.value = ""
+                    if (file) galleryAddMutation.mutate(file)
+                  }}
+                />
+              </div>
+              <span className="text-xs text-slate-gray">{t("admin.court.gallery.hint")}</span>
             </div>
           )}
 

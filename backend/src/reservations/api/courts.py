@@ -20,6 +20,7 @@ from reservations.models import (
     ACTIVE_RESERVATION_STATUSES,
     Amenity,
     Court,
+    CourtImage,
     FacilityBlock,
     Favorite,
     Reservation,
@@ -40,6 +41,10 @@ from reservations.schemas.court import CourtCreate, CourtOut, CourtUpdate
 from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
 
 router = APIRouter(prefix="/courts", tags=["courts"])
+
+# A gallery beyond this size stops being useful and starts being an abuse
+# vector for unbounded upload storage.
+MAX_GALLERY_IMAGES = 8
 
 _REAL_BOOKING_STATUSES = (
     ReservationStatus.CONFIRMED,
@@ -75,6 +80,25 @@ def _attach_ratings(db: Session, courts: list[Court]) -> list[Court]:
     return courts
 
 
+def _attach_images(db: Session, courts: list[Court]) -> list[Court]:
+    """Same pattern as `_attach_ratings`: one bulk query for the whole list,
+    transient `.images` attribute read by `CourtOut` (from_attributes)."""
+    if not courts:
+        return courts
+    court_ids = [c.id for c in courts]
+    stmt = (
+        select(CourtImage)
+        .where(CourtImage.court_id.in_(court_ids))
+        .order_by(CourtImage.position, CourtImage.created_at)
+    )
+    by_court: dict[uuid.UUID, list[CourtImage]] = {}
+    for image in db.scalars(stmt):
+        by_court.setdefault(image.court_id, []).append(image)
+    for court in courts:
+        court.images = by_court.get(court.id, [])
+    return courts
+
+
 @router.get("", response_model=list[CourtOut])
 def list_courts(
     sport: SportType | None = None,
@@ -101,7 +125,10 @@ def list_courts(
     if amenity is not None:
         stmt = stmt.where(Court.amenities.any(amenity.value))
     stmt = stmt.order_by(Court.name)
-    return _attach_ratings(db, list(db.scalars(stmt)))
+    courts = _attach_ratings(db, list(db.scalars(stmt)))
+    # Needed here (unlike trending/recommended) because this is the endpoint
+    # the admin Courts tab's gallery editor reads from after an upload.
+    return _attach_images(db, courts)
 
 
 @router.get("/trending", response_model=list[CourtOut])
@@ -180,6 +207,10 @@ def get_court(court_id: uuid.UUID, db: Session = Depends(get_db)) -> Court:
     if not court.active:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
     _attach_ratings(db, [court])
+    # Gallery images are only worth fetching for the single-court detail
+    # view — list endpoints skip this to avoid a bulk-N-image payload on
+    # every search result.
+    _attach_images(db, [court])
     return court
 
 
@@ -295,6 +326,54 @@ def upload_court_image(
     return court
 
 
+@router.post(
+    "/{court_id}/images", response_model=CourtOut, status_code=status.HTTP_201_CREATED
+)
+def add_court_gallery_image(
+    court_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _manager: User = Depends(get_current_manager),
+) -> Court:
+    court = _get_court(db, court_id)
+    existing_count = db.scalar(
+        select(func.count())
+        .select_from(CourtImage)
+        .where(CourtImage.court_id == court.id)
+    )
+    if existing_count >= MAX_GALLERY_IMAGES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"A court can have at most {MAX_GALLERY_IMAGES} gallery photos",
+        )
+
+    raw = file.file.read()
+    url = compress_and_store_court_image(file, raw)
+    db.add(CourtImage(court_id=court.id, url=url, position=existing_count))
+    db.commit()
+    db.refresh(court)
+    _attach_images(db, [court])
+    return court
+
+
+@router.delete("/{court_id}/images/{image_id}", response_model=CourtOut)
+def delete_court_gallery_image(
+    court_id: uuid.UUID,
+    image_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _manager: User = Depends(get_current_manager),
+) -> Court:
+    court = _get_court(db, court_id)
+    image = db.get(CourtImage, image_id)
+    if image is None or image.court_id != court.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Gallery image not found")
+    db.delete(image)
+    db.commit()
+    db.refresh(court)
+    _attach_images(db, [court])
+    return court
+
+
 @router.delete("/{court_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_court(
     court_id: uuid.UUID,
@@ -342,5 +421,12 @@ def delete_court(
         select(WaitlistEntry).where(WaitlistEntry.court_id == court.id)
     ):
         db.delete(entry)
+    for image in db.scalars(select(CourtImage).where(CourtImage.court_id == court.id)):
+        db.delete(image)
+    # `CourtImage` has no declared `relationship()` back to `Court` (unlike
+    # Favorite/FacilityBlock/WaitlistEntry above), so the unit of work has
+    # no dependency edge to order its DELETE before the court's — flush
+    # explicitly so the FK is already gone before the court row is.
+    db.flush()
     db.delete(court)
     db.commit()
