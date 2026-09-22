@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
-import { CalendarPlus, LayoutDashboard, LogOut, Menu, ShieldCheck, UserRound, X } from "lucide-react"
+import { CalendarPlus, LayoutDashboard, LogOut, MessageCircle, Menu, ShieldCheck, UserRound, X } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Button } from "@/components/shared/button"
+import { ChatNavButton } from "@/components/shared/chat-nav-button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,6 +84,7 @@ function Navbar() {
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>
+          {user && <ChatNavButton />}
           {user && <NotificationsBell />}
           {isLoading ? null : user ? (
             <DropdownMenu>
@@ -112,6 +114,11 @@ function Navbar() {
                 <DropdownMenuItem asChild>
                   <NavLink to="/app/book">
                     <CalendarPlus /> {t("nav.book")}
+                  </NavLink>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <NavLink to="/app/chat">
+                    <MessageCircle /> {t("nav.chat")}
                   </NavLink>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -170,6 +177,9 @@ function Navbar() {
                 </NavItem>
                 <NavItem to="/app/book" onClick={() => setMobileOpen(false)}>
                   {t("nav.book")}
+                </NavItem>
+                <NavItem to="/app/chat" onClick={() => setMobileOpen(false)}>
+                  {t("nav.chat")}
                 </NavItem>
                 <NavItem to="/app/profile" onClick={() => setMobileOpen(false)}>
                   {t("nav.profile")}

@@ -1,9 +1,12 @@
 from reservations.models.achievement import UserAchievement
+from reservations.models.conversation import Conversation, ConversationKind
+from reservations.models.conversation_participant import ConversationParticipant
 from reservations.models.court import Amenity, Court, SportType
 from reservations.models.court_image import CourtImage
 from reservations.models.facility_block import FacilityBlock
 from reservations.models.favorite import Favorite
 from reservations.models.join_request import JoinRequest, JoinRequestStatus
+from reservations.models.message import Message
 from reservations.models.notification import Notification, NotificationType
 from reservations.models.player_follow import PlayerFollow
 from reservations.models.push_subscription import PushSubscription
@@ -51,4 +54,8 @@ __all__ = [
     "JoinRequest",
     "JoinRequestStatus",
     "PlayerFollow",
+    "Conversation",
+    "ConversationKind",
+    "ConversationParticipant",
+    "Message",
 ]

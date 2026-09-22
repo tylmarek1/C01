@@ -4,6 +4,7 @@ import type {
   Amenity,
   AuthResponse,
   CalendarToken,
+  Conversation,
   Court,
   CourtAvailability,
   CourtUtilization,
@@ -12,6 +13,7 @@ import type {
   JoinRequest,
   JoinRequestWithReservation,
   LeaderboardEntry,
+  Message,
   Notification,
   NotificationType,
   OpenGame,
@@ -435,4 +437,19 @@ export const api = {
 
   listFollowing: (token: string, userId: string) =>
     request<FollowerEntry[]>(`/users/${userId}/following`, {}, token),
+
+  // Chat
+  listConversations: (token: string) => request<Conversation[]>("/conversations", {}, token),
+
+  openDirectMessage: (token: string, userId: string) =>
+    request<Conversation>(`/chat/dm/${userId}`, { method: "POST" }, token),
+
+  openReservationChat: (token: string, reservationId: string) =>
+    request<Conversation>(`/reservations/${reservationId}/chat`, {}, token),
+
+  listMessages: (token: string, conversationId: string) =>
+    request<Message[]>(`/conversations/${conversationId}/messages`, {}, token),
+
+  sendMessage: (token: string, conversationId: string, body: string) =>
+    request<Message>(`/conversations/${conversationId}/messages`, { method: "POST", body: JSON.stringify({ body }) }, token),
 }

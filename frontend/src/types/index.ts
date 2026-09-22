@@ -12,6 +12,7 @@ export type ReservationStatus =
   | "NO_SHOW"
 export type WaitlistStatus = "WAITING" | "OFFERED" | "ACCEPTED" | "EXPIRED" | "CANCELLED"
 export type JoinRequestStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED"
+export type ConversationKind = "DM" | "RESERVATION" | "TEAM"
 export type Amenity =
   | "LIGHTING"
   | "PARKING"
@@ -272,6 +273,23 @@ export interface PlayerProfile {
 export interface FollowerEntry {
   user: User
   followed_at: string
+}
+
+export interface Message {
+  id: string
+  conversation_id: string
+  sender: User
+  body: string
+  created_at: string
+}
+
+export interface Conversation {
+  id: string
+  kind: ConversationKind
+  participants: User[]
+  last_message: Message | null
+  unread_count: number
+  created_at: string
 }
 
 export interface JoinRequest {

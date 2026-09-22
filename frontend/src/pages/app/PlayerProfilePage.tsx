@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Award, CalendarClock, Flame, MapPinned, UserMinus, UserPlus, Volleyball } from "lucide-react"
+import { ArrowLeft, Award, CalendarClock, Flame, MapPinned, MessageCircle, UserMinus, UserPlus, Volleyball } from "lucide-react"
 import { useState, type ReactNode } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -107,6 +107,12 @@ function PlayerProfilePage() {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("playerProfile.error.followFailed")),
   })
 
+  const messageMutation = useMutation({
+    mutationFn: () => api.openDirectMessage(token!, id!),
+    onSuccess: (conversation) => navigate(`/app/chat?conversation=${conversation.id}`),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("playerProfile.error.messageFailed")),
+  })
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6">
@@ -165,21 +171,26 @@ function PlayerProfilePage() {
               <Link to="/app/profile">{t("playerProfile.editOwn")}</Link>
             </Button>
           ) : (
-            <Button
-              variant={profile.is_following ? "outline" : "default"}
-              disabled={followMutation.isPending || unfollowMutation.isPending}
-              onClick={() => (profile.is_following ? unfollowMutation.mutate() : followMutation.mutate())}
-            >
-              {profile.is_following ? (
-                <>
-                  <UserMinus className="size-4" /> {t("playerProfile.unfollow")}
-                </>
-              ) : (
-                <>
-                  <UserPlus className="size-4" /> {t("playerProfile.follow")}
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" disabled={messageMutation.isPending} onClick={() => messageMutation.mutate()}>
+                <MessageCircle className="size-4" /> {t("playerProfile.message")}
+              </Button>
+              <Button
+                variant={profile.is_following ? "outline" : "default"}
+                disabled={followMutation.isPending || unfollowMutation.isPending}
+                onClick={() => (profile.is_following ? unfollowMutation.mutate() : followMutation.mutate())}
+              >
+                {profile.is_following ? (
+                  <>
+                    <UserMinus className="size-4" /> {t("playerProfile.unfollow")}
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="size-4" /> {t("playerProfile.follow")}
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

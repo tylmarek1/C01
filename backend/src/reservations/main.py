@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from reservations.api import (
     admin,
     auth,
+    chat,
     courts,
     facility_blocks,
     favorites,
@@ -86,6 +87,7 @@ app.include_router(admin.router)
 app.include_router(stats.router)
 app.include_router(push.router)
 app.include_router(social.router)
+app.include_router(chat.router)
 
 
 @app.exception_handler(Exception)
