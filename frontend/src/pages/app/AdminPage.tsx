@@ -199,7 +199,7 @@ function CourtFormDialog({
               <div className="flex flex-wrap gap-2">
                 {court.images.map((image) => (
                   <div key={image.id} className="group relative size-16 shrink-0 overflow-hidden rounded-lg border border-hairline">
-                    <img src={assetUrl(image.url)} alt="" className="size-full object-cover" />
+                    <img src={assetUrl(image.url)} alt="" loading="lazy" className="size-full object-cover" />
                     <button
                       type="button"
                       disabled={galleryRemoveMutation.isPending}
@@ -1293,7 +1293,7 @@ function UsersTab() {
           <DataRow key={user.id}>
             <div className="flex items-center gap-3">
               <Avatar className="size-10">
-                <AvatarImage src={assetUrl(user.avatar_url)} alt={user.name} className="object-cover" />
+                <AvatarImage src={assetUrl(user.avatar_url)} alt={user.name} loading="lazy" className="object-cover" />
                 <AvatarFallback>
                   {user.name
                     .split(" ")

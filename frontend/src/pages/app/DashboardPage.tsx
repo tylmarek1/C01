@@ -375,7 +375,7 @@ function DashboardPage() {
               {teammates.map((teammate) => (
                 <div key={teammate.user.id} className="flex items-center gap-2.5 rounded-2xl border border-hairline bg-card px-3 py-2 shadow-card">
                   <Avatar className="size-8">
-                    <AvatarImage src={assetUrl(teammate.user.avatar_url)} alt={teammate.user.name} className="object-cover" />
+                    <AvatarImage src={assetUrl(teammate.user.avatar_url)} alt={teammate.user.name} loading="lazy" className="object-cover" />
                     <AvatarFallback className="text-xs">
                       {teammate.user.name
                         .split(" ")

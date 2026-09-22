@@ -480,7 +480,7 @@ function ReviewsTab() {
             <div className="flex flex-wrap gap-2">
               {review.images.map((image) => (
                 <div key={image.id} className="group relative size-14 shrink-0 overflow-hidden rounded-lg border border-hairline">
-                  <img src={assetUrl(image.url)} alt="" className="size-full object-cover" />
+                  <img src={assetUrl(image.url)} alt="" loading="lazy" className="size-full object-cover" />
                   <button
                     type="button"
                     disabled={removePhotoMutation.isPending}
@@ -639,7 +639,7 @@ function LeaderboardTab() {
             {entry.rank <= 3 ? <Trophy className="size-4 text-amber-500" /> : t("leaderboard.rank", { rank: entry.rank })}
           </span>
           <Avatar className="size-9">
-            <AvatarImage src={assetUrl(entry.user.avatar_url)} alt={entry.user.name} className="object-cover" />
+            <AvatarImage src={assetUrl(entry.user.avatar_url)} alt={entry.user.name} loading="lazy" className="object-cover" />
             <AvatarFallback>{initials(entry.user.name)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
