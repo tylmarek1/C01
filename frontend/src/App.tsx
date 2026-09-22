@@ -21,6 +21,8 @@ const BookCourtPage = lazy(() => import("@/pages/app/BookCourtPage").then((m) =>
 const ProfilePage = lazy(() => import("@/pages/app/ProfilePage").then((m) => ({ default: m.ProfilePage })))
 const PlayerProfilePage = lazy(() => import("@/pages/app/PlayerProfilePage").then((m) => ({ default: m.PlayerProfilePage })))
 const ChatPage = lazy(() => import("@/pages/app/ChatPage").then((m) => ({ default: m.ChatPage })))
+const TeamsPage = lazy(() => import("@/pages/app/TeamsPage").then((m) => ({ default: m.TeamsPage })))
+const TeamDetailPage = lazy(() => import("@/pages/app/TeamDetailPage").then((m) => ({ default: m.TeamDetailPage })))
 const AdminPage = lazy(() => import("@/pages/app/AdminPage").then((m) => ({ default: m.AdminPage })))
 
 function App() {
@@ -89,6 +91,22 @@ function App() {
           element={
             <ProtectedRoute>
               <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="app/teams"
+          element={
+            <ProtectedRoute>
+              <TeamsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="app/teams/:id"
+          element={
+            <ProtectedRoute>
+              <TeamDetailPage />
             </ProtectedRoute>
           }
         />

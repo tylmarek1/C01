@@ -22,6 +22,8 @@ from reservations.models.review import Review
 from reservations.models.review_comment import ReviewComment
 from reservations.models.review_image import ReviewImage
 from reservations.models.review_vote import ReviewVote
+from reservations.models.team import Team, TeamRole
+from reservations.models.team_member import TeamMember
 from reservations.models.user import User, UserRole
 from reservations.models.waitlist import WaitlistEntry, WaitlistStatus
 
@@ -58,4 +60,7 @@ __all__ = [
     "ConversationKind",
     "ConversationParticipant",
     "Message",
+    "Team",
+    "TeamRole",
+    "TeamMember",
 ]

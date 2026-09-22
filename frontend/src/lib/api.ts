@@ -29,6 +29,7 @@ import type {
   Review,
   ReviewComment,
   SportType,
+  Team,
   Teammate,
   User,
   UserAdmin,
@@ -452,4 +453,22 @@ export const api = {
 
   sendMessage: (token: string, conversationId: string, body: string) =>
     request<Message>(`/conversations/${conversationId}/messages`, { method: "POST", body: JSON.stringify({ body }) }, token),
+
+  // Teams
+  createTeam: (token: string, payload: { name: string; sport_type?: SportType; description?: string }) =>
+    request<Team>("/teams", { method: "POST", body: JSON.stringify(payload) }, token),
+
+  listMyTeams: (token: string) => request<Team[]>("/teams/mine", {}, token),
+
+  getTeam: (token: string, teamId: string) => request<Team>(`/teams/${teamId}`, {}, token),
+
+  openTeamChat: (token: string, teamId: string) => request<Conversation>(`/teams/${teamId}/chat`, {}, token),
+
+  addTeamMember: (token: string, teamId: string, email: string) =>
+    request<Team>(`/teams/${teamId}/members`, { method: "POST", body: JSON.stringify({ email }) }, token),
+
+  removeTeamMember: (token: string, teamId: string, userId: string) =>
+    request<Team>(`/teams/${teamId}/members/${userId}`, { method: "DELETE" }, token),
+
+  deleteTeam: (token: string, teamId: string) => request<void>(`/teams/${teamId}`, { method: "DELETE" }, token),
 }
