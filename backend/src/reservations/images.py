@@ -13,6 +13,7 @@ from reservations.config import settings
 AVATAR_MAX_DIMENSION = 512
 COURT_IMAGE_MAX_DIMENSION = 1600
 REVIEW_IMAGE_MAX_DIMENSION = 1200
+CHAT_IMAGE_MAX_DIMENSION = 1200
 JPEG_QUALITY = 82
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 # A byte-size cap alone doesn't bound decode cost — a tiny, highly-
@@ -94,3 +95,7 @@ def compress_and_store_court_image(upload: UploadFile, raw: bytes) -> str:
 
 def compress_and_store_review_image(upload: UploadFile, raw: bytes) -> str:
     return _compress_and_store(upload, raw, "reviews", REVIEW_IMAGE_MAX_DIMENSION)
+
+
+def compress_and_store_chat_attachment(upload: UploadFile, raw: bytes) -> str:
+    return _compress_and_store(upload, raw, "chat", CHAT_IMAGE_MAX_DIMENSION)

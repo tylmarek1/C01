@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom"
 
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { onChatMessage } from "@/lib/chat-socket"
+import { onChatEvent } from "@/lib/chat-socket"
 import { useTranslation } from "@/lib/i18n"
 
 function ChatNavButton() {
@@ -21,7 +21,7 @@ function ChatNavButton() {
   })
 
   useEffect(() => {
-    return onChatMessage(() => queryClient.invalidateQueries({ queryKey: ["conversations"] }))
+    return onChatEvent(() => queryClient.invalidateQueries({ queryKey: ["conversations"] }))
   }, [queryClient])
 
   const unreadCount = conversations?.reduce((total, conversation) => total + conversation.unread_count, 0) ?? 0

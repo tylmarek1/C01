@@ -10,6 +10,16 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Chat rebuild: delete, reactions, and photo attachments.** You can now
+  delete your own message (soft-deleted — other participants see a
+  "Message deleted" placeholder rather than the row just vanishing);
+  react to any message with a fixed set of 6 emoji (tap again to remove
+  your reaction); and attach a photo, with or without a caption, from the
+  composer. All three are live over the existing chat WebSocket for every
+  participant, the same as a new message already was. **Breaking for the
+  dev database**: new `Message.deleted_at`/`image_url` columns and a new
+  `message_reactions` table — run the drop/create/reseed cycle from
+  `backend/CLAUDE.md`.
 - **Teams rebuild: public discovery/join, a CAPTAIN role, and a team
   avatar.** A team is public by default (owner can flip it private from
   a new edit-team dialog); `/app/teams`'s new "Discover" tab lists public

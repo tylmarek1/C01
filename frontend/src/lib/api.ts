@@ -474,6 +474,23 @@ export const api = {
   sendMessage: (token: string, conversationId: string, body: string) =>
     request<Message>(`/conversations/${conversationId}/messages`, { method: "POST", body: JSON.stringify({ body }) }, token),
 
+  sendMessageImage: (token: string, conversationId: string, file: File | Blob, body?: string) => {
+    const formData = new FormData()
+    formData.append("file", file, "chat.jpg")
+    if (body) formData.append("body", body)
+    return request<Message>(`/conversations/${conversationId}/messages/image`, { method: "POST", body: formData }, token)
+  },
+
+  deleteMessage: (token: string, conversationId: string, messageId: string) =>
+    request<void>(`/conversations/${conversationId}/messages/${messageId}`, { method: "DELETE" }, token),
+
+  toggleMessageReaction: (token: string, conversationId: string, messageId: string, emoji: string) =>
+    request<Message>(
+      `/conversations/${conversationId}/messages/${messageId}/reactions`,
+      { method: "POST", body: JSON.stringify({ emoji }) },
+      token,
+    ),
+
   // Teams
   createTeam: (token: string, payload: { name: string; sport_type?: SportType; description?: string }) =>
     request<Team>("/teams", { method: "POST", body: JSON.stringify(payload) }, token),

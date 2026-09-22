@@ -6,25 +6,38 @@ import jwt
 from fastapi import (
     APIRouter,
     Depends,
+    File,
+    Form,
     HTTPException,
+    UploadFile,
     WebSocket,
     WebSocketDisconnect,
     status,
 )
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from reservations import chat, chat_hub
 from reservations.deps import get_current_user, get_db
+from reservations.images import compress_and_store_chat_attachment
 from reservations.models import (
+    ALLOWED_REACTION_EMOJI,
     Conversation,
     ConversationParticipant,
     Message,
+    MessageReaction,
     Reservation,
     ReservationGuest,
     User,
 )
-from reservations.schemas.chat import ConversationOut, MessageCreate, MessageOut
+from reservations.schemas.chat import (
+    ConversationOut,
+    MessageCreate,
+    MessageOut,
+    MessageReactionSummary,
+    ReactionToggle,
+)
 from reservations.security import decode_access_token
 
 router = APIRouter(tags=["chat"])
@@ -76,6 +89,38 @@ def _unread_count(
     if last_read_at is not None:
         stmt = stmt.where(Message.created_at > last_read_at)
     return len(list(db.scalars(stmt)))
+
+
+def _attach_reactions(
+    db: Session, messages: list[Message], viewer_id: uuid.UUID
+) -> list[Message]:
+    """Bulk-query-then-transient-attribute pattern (same as reviews.py's
+    _attach_images) — one query for the whole message list, not one per
+    message. Groups raw MessageReaction rows into per-emoji summaries."""
+    if not messages:
+        return messages
+    message_ids = [message.id for message in messages]
+    rows = db.execute(
+        select(
+            MessageReaction.message_id, MessageReaction.emoji, MessageReaction.user_id
+        ).where(MessageReaction.message_id.in_(message_ids))
+    ).all()
+    by_message: dict[uuid.UUID, dict[str, list[uuid.UUID]]] = {}
+    for message_id, emoji, user_id in rows:
+        by_message.setdefault(message_id, {}).setdefault(emoji, []).append(user_id)
+
+    for message in messages:
+        emoji_map = by_message.get(message.id, {})
+        message.reactions = [
+            MessageReactionSummary(
+                emoji=emoji, count=len(user_ids), reacted_by_me=viewer_id in user_ids
+            )
+            for emoji, user_ids in sorted(
+                emoji_map.items(),
+                key=lambda item: ALLOWED_REACTION_EMOJI.index(item[0]),
+            )
+        ]
+    return messages
 
 
 @router.get("/conversations", response_model=list[ConversationOut])
@@ -200,6 +245,7 @@ def list_messages(
         )
     )
     messages.reverse()
+    _attach_reactions(db, messages, current_user.id)
 
     # Opening a conversation's history marks it read — the same "viewing it
     # is acknowledging it" semantics as a real chat app, one less endpoint
@@ -216,11 +262,11 @@ def list_messages(
     return messages
 
 
-# Only this endpoint and the WebSocket route below are async — they're the
-# only two places that need to touch chat_hub's live socket registry.
-# Blocking (sync) DB calls directly on the event loop here are the same
-# accepted tradeoff worker.py's tick() already makes; not warranted at this
-# app's scale to bridge threads for it.
+# Only the endpoints below that touch chat_hub's live socket registry are
+# async (send_message, send_message_image, delete_message, react_to_message,
+# and the WebSocket route) — the same accepted blocking-DB-call-on-the-
+# event-loop tradeoff worker.py's tick() already makes; not warranted at
+# this app's scale to bridge threads for it.
 @router.post(
     "/conversations/{conversation_id}/messages",
     response_model=MessageOut,
@@ -243,11 +289,52 @@ async def send_message(
     db.add(message)
     db.commit()
     db.refresh(message)
+    message.reactions = []
 
+    await _broadcast_new_message(db, conversation_id, current_user.id, message)
+    return message
+
+
+@router.post(
+    "/conversations/{conversation_id}/messages/image",
+    response_model=MessageOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def send_message_image(
+    conversation_id: uuid.UUID,
+    file: UploadFile = File(...),
+    body: str = Form(default=""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Message:
+    if not chat.is_participant(db, conversation_id, current_user.id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "Not a participant in this conversation"
+        )
+
+    raw = file.file.read()
+    image_url = compress_and_store_chat_attachment(file, raw)
+
+    message = Message(
+        conversation_id=conversation_id,
+        sender_id=current_user.id,
+        body=body.strip()[:1000],
+        image_url=image_url,
+    )
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    message.reactions = []
+
+    await _broadcast_new_message(db, conversation_id, current_user.id, message)
+    return message
+
+
+async def _broadcast_new_message(
+    db: Session, conversation_id: uuid.UUID, sender_id: uuid.UUID, message: Message
+) -> None:
     recipients = [
-        uid
-        for uid in chat.participant_ids(db, conversation_id)
-        if uid != current_user.id
+        uid for uid in chat.participant_ids(db, conversation_id) if uid != sender_id
     ]
     await chat_hub.broadcast(
         recipients,
@@ -257,6 +344,112 @@ async def send_message(
             "message": MessageOut.model_validate(message).model_dump(mode="json"),
         },
     )
+
+
+@router.delete(
+    "/conversations/{conversation_id}/messages/{message_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_message(
+    conversation_id: uuid.UUID,
+    message_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    message = db.get(Message, message_id)
+    if message is None or message.conversation_id != conversation_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Message not found")
+    if message.sender_id != current_user.id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "You can only delete your own messages"
+        )
+
+    # Soft delete: a tombstone reads better mid-conversation than the row
+    # just disappearing. Clear the content so a deleted message doesn't
+    # keep serving its text/image after the fact.
+    message.body = ""
+    message.image_url = None
+    message.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+
+    recipients = [
+        uid
+        for uid in chat.participant_ids(db, conversation_id)
+        if uid != current_user.id
+    ]
+    await chat_hub.broadcast(
+        recipients,
+        {
+            "type": "message_deleted",
+            "conversation_id": str(conversation_id),
+            "message_id": str(message_id),
+        },
+    )
+
+
+@router.post(
+    "/conversations/{conversation_id}/messages/{message_id}/reactions",
+    response_model=MessageOut,
+)
+async def react_to_message(
+    conversation_id: uuid.UUID,
+    message_id: uuid.UUID,
+    payload: ReactionToggle,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Message:
+    if not chat.is_participant(db, conversation_id, current_user.id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "Not a participant in this conversation"
+        )
+    message = db.get(Message, message_id)
+    if message is None or message.conversation_id != conversation_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Message not found")
+    if message.deleted_at is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This message was deleted")
+
+    emoji = payload.emoji
+    if emoji not in ALLOWED_REACTION_EMOJI:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unsupported reaction")
+
+    existing = db.scalar(
+        select(MessageReaction)
+        .where(MessageReaction.message_id == message_id)
+        .where(MessageReaction.user_id == current_user.id)
+        .where(MessageReaction.emoji == emoji)
+    )
+    if existing is not None:
+        db.delete(existing)
+        action = "removed"
+    else:
+        db.add(
+            MessageReaction(message_id=message_id, user_id=current_user.id, emoji=emoji)
+        )
+        action = "added"
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Try again") from exc
+
+    recipients = [
+        uid
+        for uid in chat.participant_ids(db, conversation_id)
+        if uid != current_user.id
+    ]
+    await chat_hub.broadcast(
+        recipients,
+        {
+            "type": "reaction",
+            "conversation_id": str(conversation_id),
+            "message_id": str(message_id),
+            "emoji": emoji,
+            "user_id": str(current_user.id),
+            "action": action,
+        },
+    )
+
+    _attach_reactions(db, [message], current_user.id)
     return message
 
 

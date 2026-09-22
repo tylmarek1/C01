@@ -302,12 +302,21 @@ export interface PlayerSearchResult {
   avatar_url: string | null
 }
 
+export interface MessageReaction {
+  emoji: string
+  count: number
+  reacted_by_me: boolean
+}
+
 export interface Message {
   id: string
   conversation_id: string
   sender: User
   body: string
+  image_url: string | null
+  deleted_at: string | null
   created_at: string
+  reactions: MessageReaction[]
 }
 
 export interface Conversation {

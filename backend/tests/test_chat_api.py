@@ -1,11 +1,21 @@
+import io
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy.orm import sessionmaker
 
 from reservations.main import app
 from reservations.models import Court, SportType
+
+
+def _tiny_jpeg() -> io.BytesIO:
+    buffer = io.BytesIO()
+    Image.new("RGB", (400, 300), color=(60, 90, 200)).save(buffer, format="JPEG")
+    buffer.seek(0)
+    return buffer
+
 
 PRAGUE = ZoneInfo("Europe/Prague")
 
@@ -194,6 +204,203 @@ def test_message_body_validation(session_factory: sessionmaker) -> None:
         headers=headers_a,
     )
     assert empty.status_code == 422
+
+
+def test_sender_can_delete_own_message_others_cannot(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token_a, _user_a = register_and_login(client, "nadia@example.com")
+    token_b, user_b = register_and_login(client, "omar-c@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    conversation_id = client.post(f"/chat/dm/{user_b}", headers=headers_a).json()["id"]
+    message = client.post(
+        f"/conversations/{conversation_id}/messages",
+        json={"body": "oops typo"},
+        headers=headers_a,
+    ).json()
+
+    forbidden = client.delete(
+        f"/conversations/{conversation_id}/messages/{message['id']}", headers=headers_b
+    )
+    assert forbidden.status_code == 403
+
+    deleted = client.delete(
+        f"/conversations/{conversation_id}/messages/{message['id']}", headers=headers_a
+    )
+    assert deleted.status_code == 204
+
+    messages = client.get(
+        f"/conversations/{conversation_id}/messages", headers=headers_a
+    ).json()
+    assert messages[0]["deleted_at"] is not None
+    assert messages[0]["body"] == ""
+
+
+def test_delete_broadcasts_to_other_participant(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    token_a, _user_a = register_and_login(client, "priya@example.com")
+    token_b, user_b = register_and_login(client, "quan@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+
+    conversation_id = client.post(f"/chat/dm/{user_b}", headers=headers_a).json()["id"]
+    message = client.post(
+        f"/conversations/{conversation_id}/messages",
+        json={"body": "temporary"},
+        headers=headers_a,
+    ).json()
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_json({"type": "auth", "token": token_b})
+        client.delete(
+            f"/conversations/{conversation_id}/messages/{message['id']}",
+            headers=headers_a,
+        )
+        frame = ws.receive_json()
+        assert frame["type"] == "message_deleted"
+        assert frame["conversation_id"] == conversation_id
+        assert frame["message_id"] == message["id"]
+
+
+def test_reaction_toggle_add_and_remove(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    token_a, _user_a = register_and_login(client, "reza@example.com")
+    token_b, user_b = register_and_login(client, "sana@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    conversation_id = client.post(f"/chat/dm/{user_b}", headers=headers_a).json()["id"]
+    message_id = client.post(
+        f"/conversations/{conversation_id}/messages",
+        json={"body": "nice shot"},
+        headers=headers_a,
+    ).json()["id"]
+
+    reacted = client.post(
+        f"/conversations/{conversation_id}/messages/{message_id}/reactions",
+        json={"emoji": "🎉"},
+        headers=headers_b,
+    )
+    assert reacted.status_code == 200
+    # The reactor's own view (this response is as seen by headers_b, who
+    # just reacted) shows reacted_by_me=True.
+    assert reacted.json()["reactions"] == [
+        {"emoji": "🎉", "count": 1, "reacted_by_me": True}
+    ]
+
+    # The message sender, who didn't react, sees reacted_by_me=False for
+    # the same underlying reaction.
+    from_sender = client.get(
+        f"/conversations/{conversation_id}/messages", headers=headers_a
+    ).json()
+    assert from_sender[-1]["reactions"] == [
+        {"emoji": "🎉", "count": 1, "reacted_by_me": False}
+    ]
+
+    messages = client.get(
+        f"/conversations/{conversation_id}/messages", headers=headers_b
+    ).json()
+    assert messages[-1]["reactions"] == [
+        {"emoji": "🎉", "count": 1, "reacted_by_me": True}
+    ]
+
+    toggled_off = client.post(
+        f"/conversations/{conversation_id}/messages/{message_id}/reactions",
+        json={"emoji": "🎉"},
+        headers=headers_b,
+    )
+    assert toggled_off.json()["reactions"] == []
+
+
+def test_reaction_rejects_unknown_emoji_and_deleted_message(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token_a, _user_a = register_and_login(client, "tibor@example.com")
+    token_b, user_b = register_and_login(client, "ursula@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    conversation_id = client.post(f"/chat/dm/{user_b}", headers=headers_a).json()["id"]
+    message_id = client.post(
+        f"/conversations/{conversation_id}/messages",
+        json={"body": "gg"},
+        headers=headers_a,
+    ).json()["id"]
+
+    unsupported = client.post(
+        f"/conversations/{conversation_id}/messages/{message_id}/reactions",
+        json={"emoji": "🤡"},
+        headers=headers_b,
+    )
+    assert unsupported.status_code == 400
+
+    client.delete(
+        f"/conversations/{conversation_id}/messages/{message_id}", headers=headers_a
+    )
+    on_deleted = client.post(
+        f"/conversations/{conversation_id}/messages/{message_id}/reactions",
+        json={"emoji": "👍"},
+        headers=headers_b,
+    )
+    assert on_deleted.status_code == 409
+
+
+def test_send_image_message(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    token_a, _user_a = register_and_login(client, "vera@example.com")
+    token_b, user_b = register_and_login(client, "walt@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    conversation_id = client.post(f"/chat/dm/{user_b}", headers=headers_a).json()["id"]
+
+    sent = client.post(
+        f"/conversations/{conversation_id}/messages/image",
+        data={"body": "check this out"},
+        files={"file": ("court.jpg", _tiny_jpeg(), "image/jpeg")},
+        headers=headers_a,
+    )
+    assert sent.status_code == 201
+    body = sent.json()
+    assert body["image_url"].startswith("/static/chat/")
+    assert body["body"] == "check this out"
+
+    messages = client.get(
+        f"/conversations/{conversation_id}/messages", headers=headers_b
+    ).json()
+    assert messages[0]["image_url"] == body["image_url"]
+
+
+def test_non_participant_cannot_delete_or_react(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    token_a, _user_a = register_and_login(client, "xena-c@example.com")
+    token_b, user_b = register_and_login(client, "yara@example.com")
+    outsider_token, _outsider_id = register_and_login(client, "zane-c@example.com")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    headers_outsider = {"Authorization": f"Bearer {outsider_token}"}
+
+    conversation_id = client.post(f"/chat/dm/{user_b}", headers=headers_a).json()["id"]
+    message_id = client.post(
+        f"/conversations/{conversation_id}/messages",
+        json={"body": "private chat"},
+        headers=headers_a,
+    ).json()["id"]
+
+    forbidden_react = client.post(
+        f"/conversations/{conversation_id}/messages/{message_id}/reactions",
+        json={"emoji": "👍"},
+        headers=headers_outsider,
+    )
+    assert forbidden_react.status_code == 403
+
+    forbidden_delete = client.delete(
+        f"/conversations/{conversation_id}/messages/{message_id}",
+        headers=headers_outsider,
+    )
+    assert forbidden_delete.status_code == 403
 
 
 def test_websocket_receives_a_broadcast_message(session_factory: sessionmaker) -> None:

@@ -1,13 +1,30 @@
 import { API_URL } from "@/lib/api"
 import type { Message } from "@/types"
 
-interface IncomingMessageFrame {
+interface MessageFrame {
   type: "message"
   conversation_id: string
   message: Message
 }
 
-type Listener = (frame: IncomingMessageFrame) => void
+interface MessageDeletedFrame {
+  type: "message_deleted"
+  conversation_id: string
+  message_id: string
+}
+
+interface ReactionFrame {
+  type: "reaction"
+  conversation_id: string
+  message_id: string
+  emoji: string
+  user_id: string
+  action: "added" | "removed"
+}
+
+export type ChatFrame = MessageFrame | MessageDeletedFrame | ReactionFrame
+
+type Listener = (frame: ChatFrame) => void
 
 const listeners = new Set<Listener>()
 
@@ -31,8 +48,10 @@ function open(token: string) {
 
   ws.onmessage = (event) => {
     try {
-      const frame = JSON.parse(event.data) as IncomingMessageFrame
-      if (frame.type === "message") listeners.forEach((listener) => listener(frame))
+      const frame = JSON.parse(event.data) as ChatFrame
+      if (frame.type === "message" || frame.type === "message_deleted" || frame.type === "reaction") {
+        listeners.forEach((listener) => listener(frame))
+      }
     } catch {
       // Ignore a malformed frame rather than crash the socket handler.
     }
@@ -62,8 +81,9 @@ export function disconnectChatSocket(): void {
   socket = null
 }
 
-/** Subscribe to live incoming messages. Returns an unsubscribe function. */
-export function onChatMessage(listener: Listener): () => void {
+/** Subscribe to live chat events (new message, delete, reaction). Returns
+ * an unsubscribe function. */
+export function onChatEvent(listener: Listener): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
 }
