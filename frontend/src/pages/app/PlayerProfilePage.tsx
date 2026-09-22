@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Award, CalendarClock, Flame, MapPinned, MessageCircle, UserMinus, UserPlus, Volleyball } from "lucide-react"
+import { ArrowLeft, Award, CalendarClock, Flame, MapPinned, MessageCircle, Trophy, UserMinus, UserPlus, Volleyball } from "lucide-react"
 import { useState, type ReactNode } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/ca
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shared/dialog"
 import { ErrorState } from "@/components/shared/error-state"
 import { Skeleton } from "@/components/shared/skeleton"
+import { useSportLabels } from "@/components/shared/sport-icon"
 import { StatTile } from "@/components/shared/stat-tile"
 import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
@@ -81,6 +82,7 @@ function PlayerProfilePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
+  const sportLabels = useSportLabels()
 
   const {
     data: profile,
@@ -204,6 +206,26 @@ function PlayerProfilePage() {
             <StatTile icon={Flame} label={t("profile.stat.streak")} value={stats.current_streak_weeks} />
             <StatTile icon={Award} label={t("profile.stat.achievements")} value={stats.achievements.length} />
           </div>
+
+          {stats.ratings.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="size-5 text-signal-blue" /> {t("playerProfile.ratings.title")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                {stats.ratings.map((entry) => (
+                  <Badge key={entry.sport_type} variant="secondary" className="gap-1.5 py-1.5 text-sm">
+                    {sportLabels[entry.sport_type]}: {entry.rating}{" "}
+                    <span className="text-slate-gray">
+                      {t("playerProfile.ratings.matchesPlayed", { count: entry.matches_played })}
+                    </span>
+                  </Badge>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {stats.achievements.length > 0 && (
             <Card>

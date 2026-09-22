@@ -9,6 +9,7 @@ from reservations.deps import get_current_user, get_db
 from reservations.models import (
     NotificationType,
     PlayerFollow,
+    SkillRating,
     User,
     UserAchievement,
     UserRole,
@@ -16,6 +17,7 @@ from reservations.models import (
 from reservations.notifications import notify
 from reservations.schemas.achievement import AchievementOut
 from reservations.schemas.auth import UserOut
+from reservations.schemas.rating import SkillRatingOut
 from reservations.schemas.social import (
     FollowerOut,
     PlayerProfileOut,
@@ -55,12 +57,17 @@ def _profile_stats(db: Session, user_id: uuid.UUID) -> PlayerProfileStats:
         for a in achievements.ACHIEVEMENTS
         if a.key in earned_at_by_key
     ]
+    ratings = [
+        SkillRatingOut.model_validate(r)
+        for r in db.scalars(select(SkillRating).where(SkillRating.user_id == user_id))
+    ]
     return PlayerProfileStats(
         completed_reservations=stats.completed_count,
         distinct_courts_played=stats.distinct_courts_played,
         sports_played=stats.sports_played,
         current_streak_weeks=stats.current_streak_weeks,
         achievements=earned,
+        ratings=ratings,
     )
 
 

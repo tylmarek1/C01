@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from reservations.schemas.achievement import AchievementOut
 from reservations.schemas.auth import UserOut
+from reservations.schemas.rating import SkillRatingOut
 
 
 class PlayerProfileStats(BaseModel):
@@ -12,6 +13,7 @@ class PlayerProfileStats(BaseModel):
     sports_played: int
     current_streak_weeks: int
     achievements: list[AchievementOut]
+    ratings: list[SkillRatingOut]
 
 
 class PlayerProfileOut(BaseModel):

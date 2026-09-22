@@ -117,6 +117,24 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Match results + skill rating — a standard Elo update per sport
+  (`ratings.py`, K=32, default 1000), `SkillRating` (one row per user per
+  sport, created lazily), `MatchResult` (one per reservation).
+  `POST /reservations/{id}/result` (either participant, once, only for a
+  `COMPLETED` reservation), `GET /ratings/me`, `GET /ratings/leaderboard?
+  sport=`. **Deliberately scoped to 1-on-1 bookings only** — a
+  `ReservationGuest` has no "side"/team field, so a group booking has no
+  well-defined winner/loser pairing; building a team-assignment UI just to
+  rate group games would be exactly the overengineering this session was
+  asked to avoid throughout. A group/solo reservation gets a clear 409
+  instead of a confusing partial rating. Ratings surfaced on the existing
+  `PlayerProfileOut.stats` (same public/private gating as achievements —
+  no new visibility rule needed) and a new "Rating" tab on the profile
+  page's leaderboard section, alongside the existing completed-count
+  leaderboard (a different metric, not a duplicate). "Report result"
+  action added to `ReservationCard`'s existing more-actions menu.
+  New tables + a new `NotificationType` value — ran the manual
+  drop/recreate/reseed cycle.
 - Persistent teams/clubs — `Team`, `TeamMember` (OWNER/MEMBER), reusing
   PR 3's chat infrastructure for a team's own group chat
   (`Conversation.team_id`, `GET /teams/{id}/chat`). Membership add is by

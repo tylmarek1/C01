@@ -6,6 +6,7 @@ from reservations.models.court_image import CourtImage
 from reservations.models.facility_block import FacilityBlock
 from reservations.models.favorite import Favorite
 from reservations.models.join_request import JoinRequest, JoinRequestStatus
+from reservations.models.match_result import MatchResult
 from reservations.models.message import Message
 from reservations.models.notification import Notification, NotificationType
 from reservations.models.player_follow import PlayerFollow
@@ -22,6 +23,7 @@ from reservations.models.review import Review
 from reservations.models.review_comment import ReviewComment
 from reservations.models.review_image import ReviewImage
 from reservations.models.review_vote import ReviewVote
+from reservations.models.skill_rating import SkillRating
 from reservations.models.team import Team, TeamRole
 from reservations.models.team_member import TeamMember
 from reservations.models.user import User, UserRole
@@ -63,4 +65,6 @@ __all__ = [
     "Team",
     "TeamRole",
     "TeamMember",
+    "SkillRating",
+    "MatchResult",
 ]

@@ -13,12 +13,14 @@ import type {
   JoinRequest,
   JoinRequestWithReservation,
   LeaderboardEntry,
+  MatchResult,
   Message,
   Notification,
   NotificationType,
   OpenGame,
   PlayerProfile,
   PlayerStats,
+  RatingLeaderboardEntry,
   Reservation,
   ReservationAdmin,
   ReservationEvent,
@@ -28,6 +30,7 @@ import type {
   ReservationStatus,
   Review,
   ReviewComment,
+  SkillRatingEntry,
   SportType,
   Team,
   Teammate,
@@ -471,4 +474,17 @@ export const api = {
     request<Team>(`/teams/${teamId}/members/${userId}`, { method: "DELETE" }, token),
 
   deleteTeam: (token: string, teamId: string) => request<void>(`/teams/${teamId}`, { method: "DELETE" }, token),
+
+  // Skill rating
+  reportMatchResult: (token: string, reservationId: string, winnerUserId: string | null) =>
+    request<MatchResult>(
+      `/reservations/${reservationId}/result`,
+      { method: "POST", body: JSON.stringify({ winner_user_id: winnerUserId }) },
+      token,
+    ),
+
+  getMyRatings: (token: string) => request<SkillRatingEntry[]>("/ratings/me", {}, token),
+
+  getRatingLeaderboard: (token: string, sport: SportType, limit?: number) =>
+    request<RatingLeaderboardEntry[]>(`/ratings/leaderboard${buildQuery({ sport, limit })}`, {}, token),
 }
