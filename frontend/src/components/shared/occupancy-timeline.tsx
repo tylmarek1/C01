@@ -39,14 +39,20 @@ function OccupancyTimeline({ opensAt, closesAt, busy, className }: OccupancyTime
         {busy.map((slot, index) => {
           const left = toPercent(slot.start_time)
           const width = Math.max(1.5, toPercent(slot.end_time) - left)
+          const isBlocked = slot.source === "FACILITY_BLOCK"
           const isBooked = slot.status === "CONFIRMED" || slot.status === "CHECKED_IN"
+          const label = isBlocked
+            ? t("occupancy.blocked", { reason: slot.reason ?? "" })
+            : isBooked
+              ? t("occupancy.booked")
+              : t("occupancy.held")
           return (
             <div
               key={index}
-              title={`${timeFormatter.format(new Date(slot.start_time))}–${timeFormatter.format(new Date(slot.end_time))} · ${isBooked ? t("occupancy.booked") : t("occupancy.held")}`}
+              title={`${timeFormatter.format(new Date(slot.start_time))}–${timeFormatter.format(new Date(slot.end_time))} · ${label}`}
               className={cn(
                 "absolute top-0.5 bottom-0.5 rounded-md",
-                isBooked ? "bg-ink-navy" : "bg-signal-blue/45",
+                isBlocked ? "bg-destructive/70" : isBooked ? "bg-ink-navy" : "bg-signal-blue/45",
               )}
               style={{ left: `${left}%`, width: `${width}%` }}
             />
@@ -62,6 +68,9 @@ function OccupancyTimeline({ opensAt, closesAt, busy, className }: OccupancyTime
           </span>
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full bg-signal-blue/45" /> {t("occupancy.held")}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-destructive/70" /> {t("occupancy.blockedLegend")}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full border border-hairline bg-paper" /> {t("occupancy.free")}

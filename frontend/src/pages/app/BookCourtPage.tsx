@@ -45,8 +45,8 @@ function combineDateAndTime(dateStr: string, timeStr: string): Date {
   return new Date(year, month - 1, day, hour, minute, 0, 0)
 }
 
-function isSlotTaken(start: Date, end: Date, busy: BusySlot[]): boolean {
-  return busy.some(
+function blockingSlot(start: Date, end: Date, busy: BusySlot[]): BusySlot | undefined {
+  return busy.find(
     (slot) => start.getTime() < new Date(slot.end_time).getTime() && end.getTime() > new Date(slot.start_time).getTime(),
   )
 }
@@ -279,12 +279,14 @@ function BookCourtPage() {
                   {startTimeOptions.map((option) => {
                     const start = combineDateAndTime(date, option)
                     const end = new Date(start.getTime() + Number(duration) * 60_000)
-                    const taken = availability ? isSlotTaken(start, end, availability.busy) : false
+                    const blocker = availability ? blockingSlot(start, end, availability.busy) : undefined
+                    const taken = Boolean(blocker)
                     const tooSoon = start.getTime() < nowMs + MIN_LEAD_MINUTES * 60_000
+                    const takenLabel = blocker?.source === "FACILITY_BLOCK" ? t("book.slot.unavailable") : t("book.slot.booked")
                     return (
                       <SelectItem key={option} value={option} disabled={taken || tooSoon}>
                         {option}
-                        {taken ? ` · ${t("book.slot.booked")}` : tooSoon ? ` · ${t("book.slot.tooSoon")}` : ""}
+                        {taken ? ` · ${takenLabel}` : tooSoon ? ` · ${t("book.slot.tooSoon")}` : ""}
                       </SelectItem>
                     )
                   })}

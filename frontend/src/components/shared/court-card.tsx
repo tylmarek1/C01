@@ -167,6 +167,7 @@ function CourtCard({
         <span className="flex items-center gap-2 text-sm text-slate-gray">
           {sportLabels[court.sport_type]}
           <Badge variant="secondary">{indoorOutdoor}</Badge>
+          {court.requires_approval && <Badge variant="warning">{t("courts.requiresApproval")}</Badge>}
         </span>
         {court.review_count > 0 && (
           <span className="flex items-center gap-1.5">

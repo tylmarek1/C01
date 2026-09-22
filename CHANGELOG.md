@@ -10,6 +10,11 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Recurring bookings are now visibly marked as a group.** A "Recurring"
+  badge on `ReservationCard` and the reservation detail dialog when a
+  reservation belongs to a series — previously all 8+ weekly occurrences
+  looked like unrelated one-off bookings.
+
 - **Help Center coverage for the "Courtly Communities" features.** Chat,
   teams/clubs, player profiles/follow, skill rating and the leaderboard,
   seasonal challenges, the activity feed and review photos were all
@@ -157,6 +162,16 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Fixed
 
+- **A facility-maintenance block is now visible before you try to book it.**
+  `GET /courts/{id}/availability` only ever reflected reservations, never
+  `FacilityBlock`s, even though booking into a blocked window was already
+  rejected server-side — a slot could look free on the occupancy timeline
+  and the start-time picker, then 409 at submit. The timeline and picker
+  now show it as a distinct "Unavailable" state (with the manager's reason
+  on hover), separate from a genuinely booked slot.
+- A court that `requires_approval` is now flagged on its detail page and in
+  the "Book a court" court list, not just after you've already picked it
+  and reached the confirm step.
 - Clicking a "added to a team," "match result reported" or "challenge
   completed" notification no longer goes nowhere, and all three can now be
   muted from Profile → Notifications — the frontend's `NotificationType`
