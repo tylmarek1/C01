@@ -72,9 +72,13 @@ interface CourtArtProps {
   compact?: boolean
   /** A real venue photo, when the court has one — falls back to the illustration otherwise. */
   imageUrl?: string | null
+  /** "eager" for the one hero photo on a page (e.g. CourtDetailPage) so it
+   * doesn't compete with the lazy default that's right everywhere this
+   * renders many courts at once (grids, admin lists). */
+  loading?: "lazy" | "eager"
 }
 
-function CourtArt({ sport, indoor, className, compact = false, imageUrl }: CourtArtProps) {
+function CourtArt({ sport, indoor, className, compact = false, imageUrl, loading = "lazy" }: CourtArtProps) {
   const { t } = useTranslation()
   const sportLabels = useSportLabels()
   const Lines = LINES_BY_SPORT[sport]
@@ -88,7 +92,12 @@ function CourtArt({ sport, indoor, className, compact = false, imageUrl }: Court
       )}
     >
       {photo ? (
-        <img src={photo} alt={`${sportLabels[sport]} court`} className="absolute inset-0 size-full object-cover" />
+        <img
+          src={photo}
+          alt={`${sportLabels[sport]} court`}
+          loading={loading}
+          className="absolute inset-0 size-full object-cover"
+        />
       ) : (
         <>
           <DecorativeBlob color={BLOB_BY_SPORT[sport]} className="-top-8 -right-6 size-32 opacity-40" />

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from reservations.api import (
@@ -57,8 +57,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class _CachedStaticFiles(StaticFiles):
+    """images.py always writes a fresh UUID filename (never overwrites an
+    existing one), so a URL under /static never changes its content — safe
+    to tell the browser to cache it indefinitely instead of revalidating
+    with the server on every page view."""
+
+    def file_response(self, *args, **kwargs) -> Response:
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
 settings.upload_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/static", StaticFiles(directory=settings.upload_dir), name="static")
+app.mount("/static", _CachedStaticFiles(directory=settings.upload_dir), name="static")
 
 app.include_router(auth.router)
 app.include_router(courts.router)

@@ -146,6 +146,7 @@ function CourtDetailPage() {
                 indoor={court.indoor}
                 imageUrl={activePhoto ?? court.image_url}
                 className="aspect-[16/11]"
+                loading="eager"
               />
               {user && (
                 <button
@@ -174,7 +175,7 @@ function CourtDetailPage() {
                       (activePhoto ?? court.image_url) === photo.url ? "border-signal-blue" : "border-transparent",
                     )}
                   >
-                    <img src={assetUrl(photo.url)} alt="" className="size-full object-cover" />
+                    <img src={assetUrl(photo.url)} alt="" loading="lazy" className="size-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -248,7 +249,7 @@ function CourtDetailPage() {
                       <div className="flex flex-wrap gap-2">
                         {review.images.map((image) => (
                           <div key={image.id} className="size-14 shrink-0 overflow-hidden rounded-lg border border-hairline">
-                            <img src={assetUrl(image.url)} alt="" className="size-full object-cover" />
+                            <img src={assetUrl(image.url)} alt="" loading="lazy" className="size-full object-cover" />
                           </div>
                         ))}
                       </div>

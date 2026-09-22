@@ -117,6 +117,20 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Image loading performance — uploaded photos were already resized/
+  recompressed client- and server-side (`images.py`), but the actual
+  `<img>` tags had no `loading="lazy"` (every photo on a page downloaded
+  immediately, even off-screen ones) and `/static/*` responses carried no
+  `Cache-Control` (the browser re-validated with the server on every
+  visit instead of using its own cache). Both fixed: `loading="lazy"` on
+  every list/gallery-style image (court grids, admin/profile photo
+  thumbnails, leaderboard/teammate avatars), `loading="eager"` kept on
+  the one true per-page hero photo (`CourtDetailPage`'s cover shot) and
+  the navbar/own-profile avatar so those aren't needlessly deferred; a
+  `_CachedStaticFiles` subclass in `main.py` adds
+  `Cache-Control: public, max-age=31536000, immutable`, safe because
+  `images.py` always writes a fresh UUID filename and never overwrites
+  one in place. No schema change.
 - Web push notifications — `PushSubscription` table, `GET /push/public-key`,
   `POST/DELETE /push/subscribe`, a minimal `public/sw.js` service worker,
   and a "Browser notifications" toggle on the profile page (next to the
