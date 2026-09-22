@@ -12,6 +12,10 @@ class ReviewCreate(BaseModel):
     comment: str | None = Field(default=None, max_length=1000)
 
 
+class ReviewReplyCreate(BaseModel):
+    reply: str = Field(min_length=1, max_length=1000)
+
+
 class ReviewOut(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -22,6 +26,8 @@ class ReviewOut(BaseModel):
     comment: str | None
     created_at: datetime
     user: UserOut
+    manager_reply: str | None = None
+    manager_reply_at: datetime | None = None
     # Populated only by the list endpoints (one aggregate query per page) —
     # left at defaults wherever a review is nested inside another response.
     helpful_count: int = 0

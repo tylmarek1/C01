@@ -268,6 +268,12 @@ export const api = {
 
   deleteReview: (token: string, id: string) => request<void>(`/reviews/${id}`, { method: "DELETE" }, token),
 
+  replyToReview: (token: string, id: string, reply: string) =>
+    request<Review>(`/reviews/${id}/reply`, { method: "PUT", body: JSON.stringify({ reply }) }, token),
+
+  deleteReviewReply: (token: string, id: string) =>
+    request<Review>(`/reviews/${id}/reply`, { method: "DELETE" }, token),
+
   // Favorites
   listMyFavorites: (token: string) => request<Court[]>("/favorites/mine", {}, token),
 

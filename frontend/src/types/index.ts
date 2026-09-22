@@ -168,6 +168,8 @@ export interface Review {
   comment: string | null
   created_at: string
   user: User
+  manager_reply: string | null
+  manager_reply_at: string | null
   helpful_count: number
   voted_helpful_by_me: boolean
 }

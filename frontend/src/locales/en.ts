@@ -335,6 +335,11 @@ const en = {
   "passwordInput.show": "Show password",
   "passwordInput.hide": "Hide password",
   "courtDetail.reviews.helpfulError": "Could not update your vote",
+  "courtDetail.reviews.reply": "Reply",
+  "courtDetail.reviews.venueReply": "Venue reply",
+  "courtDetail.reviews.replyPlaceholder": "Write a public reply to this review…",
+  "courtDetail.reviews.replySubmit": "Post reply",
+  "courtDetail.reviews.replyError": "Could not save the reply",
   "courtDetail.facilityBlock": "Closed {range}: {reason}",
 
   "occupancy.booked": "Booked",

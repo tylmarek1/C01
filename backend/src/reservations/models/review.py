@@ -1,7 +1,14 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from reservations.db import Base
@@ -25,7 +32,15 @@ class Review(Base):
     reservation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("reservations.id"))
     rating: Mapped[int] = mapped_column()
     comment: Mapped[str | None] = mapped_column(String(1000), default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    # A venue manager's public reply — at most one per review, so a nullable
+    # pair of columns is simpler than a second table.
+    manager_reply: Mapped[str | None] = mapped_column(String(1000), default=None)
+    manager_reply_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
     court: Mapped[Court] = relationship()
     user: Mapped[User] = relationship()

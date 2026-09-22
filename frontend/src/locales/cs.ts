@@ -337,6 +337,11 @@ const cs: Record<TranslationKey, string> = {
   "passwordInput.show": "Zobrazit heslo",
   "passwordInput.hide": "Skrýt heslo",
   "courtDetail.reviews.helpfulError": "Hlas se nepodařilo aktualizovat",
+  "courtDetail.reviews.reply": "Odpovědět",
+  "courtDetail.reviews.venueReply": "Odpověď provozovatele",
+  "courtDetail.reviews.replyPlaceholder": "Napište veřejnou odpověď na tuto recenzi…",
+  "courtDetail.reviews.replySubmit": "Odeslat odpověď",
+  "courtDetail.reviews.replyError": "Odpověď se nepodařilo uložit",
   "courtDetail.facilityBlock": "Zavřeno {range}: {reason}",
 
   "occupancy.booked": "Obsazeno",
