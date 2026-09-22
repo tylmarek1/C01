@@ -10,6 +10,11 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Help Center coverage for the "Courtly Communities" features.** Chat,
+  teams/clubs, player profiles/follow, skill rating and the leaderboard,
+  seasonal challenges, the activity feed and review photos were all
+  shipped without ever being added to the Help Center — the "Playing with
+  others" section and FAQ now cover all of them.
 - **A "Recent games" section on player profiles.** The last 5 `COMPLETED`
   reservations a player was part of (as booker or accepted guest), with
   court/sport/date; a 1-on-1 game with a reported match result also shows

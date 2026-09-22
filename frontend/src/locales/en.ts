@@ -874,12 +874,32 @@ const en = {
     "Open any confirmed booking to other players from your dashboard, and accept or decline the join requests you get.",
   "help.social.guests.title": "Invite guests",
   "help.social.guests.description":
-    "Invite anyone with a Courtly account by email straight from your reservation — they can see it and check in with you.",
+    "Search for anyone with a Courtly account straight from your reservation and invite them — they can see it and check in with you.",
   "help.social.split.title": "Split the cost",
   "help.social.split.description":
     "Open a reservation and choose Split cost to see an even share of the court's hourly rate across everyone attached to it.",
   "help.social.teammates.title": "Frequent teammates",
   "help.social.teammates.description": "Play with the same guests a few times and they'll show up as frequent teammates on your dashboard.",
+  "help.social.profiles.title": "Player profiles & follow",
+  "help.social.profiles.description":
+    "Every player has a profile with stats, achievements and skill rating, findable from the Players search. Follow a player to see their activity in your feed.",
+  "help.social.chat.title": "Real-time chat",
+  "help.social.chat.description":
+    "Message any player directly, plus a group chat for every reservation and every team you're in — start one from the chat page or a profile.",
+  "help.social.teams.title": "Teams & clubs",
+  "help.social.teams.description":
+    "Create a persistent team with its own roster and group chat. Only the owner adds members, by searching for them.",
+  "help.social.rating.title": "Skill rating & leaderboard",
+  "help.social.rating.description":
+    "Report the result of a completed 1-on-1 game and your rating updates automatically — compare yourself on the sport leaderboard.",
+  "help.social.challenges.title": "Seasonal challenges",
+  "help.social.challenges.description":
+    "Venue managers run time-boxed goals like \"play 10 sessions this autumn\" — track your progress from your profile.",
+  "help.social.activityFeed.title": "Activity feed",
+  "help.social.activityFeed.description":
+    "See what players you follow are up to — new follows, team joins, match results, challenges and achievements.",
+  "help.social.reviewPhotos.title": "Review photos",
+  "help.social.reviewPhotos.description": "Attach up to 4 photos to a review, either when you write it or any time after.",
 
   "help.manage.eyebrow": "Staying on top of it",
   "help.manage.title": "Keep your schedule under control",
@@ -948,6 +968,15 @@ const en = {
   "help.faq.becomeAdmin.question": "What's the difference between an admin and a venue manager?",
   "help.faq.becomeAdmin.answer":
     "An admin can do everything a venue manager can, plus grant or revoke anyone's role (including other admins) and permanently delete a court with no booking history. Only an existing admin can grant admin access, from the Admin → Users tab.",
+  "help.faq.profileVisibility.question": "Can other players see my profile?",
+  "help.faq.profileVisibility.answer":
+    "By default, yes — your name, bio, stats and achievements are public. Turn on \"Private profile\" from your profile settings to hide everything but your name and photo.",
+  "help.faq.matchResult.question": "Which games can I report a result for?",
+  "help.faq.matchResult.answer":
+    "Only a completed, 1-on-1 booking (you plus exactly one guest) is rateable — a group booking has no well-defined winner, so it stays unrated.",
+  "help.faq.teamMembers.question": "How do I add someone to my team?",
+  "help.faq.teamMembers.answer":
+    "Only the team owner can add members — search for them by name or email from the team's page.",
 
   "help.cta.title": "Still have a question?",
   "help.cta.description": "Jump straight in — the fastest way to understand Courtly is to book a slot.",

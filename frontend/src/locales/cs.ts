@@ -869,12 +869,32 @@ const cs: Record<TranslationKey, string> = {
     "Otevřete kteroukoli potvrzenou rezervaci ostatním hráčům ve svém přehledu a přijímejte nebo odmítejte žádosti o účast.",
   "help.social.guests.title": "Pozvěte hosty",
   "help.social.guests.description":
-    "Pozvěte kohokoliv s účtem Courtly e-mailem přímo z rezervace — uvidí ji a může se s vámi přihlásit.",
+    "Vyhledejte kohokoliv s účtem Courtly přímo z rezervace a pozvěte je — uvidí ji a může se s vámi přihlásit.",
   "help.social.split.title": "Rozdělte si cenu",
   "help.social.split.description":
     "Otevřete rezervaci a zvolte Rozdělit cenu, abyste viděli rovný podíl hodinové sazby kurtu mezi všechny přiřazené k rezervaci.",
   "help.social.teammates.title": "Časté spoluhráče",
   "help.social.teammates.description": "Zahrajte si s hostem několikrát a objeví se ve vašem přehledu jako častý spoluhráč.",
+  "help.social.profiles.title": "Profily hráčů a sledování",
+  "help.social.profiles.description":
+    "Každý hráč má profil se statistikami, úspěchy a herním hodnocením, dohledatelný přes vyhledávání hráčů. Sledováním hráče uvidíte jeho aktivitu ve svém přehledu.",
+  "help.social.chat.title": "Chat v reálném čase",
+  "help.social.chat.description":
+    "Napište zprávu kterémukoli hráči, plus skupinový chat pro každou rezervaci a každý tým, ve kterém jste — nový chat začnete na stránce chatu nebo z profilu.",
+  "help.social.teams.title": "Týmy a kluby",
+  "help.social.teams.description":
+    "Založte trvalý tým s vlastní sestavou a skupinovým chatem. Členy přidává pouze vlastník, vyhledáním hráče.",
+  "help.social.rating.title": "Herní hodnocení a žebříček",
+  "help.social.rating.description":
+    "Nahlaste výsledek dokončeného zápasu 1 na 1 a vaše hodnocení se automaticky aktualizuje — porovnejte se s ostatními v žebříčku sportu.",
+  "help.social.challenges.title": "Sezónní výzvy",
+  "help.social.challenges.description":
+    "Provozovatelé pořádají časově omezené výzvy jako „odehrajte 10 zápasů na podzim“ — svůj postup sledujte ve svém profilu.",
+  "help.social.activityFeed.title": "Přehled aktivit",
+  "help.social.activityFeed.description":
+    "Sledujte, co dělají hráči, které sledujete — nová sledování, vstup do týmu, výsledky zápasů, výzvy a úspěchy.",
+  "help.social.reviewPhotos.title": "Fotky v recenzích",
+  "help.social.reviewPhotos.description": "K recenzi můžete připojit až 4 fotky, buď při jejím psaní, nebo kdykoli později.",
 
   "help.manage.eyebrow": "Udržujte si přehled",
   "help.manage.title": "Mějte svůj rozvrh pod kontrolou",
@@ -940,6 +960,15 @@ const cs: Record<TranslationKey, string> = {
   "help.faq.becomeAdmin.question": "Jaký je rozdíl mezi adminem a provozovatelem?",
   "help.faq.becomeAdmin.answer":
     "Admin umí vše co provozovatel, navíc může měnit roli komukoli (i jiným adminům) a trvale smazat kurt bez historie rezervací. Admin přístup může udělit jen stávající admin, v záložce Administrace → Uživatelé.",
+  "help.faq.profileVisibility.question": "Vidí ostatní hráči můj profil?",
+  "help.faq.profileVisibility.answer":
+    "Ve výchozím stavu ano — jméno, bio, statistiky a úspěchy jsou veřejné. V nastavení profilu zapněte „Soukromý profil“ a skryjete vše kromě jména a fotky.",
+  "help.faq.matchResult.question": "Ke kterým zápasům můžu nahlásit výsledek?",
+  "help.faq.matchResult.answer":
+    "Hodnotit lze jen dokončenou rezervaci 1 na 1 (vy plus přesně jeden host) — skupinová rezervace nemá jasně daného vítěze, takže zůstává nehodnocená.",
+  "help.faq.teamMembers.question": "Jak přidám někoho do svého týmu?",
+  "help.faq.teamMembers.answer":
+    "Členy může přidávat jen vlastník týmu — na stránce týmu je vyhledá podle jména nebo e-mailu.",
 
   "help.cta.title": "Máte ještě otázku?",
   "help.cta.description": "Pusťte se rovnou do toho — nejrychlejší způsob, jak Courtly pochopit, je zarezervovat si termín.",

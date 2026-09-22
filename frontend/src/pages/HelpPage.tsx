@@ -5,21 +5,28 @@ import {
   CalendarClock,
   CalendarPlus,
   CalendarSync,
+  Camera,
   CheckCircle2,
   ClipboardCheck,
   Clock3,
   Coins,
   Handshake,
+  Heart,
   Hourglass,
   LayoutGrid,
   ListChecks,
   Mail,
+  MessageCircle,
   Repeat,
+  Rss,
   Search,
   ShieldCheck,
+  Target,
+  Trophy,
   UserCog,
   UserPlus,
   Users,
+  UsersRound,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 
@@ -86,6 +93,13 @@ const SOCIAL_FEATURES: { icon: typeof Users; titleKey: TranslationKey; descripti
   { icon: Mail, titleKey: "help.social.guests.title", descriptionKey: "help.social.guests.description" },
   { icon: Coins, titleKey: "help.social.split.title", descriptionKey: "help.social.split.description" },
   { icon: Handshake, titleKey: "help.social.teammates.title", descriptionKey: "help.social.teammates.description" },
+  { icon: Heart, titleKey: "help.social.profiles.title", descriptionKey: "help.social.profiles.description" },
+  { icon: MessageCircle, titleKey: "help.social.chat.title", descriptionKey: "help.social.chat.description" },
+  { icon: UsersRound, titleKey: "help.social.teams.title", descriptionKey: "help.social.teams.description" },
+  { icon: Trophy, titleKey: "help.social.rating.title", descriptionKey: "help.social.rating.description" },
+  { icon: Target, titleKey: "help.social.challenges.title", descriptionKey: "help.social.challenges.description" },
+  { icon: Rss, titleKey: "help.social.activityFeed.title", descriptionKey: "help.social.activityFeed.description" },
+  { icon: Camera, titleKey: "help.social.reviewPhotos.title", descriptionKey: "help.social.reviewPhotos.description" },
 ]
 
 const MANAGE_FEATURES: { icon: typeof Bell; titleKey: TranslationKey; descriptionKey: TranslationKey }[] = [
@@ -119,6 +133,9 @@ const FAQ_ITEMS: { questionKey: TranslationKey; answerKey: TranslationKey }[] = 
   { questionKey: "help.faq.free.question", answerKey: "help.faq.free.answer" },
   { questionKey: "help.faq.becomeManager.question", answerKey: "help.faq.becomeManager.answer" },
   { questionKey: "help.faq.becomeAdmin.question", answerKey: "help.faq.becomeAdmin.answer" },
+  { questionKey: "help.faq.profileVisibility.question", answerKey: "help.faq.profileVisibility.answer" },
+  { questionKey: "help.faq.matchResult.question", answerKey: "help.faq.matchResult.answer" },
+  { questionKey: "help.faq.teamMembers.question", answerKey: "help.faq.teamMembers.answer" },
 ]
 
 function QuickNav() {
