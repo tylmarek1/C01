@@ -42,6 +42,9 @@ export type NotificationType =
   | "TEAM_MEMBER_ADDED"
   | "MATCH_RESULT_REPORTED"
   | "CHALLENGE_COMPLETED"
+  | "TEAM_JOIN_REQUEST_RECEIVED"
+  | "TEAM_JOIN_REQUEST_ACCEPTED"
+  | "TEAM_JOIN_REQUEST_DECLINED"
 export type ReservationEventType =
   | "CREATED"
   | "SUBMITTED"
@@ -316,7 +319,8 @@ export interface Conversation {
   created_at: string
 }
 
-export type TeamRole = "OWNER" | "MEMBER"
+export type TeamRole = "OWNER" | "CAPTAIN" | "MEMBER"
+export type TeamJoinRequestStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED"
 
 export interface TeamMemberEntry {
   user: User
@@ -329,10 +333,29 @@ export interface Team {
   name: string
   sport_type: SportType | null
   description: string | null
+  avatar_url: string | null
+  is_public: boolean
   created_by: string
   created_at: string
   members: TeamMemberEntry[]
   my_role: TeamRole
+}
+
+export interface TeamSummary {
+  id: string
+  name: string
+  sport_type: SportType | null
+  description: string | null
+  avatar_url: string | null
+  member_count: number
+}
+
+export interface TeamJoinRequestEntry {
+  id: string
+  team_id: string
+  user: User
+  status: TeamJoinRequestStatus
+  created_at: string
 }
 
 export type ChallengeMetric = "RESERVATIONS_COMPLETED" | "COURTS_PLAYED" | "GUESTS_INVITED" | "REVIEWS_WRITTEN"

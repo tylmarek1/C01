@@ -28,6 +28,7 @@ from reservations.models.review_image import ReviewImage
 from reservations.models.review_vote import ReviewVote
 from reservations.models.skill_rating import SkillRating
 from reservations.models.team import Team, TeamRole
+from reservations.models.team_join_request import TeamJoinRequest, TeamJoinRequestStatus
 from reservations.models.team_member import TeamMember
 from reservations.models.user import User, UserRole
 from reservations.models.waitlist import WaitlistEntry, WaitlistStatus
@@ -68,6 +69,8 @@ __all__ = [
     "Team",
     "TeamRole",
     "TeamMember",
+    "TeamJoinRequest",
+    "TeamJoinRequestStatus",
     "SkillRating",
     "MatchResult",
     "Challenge",

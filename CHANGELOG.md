@@ -10,6 +10,20 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Teams rebuild: public discovery/join, a CAPTAIN role, and a team
+  avatar.** A team is public by default (owner can flip it private from
+  a new edit-team dialog); `/app/teams`'s new "Discover" tab lists public
+  teams you're not already in, with a "Request to join" flow the owner or
+  a captain accepts/declines from a new "Join requests" panel on the team
+  page. A new `CAPTAIN` role (owner-promoted) can add/remove non-owner
+  members and manage join requests, but can't delete the team, change its
+  visibility, or touch another captain — those stay owner-only. Owners
+  and captains can upload a team avatar, same compress-and-store pipeline
+  as a user avatar/court photo/review photo. **Breaking for the dev
+  database**: a new `TeamRole.CAPTAIN` enum value, a new
+  `team_join_requests` table, new `Team.avatar_url`/`is_public` columns,
+  and 3 new `NotificationType` values — run the drop/create/reseed cycle
+  from `backend/CLAUDE.md`.
 - **The players directory is now actually browsable**, not just a search
   box that returns nothing until you already know someone's name.
   `GET /users/search` with an empty/short `q` now returns a paginated

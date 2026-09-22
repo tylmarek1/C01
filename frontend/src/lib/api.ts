@@ -38,6 +38,9 @@ import type {
   SkillRatingEntry,
   SportType,
   Team,
+  TeamJoinRequestEntry,
+  TeamRole,
+  TeamSummary,
   Teammate,
   User,
   UserAdmin,
@@ -494,7 +497,42 @@ export const api = {
   removeTeamMember: (token: string, teamId: string, userId: string) =>
     request<Team>(`/teams/${teamId}/members/${userId}`, { method: "DELETE" }, token),
 
+  setTeamMemberRole: (token: string, teamId: string, userId: string, role: TeamRole) =>
+    request<Team>(`/teams/${teamId}/members/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) }, token),
+
   deleteTeam: (token: string, teamId: string) => request<void>(`/teams/${teamId}`, { method: "DELETE" }, token),
+
+  updateTeam: (
+    token: string,
+    teamId: string,
+    payload: { name?: string; sport_type?: SportType | null; description?: string | null; is_public?: boolean },
+  ) => request<Team>(`/teams/${teamId}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+
+  uploadTeamAvatar: (token: string, teamId: string, file: File | Blob) => {
+    const formData = new FormData()
+    formData.append("file", file, "avatar.jpg")
+    return request<Team>(`/teams/${teamId}/avatar`, { method: "POST", body: formData }, token)
+  },
+
+  discoverTeams: (token: string, options: { q?: string; sport?: SportType; limit?: number; offset?: number } = {}) =>
+    request<TeamSummary[]>(`/teams/discover${buildQuery(options)}`, {}, token),
+
+  listMyTeamJoinRequests: (token: string) => request<TeamJoinRequestEntry[]>("/teams/join-requests/mine", {}, token),
+
+  requestToJoinTeam: (token: string, teamId: string) =>
+    request<TeamJoinRequestEntry>(`/teams/${teamId}/join-requests`, { method: "POST" }, token),
+
+  cancelTeamJoinRequest: (token: string, teamId: string, requestId: string) =>
+    request<void>(`/teams/${teamId}/join-requests/${requestId}`, { method: "DELETE" }, token),
+
+  listTeamJoinRequests: (token: string, teamId: string) =>
+    request<TeamJoinRequestEntry[]>(`/teams/${teamId}/join-requests`, {}, token),
+
+  acceptTeamJoinRequest: (token: string, teamId: string, requestId: string) =>
+    request<Team>(`/teams/${teamId}/join-requests/${requestId}/accept`, { method: "POST" }, token),
+
+  declineTeamJoinRequest: (token: string, teamId: string, requestId: string) =>
+    request<TeamJoinRequestEntry>(`/teams/${teamId}/join-requests/${requestId}/decline`, { method: "POST" }, token),
 
   // Skill rating
   reportMatchResult: (token: string, reservationId: string, winnerUserId: string | null) =>
