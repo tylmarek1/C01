@@ -337,3 +337,114 @@ def test_admin_can_delete_court_with_favorites_and_waitlist_entries_but_no_reser
 
     assert response.status_code == 204
     assert client.get(f"/courts/{court_id}").status_code == 404
+
+
+def _tiny_jpeg() -> io.BytesIO:
+    buffer = io.BytesIO()
+    Image.new("RGB", (400, 300), color=(80, 40, 160)).save(buffer, format="JPEG")
+    buffer.seek(0)
+    return buffer
+
+
+def test_manager_can_add_and_remove_gallery_images(
+    session_factory: sessionmaker, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("reservations.images.settings.upload_dir", tmp_path)
+    client = TestClient(app)
+    token = register_and_login(client, "manager-gallery@example.com")
+    promote_to_manager(session_factory, "manager-gallery@example.com")
+    court_id = seed_court(session_factory, name="Gallery Court")
+
+    added = client.post(
+        f"/courts/{court_id}/images",
+        headers={"Authorization": f"Bearer {token}"},
+        files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+    )
+    assert added.status_code == 201
+    images = added.json()["images"]
+    assert len(images) == 1
+    assert images[0]["url"].startswith("/static/courts/")
+
+    detail = client.get(f"/courts/{court_id}")
+    assert len(detail.json()["images"]) == 1
+
+    image_id = images[0]["id"]
+    removed = client.delete(
+        f"/courts/{court_id}/images/{image_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert removed.status_code == 200
+    assert removed.json()["images"] == []
+
+
+def test_gallery_is_capped_at_max_images(
+    session_factory: sessionmaker, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("reservations.images.settings.upload_dir", tmp_path)
+    from reservations.api.courts import MAX_GALLERY_IMAGES
+
+    client = TestClient(app)
+    token = register_and_login(client, "manager-gallery-cap@example.com")
+    promote_to_manager(session_factory, "manager-gallery-cap@example.com")
+    court_id = seed_court(session_factory, name="Capped Gallery Court")
+
+    for _ in range(MAX_GALLERY_IMAGES):
+        response = client.post(
+            f"/courts/{court_id}/images",
+            headers={"Authorization": f"Bearer {token}"},
+            files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+        )
+        assert response.status_code == 201
+
+    over_limit = client.post(
+        f"/courts/{court_id}/images",
+        headers={"Authorization": f"Bearer {token}"},
+        files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+    )
+    assert over_limit.status_code == 400
+
+
+def test_non_manager_cannot_manage_gallery_images(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token = register_and_login(client, "player-gallery@example.com")
+    court_id = seed_court(session_factory, name="Guarded Gallery Court")
+
+    response = client.post(
+        f"/courts/{court_id}/images",
+        headers={"Authorization": f"Bearer {token}"},
+        files={"file": ("photo.jpg", io.BytesIO(b"not an image"), "image/jpeg")},
+    )
+    assert response.status_code == 403
+
+
+def test_deleting_a_court_cleans_up_its_gallery_images(
+    session_factory: sessionmaker, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("reservations.images.settings.upload_dir", tmp_path)
+    client = TestClient(app)
+    manager_token = register_and_login(client, "manager-gallery-del@example.com")
+    promote_to_manager(session_factory, "manager-gallery-del@example.com")
+    court_id = seed_court(session_factory, name="Doomed Gallery Court")
+
+    uploaded = client.post(
+        f"/courts/{court_id}/images",
+        headers={"Authorization": f"Bearer {manager_token}"},
+        files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+    )
+    assert uploaded.status_code == 201
+
+    admin_token = register_and_login(client, "delete-admin-gallery@example.com")
+    promote_to_admin(session_factory, "delete-admin-gallery@example.com")
+
+    response = client.delete(
+        f"/courts/{court_id}", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 204
+
+    with session_factory() as session:
+        from reservations.models import CourtImage
+
+        remaining = session.query(CourtImage).filter_by(court_id=court_id).count()
+        assert remaining == 0

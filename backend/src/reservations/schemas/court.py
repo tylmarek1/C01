@@ -5,6 +5,14 @@ from pydantic import BaseModel, Field
 from reservations.models import Amenity, SportType
 
 
+class CourtImageOut(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    url: str
+    position: int
+
+
 class CourtOut(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -22,6 +30,10 @@ class CourtOut(BaseModel):
     # left as None/0 wherever a court is just nested inside another response.
     average_rating: float | None = None
     review_count: int = 0
+    # Additional gallery photos beyond the single cover `image_url`; empty
+    # unless the endpoint calls `_attach_images` (list/detail, same pattern
+    # as `average_rating`/`review_count`).
+    images: list[CourtImageOut] = []
 
 
 class CourtCreate(BaseModel):

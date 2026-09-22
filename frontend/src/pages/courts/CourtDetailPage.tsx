@@ -15,7 +15,7 @@ import { OccupancyTimeline } from "@/components/shared/occupancy-timeline"
 import { Skeleton } from "@/components/shared/skeleton"
 import { useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"
-import { ApiError, api } from "@/lib/api"
+import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAmenityLabels } from "@/lib/amenities"
 import { useAuth } from "@/lib/auth-context"
 import { formatCurrency, formatDateRange, todayDateString } from "@/lib/format"
@@ -40,6 +40,7 @@ function CourtDetailPage() {
   const sportLabels = useSportLabels()
   const amenityLabels = useAmenityLabels()
   const [date, setDate] = useState(todayDateString())
+  const [activePhoto, setActivePhoto] = useState<string | null>(null)
 
   const { data: court, isLoading: isLoadingCourt, isError } = useQuery({
     queryKey: ["court", id],
@@ -120,7 +121,12 @@ function CourtDetailPage() {
         <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="flex flex-col gap-6">
             <div className="relative">
-              <CourtArt sport={court.sport_type} indoor={court.indoor} imageUrl={court.image_url} className="aspect-[16/11]" />
+              <CourtArt
+                sport={court.sport_type}
+                indoor={court.indoor}
+                imageUrl={activePhoto ?? court.image_url}
+                className="aspect-[16/11]"
+              />
               {user && (
                 <button
                   type="button"
@@ -132,6 +138,27 @@ function CourtDetailPage() {
                 </button>
               )}
             </div>
+            {court.images.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {[
+                  ...(court.image_url ? [{ id: "cover", url: court.image_url }] : []),
+                  ...court.images,
+                ].map((photo) => (
+                  <button
+                    key={photo.id}
+                    type="button"
+                    onClick={() => setActivePhoto(photo.url)}
+                    aria-label={t("courtDetail.gallery.viewPhoto")}
+                    className={cn(
+                      "size-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors",
+                      (activePhoto ?? court.image_url) === photo.url ? "border-signal-blue" : "border-transparent",
+                    )}
+                  >
+                    <img src={assetUrl(photo.url)} alt="" className="size-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-3xl font-bold text-ink-navy">{court.name}</h1>

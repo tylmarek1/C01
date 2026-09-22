@@ -166,6 +166,15 @@ export const api = {
     return request<Court>(`/courts/${id}/image`, { method: "POST", body: formData }, token)
   },
 
+  addCourtGalleryImage: (token: string, id: string, file: File | Blob) => {
+    const formData = new FormData()
+    formData.append("file", file, "court.jpg")
+    return request<Court>(`/courts/${id}/images`, { method: "POST", body: formData }, token)
+  },
+
+  deleteCourtGalleryImage: (token: string, id: string, imageId: string) =>
+    request<Court>(`/courts/${id}/images/${imageId}`, { method: "DELETE" }, token),
+
   deleteCourt: (token: string, id: string) => request<void>(`/courts/${id}`, { method: "DELETE" }, token),
 
   listReservations: (token: string) => request<Reservation[]>("/reservations", {}, token),

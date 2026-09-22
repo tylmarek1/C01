@@ -63,6 +63,12 @@ export interface UserAdmin extends User {
   no_show_count: number
 }
 
+export interface CourtImage {
+  id: string
+  url: string
+  position: number
+}
+
 export interface Court {
   id: string
   name: string
@@ -76,6 +82,7 @@ export interface Court {
   price_per_hour: number | null
   average_rating: number | null
   review_count: number
+  images: CourtImage[]
 }
 
 export interface Reservation {
