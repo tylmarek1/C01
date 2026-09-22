@@ -12,12 +12,19 @@ PRAGUE = ZoneInfo("Europe/Prague")
 
 def at(hour: int, minute: int = 0) -> str:
     day = (datetime.now(PRAGUE) + timedelta(days=3)).date()
-    return datetime(day.year, day.month, day.day, hour, minute, tzinfo=PRAGUE).isoformat()
+    return datetime(
+        day.year, day.month, day.day, hour, minute, tzinfo=PRAGUE
+    ).isoformat()
 
 
 def register_and_login(client: TestClient, email: str) -> str:
-    client.post("/auth/register", json={"name": "Player", "email": email, "password": "supersecret"})
-    response = client.post("/auth/login", json={"email": email, "password": "supersecret"})
+    client.post(
+        "/auth/register",
+        json={"name": "Player", "email": email, "password": "supersecret"},
+    )
+    response = client.post(
+        "/auth/login", json={"email": email, "password": "supersecret"}
+    )
     return response.json()["access_token"]
 
 
@@ -29,14 +36,18 @@ def seed_court(session_factory: sessionmaker, name: str = "Tennis 1") -> str:
         return str(court.id)
 
 
-def test_creating_a_reservation_generates_a_notification(session_factory: sessionmaker) -> None:
+def test_creating_a_reservation_generates_a_notification(
+    session_factory: sessionmaker,
+) -> None:
     client = TestClient(app)
     court_id = seed_court(session_factory)
     token = register_and_login(client, "mona@example.com")
     headers = {"Authorization": f"Bearer {token}"}
 
     client.post(
-        "/reservations", json={"court_id": court_id, "start_time": at(18), "end_time": at(19)}, headers=headers
+        "/reservations",
+        json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers=headers,
     )
 
     response = client.get("/notifications", headers=headers)
@@ -54,7 +65,9 @@ def test_mark_notification_read(session_factory: sessionmaker) -> None:
     token = register_and_login(client, "nate@example.com")
     headers = {"Authorization": f"Bearer {token}"}
     client.post(
-        "/reservations", json={"court_id": court_id, "start_time": at(18), "end_time": at(19)}, headers=headers
+        "/reservations",
+        json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers=headers,
     )
     notification_id = client.get("/notifications", headers=headers).json()[0]["id"]
 
@@ -70,7 +83,9 @@ def test_mark_all_read(session_factory: sessionmaker) -> None:
     token = register_and_login(client, "opal@example.com")
     headers = {"Authorization": f"Bearer {token}"}
     created = client.post(
-        "/reservations", json={"court_id": court_id, "start_time": at(18), "end_time": at(19)}, headers=headers
+        "/reservations",
+        json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers=headers,
     ).json()
     client.post(f"/reservations/{created['id']}/confirm", headers=headers)
 
@@ -97,7 +112,70 @@ def test_cannot_read_someone_elses_notification(session_factory: sessionmaker) -
     ).json()[0]["id"]
 
     response = client.post(
-        f"/notifications/{notification_id}/read", headers={"Authorization": f"Bearer {other_token}"}
+        f"/notifications/{notification_id}/read",
+        headers={"Authorization": f"Bearer {other_token}"},
     )
 
     assert response.status_code == 404
+
+
+def test_default_notification_preferences_are_empty(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    token = register_and_login(client, "riley@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.get("/notifications/preferences", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["muted_types"] == []
+
+
+def test_muting_a_notification_type_suppresses_it(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    court_id = seed_court(session_factory)
+    token = register_and_login(client, "sana@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    updated = client.put(
+        "/notifications/preferences",
+        json={"muted_types": ["RESERVATION_CREATED"]},
+        headers=headers,
+    )
+    assert updated.status_code == 200
+    assert updated.json()["muted_types"] == ["RESERVATION_CREATED"]
+
+    client.post(
+        "/reservations",
+        json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers=headers,
+    )
+
+    types = [n["type"] for n in client.get("/notifications", headers=headers).json()]
+    assert "RESERVATION_CREATED" not in types
+
+
+def test_unmuting_restores_notifications(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    court_id = seed_court(session_factory)
+    token = register_and_login(client, "tobi@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    client.put(
+        "/notifications/preferences",
+        json={"muted_types": ["RESERVATION_CREATED"]},
+        headers=headers,
+    )
+    client.put("/notifications/preferences", json={"muted_types": []}, headers=headers)
+
+    client.post(
+        "/reservations",
+        json={"court_id": court_id, "start_time": at(18), "end_time": at(19)},
+        headers=headers,
+    )
+
+    types = [n["type"] for n in client.get("/notifications", headers=headers).json()]
+    assert "RESERVATION_CREATED" in types

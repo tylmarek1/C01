@@ -7,9 +7,34 @@ from sqlalchemy.orm import Session
 
 from reservations.deps import get_current_user, get_db
 from reservations.models import Notification, User
-from reservations.schemas.notification import NotificationOut
+from reservations.schemas.notification import (
+    NotificationOut,
+    NotificationPreferencesOut,
+    NotificationPreferencesUpdate,
+)
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
+
+
+@router.get("/preferences", response_model=NotificationPreferencesOut)
+def get_notification_preferences(
+    current_user: User = Depends(get_current_user),
+) -> NotificationPreferencesOut:
+    return NotificationPreferencesOut(muted_types=current_user.muted_notification_types)
+
+
+@router.put("/preferences", response_model=NotificationPreferencesOut)
+def update_notification_preferences(
+    payload: NotificationPreferencesUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> NotificationPreferencesOut:
+    # Dedupe (a repeated type in the payload is harmless but pointless to store).
+    current_user.muted_notification_types = sorted(
+        {t.value for t in payload.muted_types}
+    )
+    db.commit()
+    return NotificationPreferencesOut(muted_types=current_user.muted_notification_types)
 
 
 @router.get("", response_model=list[NotificationOut])
@@ -26,7 +51,9 @@ def list_notifications(
 
 
 @router.get("/unread-count")
-def unread_count(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict[str, int]:
+def unread_count(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+) -> dict[str, int]:
     stmt = (
         select(func.count())
         .select_from(Notification)
@@ -53,7 +80,9 @@ def mark_read(
 
 
 @router.post("/read-all")
-def mark_all_read(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict[str, int]:
+def mark_all_read(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+) -> dict[str, int]:
     stmt = (
         select(Notification)
         .where(Notification.user_id == current_user.id)

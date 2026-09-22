@@ -32,14 +32,16 @@ import { SectionHeader } from "@/components/shared/section-header"
 import { Skeleton } from "@/components/shared/skeleton"
 import { StarRating } from "@/components/shared/star-rating"
 import { StatTile } from "@/components/shared/stat-tile"
+import { Switch } from "@/components/shared/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/tabs"
 import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 import { compressImageFile } from "@/lib/image"
+import { NOTIFICATION_CATEGORIES, useNotificationCategoryLabels } from "@/lib/notification-categories"
 import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
-import type { Court, Review } from "@/types"
+import type { Court, NotificationType, Review } from "@/types"
 
 function initials(name: string) {
   return name
@@ -73,6 +75,28 @@ function OverviewTab() {
     mutationFn: () => api.issueCalendarToken(token!),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.calendar.error")),
   })
+
+  const notificationCategoryLabels = useNotificationCategoryLabels()
+  const queryClient = useQueryClient()
+  const { data: notificationPrefs } = useQuery({
+    queryKey: ["notification-preferences"],
+    queryFn: () => api.getNotificationPreferences(token!),
+    enabled: Boolean(token),
+  })
+  const mutedTypes = notificationPrefs?.muted_types ?? []
+
+  const notificationPrefsMutation = useMutation({
+    mutationFn: (nextMuted: NotificationType[]) => api.updateNotificationPreferences(token!, nextMuted),
+    onSuccess: (result) => queryClient.setQueryData(["notification-preferences"], result),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("notificationPrefs.error")),
+  })
+
+  function toggleCategory(types: NotificationType[], enabled: boolean) {
+    const next = enabled
+      ? mutedTypes.filter((type) => !types.includes(type))
+      : [...new Set([...mutedTypes, ...types])]
+    notificationPrefsMutation.mutate(next)
+  }
 
   const feedUrl = calendarTokenMutation.data ? api.getCalendarFeedUrl(calendarTokenMutation.data.calendar_token) : null
 
@@ -180,6 +204,31 @@ function OverviewTab() {
               {t("profile.calendar.generate")}
             </Button>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("notificationPrefs.title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1">
+          {NOTIFICATION_CATEGORIES.map(({ key, types }) => {
+            const enabled = !types.every((type) => mutedTypes.includes(type))
+            return (
+              <div key={key} className="flex items-center justify-between gap-4 border-b border-hairline py-3 last:border-b-0">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-ink-navy">{notificationCategoryLabels[key].title}</span>
+                  <span className="text-xs text-slate-gray">{notificationCategoryLabels[key].description}</span>
+                </div>
+                <Switch
+                  checked={enabled}
+                  disabled={notificationPrefsMutation.isPending}
+                  onCheckedChange={(next) => toggleCategory(types, next)}
+                  aria-label={notificationCategoryLabels[key].title}
+                />
+              </div>
+            )
+          })}
         </CardContent>
       </Card>
 
