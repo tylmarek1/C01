@@ -180,6 +180,14 @@ export interface Review {
   helpful_count: number
   voted_helpful_by_me: boolean
   images: ReviewImage[]
+  comment_count: number
+}
+
+export interface ReviewComment {
+  id: string
+  user: User
+  body: string
+  created_at: string
 }
 
 export interface ReservationGuest {

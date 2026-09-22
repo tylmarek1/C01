@@ -351,3 +351,121 @@ def test_deleting_a_review_with_photos_does_not_error(
 
     response = client.delete(f"/reviews/{review_id}", headers=headers)
     assert response.status_code == 204
+
+
+def test_anyone_can_comment_on_a_review(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    author_token = register_and_login(client, "mia@example.com")
+    author_id = get_user_id(session_factory, "mia@example.com")
+    _, reservation_id = seed_completed_reservation(
+        session_factory, author_id, "Mia Court"
+    )
+    review_id = client.post(
+        "/reviews",
+        json={"reservation_id": reservation_id, "rating": 5},
+        headers={"Authorization": f"Bearer {author_token}"},
+    ).json()["id"]
+
+    commenter_token = register_and_login(client, "noah@example.com")
+    commenter_headers = {"Authorization": f"Bearer {commenter_token}"}
+
+    add = client.post(
+        f"/reviews/{review_id}/comments",
+        json={"body": "Totally agree!"},
+        headers=commenter_headers,
+    )
+    assert add.status_code == 201
+    assert add.json()["body"] == "Totally agree!"
+    assert add.json()["user"]["email"] == "noah@example.com"
+
+    listing = client.get(f"/reviews/{review_id}/comments", headers=commenter_headers)
+    assert len(listing.json()) == 1
+
+
+def test_review_out_reports_comment_count(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    token = register_and_login(client, "olga@example.com")
+    user_id = get_user_id(session_factory, "olga@example.com")
+    court_id, reservation_id = seed_completed_reservation(
+        session_factory, user_id, "Olga Court"
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+    review_id = client.post(
+        "/reviews",
+        json={"reservation_id": reservation_id, "rating": 5},
+        headers=headers,
+    ).json()["id"]
+
+    client.post(
+        f"/reviews/{review_id}/comments", json={"body": "Nice!"}, headers=headers
+    )
+    client.post(
+        f"/reviews/{review_id}/comments", json={"body": "Agreed!"}, headers=headers
+    )
+
+    listing = client.get(f"/courts/{court_id}/reviews").json()
+    assert listing[0]["comment_count"] == 2
+
+
+def test_only_the_comment_author_or_admin_can_delete_a_comment(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    author_token = register_and_login(client, "pavel@example.com")
+    author_id = get_user_id(session_factory, "pavel@example.com")
+    _, reservation_id = seed_completed_reservation(
+        session_factory, author_id, "Pavel Court"
+    )
+    review_id = client.post(
+        "/reviews",
+        json={"reservation_id": reservation_id, "rating": 5},
+        headers={"Authorization": f"Bearer {author_token}"},
+    ).json()["id"]
+
+    commenter_token = register_and_login(client, "quinn@example.com")
+    commenter_headers = {"Authorization": f"Bearer {commenter_token}"}
+    comment_id = client.post(
+        f"/reviews/{review_id}/comments",
+        json={"body": "My take"},
+        headers=commenter_headers,
+    ).json()["id"]
+
+    forbidden = client.delete(
+        f"/reviews/{review_id}/comments/{comment_id}",
+        headers={"Authorization": f"Bearer {author_token}"},
+    )
+    assert forbidden.status_code == 403
+
+    allowed = client.delete(
+        f"/reviews/{review_id}/comments/{comment_id}", headers=commenter_headers
+    )
+    assert allowed.status_code == 204
+
+
+def test_deleting_a_review_with_votes_and_comments_does_not_error(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    author_token = register_and_login(client, "rosa@example.com")
+    author_id = get_user_id(session_factory, "rosa@example.com")
+    _, reservation_id = seed_completed_reservation(
+        session_factory, author_id, "Rosa Court"
+    )
+    author_headers = {"Authorization": f"Bearer {author_token}"}
+    review_id = client.post(
+        "/reviews",
+        json={"reservation_id": reservation_id, "rating": 5},
+        headers=author_headers,
+    ).json()["id"]
+
+    voter_token = register_and_login(client, "sam@example.com")
+    voter_headers = {"Authorization": f"Bearer {voter_token}"}
+    client.post(f"/reviews/{review_id}/helpful", headers=voter_headers)
+    client.post(
+        f"/reviews/{review_id}/comments",
+        json={"body": "Nice one"},
+        headers=voter_headers,
+    )
+
+    response = client.delete(f"/reviews/{review_id}", headers=author_headers)
+    assert response.status_code == 204

@@ -551,6 +551,7 @@ function ReviewsTab() {
             <span className="text-xs text-mist-gray">
               {new Date(review.created_at).toLocaleDateString()}
               {review.helpful_count > 0 && ` · ${t("courtDetail.reviews.helpfulCount", { count: review.helpful_count })}`}
+              {review.comment_count > 0 && ` · ${t("courtDetail.reviews.commentCount", { count: review.comment_count })}`}
             </span>
             <div className="flex flex-wrap gap-2">
               {review.images.map((image) => (

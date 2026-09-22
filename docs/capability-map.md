@@ -117,6 +117,17 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Review comments — `ReviewComment` (open discussion, any signed-in player
+  can reply to someone else's review, not just the author), `GET/POST
+  /reviews/{id}/comments`, `DELETE .../comments/{comment_id}` (comment
+  author or admin). Deliberately **not** a second "like" system — the
+  existing `ReviewVote`/"helpful" toggle already covers reactions, this PR
+  only adds the "say something back" half. Found and fixed a real,
+  pre-existing gap while touching `delete_review`: `ReviewVote` rows were
+  never cleaned up before deleting a review, so any review with a helpful
+  vote on it couldn't be deleted at all (same missing-cascade shape as the
+  `ReviewImage` fix from an earlier session) — now covered by a regression
+  test. New tables only, no manual reseed cycle needed.
 - Player profiles + follow — `User.bio`/`profile_public` (opt-out, default
   public), `PlayerFollow` (one-directional, no accept/decline handshake —
   mirrors how `ReservationGuest` invites already work), `GET /users/{id}/
