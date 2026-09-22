@@ -36,6 +36,7 @@ import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { formatDateRange } from "@/lib/format"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
+import { compressImageFile } from "@/lib/image"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import { cn } from "@/lib/utils"
 import type { OpenGame, PlayerSearchResult, Reservation } from "@/types"
@@ -128,11 +129,29 @@ function DashboardPage() {
   })
 
   const reviewMutation = useMutation({
-    mutationFn: ({ reservation, rating, comment }: { reservation: Reservation; rating: number; comment: string }) =>
-      api.createReview(token!, reservation.id, rating, comment || undefined),
+    mutationFn: async ({
+      reservation,
+      rating,
+      comment,
+      photos,
+    }: {
+      reservation: Reservation
+      rating: number
+      comment: string
+      photos: File[]
+    }) => {
+      const review = await api.createReview(token!, reservation.id, rating, comment || undefined)
+      // One at a time, not Promise.all — matches the existing add-photo-to-an-
+      // existing-review flow (ProfilePage's ReviewsTab) rather than hammering
+      // the upload endpoint with concurrent requests for the same review.
+      for (const photo of photos) {
+        await api.addReviewImage(token!, review.id, await compressImageFile(photo, 1200, 0.85))
+      }
+    },
     onSuccess: () => {
       toast.success(t("dashboard.toast.reviewSubmitted"))
       queryClient.invalidateQueries({ queryKey: ["reviews-mine"] })
+      queryClient.invalidateQueries({ queryKey: ["court-reviews"] })
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("dashboard.error.review")),
   })
@@ -346,7 +365,9 @@ function DashboardPage() {
               onSetOpen={(reservation, openToJoin, note) => setOpenMutation.mutate({ reservation, openToJoin, note })}
               isSettingOpen={setOpenMutation.isPending}
               hasReview={reviewedReservationIds.has(reservation.id)}
-              onSubmitReview={(reservation, rating, comment) => reviewMutation.mutate({ reservation, rating, comment })}
+              onSubmitReview={(reservation, rating, comment, photos) =>
+                reviewMutation.mutate({ reservation, rating, comment, photos })
+              }
             />
           ))}
         </div>
