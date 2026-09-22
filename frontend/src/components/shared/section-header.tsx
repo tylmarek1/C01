@@ -16,7 +16,7 @@ function SectionHeader({ eyebrow, title, description, align = "center", action, 
   return (
     <div className={cn("flex flex-col gap-4", isCentered && "items-center text-center", className)}>
       {eyebrow && (
-        <span className="inline-flex w-fit items-center rounded-full bg-[#e6f0ff] px-2.5 py-1 text-xs font-medium text-deep-cobalt">
+        <span className="inline-flex w-fit items-center rounded-full bg-tint-blue px-2.5 py-1 text-xs font-medium text-deep-cobalt">
           {eyebrow}
         </span>
       )}

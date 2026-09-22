@@ -15,7 +15,7 @@ function FeatureItem({ icon: Icon, title, description, active = true }: FeatureI
       <span
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-xl",
-          active ? "bg-[#e6f0ff] text-signal-blue" : "bg-pebble text-mist-gray",
+          active ? "bg-tint-blue text-signal-blue" : "bg-pebble text-mist-gray",
         )}
       >
         <Icon className="size-5" />

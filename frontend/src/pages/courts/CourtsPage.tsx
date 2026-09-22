@@ -161,7 +161,7 @@ function CourtsPage() {
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                 amenity === option
-                  ? "border-signal-blue bg-[#eaf3ff] text-signal-blue"
+                  ? "border-signal-blue bg-highlight-blue text-signal-blue"
                   : "border-hairline bg-card text-slate-gray hover:text-ink-navy",
               )}
             >

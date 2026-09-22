@@ -2,7 +2,6 @@ import type { ReactNode } from "react"
 
 import { Card } from "@/components/shared/card"
 import { DecorativeBlob } from "@/components/shared/decorative-blob"
-import { Logo } from "@/components/shared/logo"
 import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
 import { useTranslation } from "@/lib/i18n"
 import type { SportType } from "@/types"
@@ -27,9 +26,6 @@ function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
     <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
       <div className="flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden">
-            <Logo />
-          </div>
           <h1 className="text-3xl font-bold text-ink-navy">{title}</h1>
           <p className="mt-2 text-base text-slate-gray">{description}</p>
           <div className="mt-8">{children}</div>
@@ -43,7 +39,7 @@ function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
         <Card className="relative w-full max-w-sm gap-5">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-ink-navy">{t("authLayout.availabilityTitle")}</span>
-            <span className="rounded-full bg-[#e6f0ff] px-2.5 py-1 text-xs font-medium text-deep-cobalt">{t("hero.card.live")}</span>
+            <span className="rounded-full bg-tint-blue px-2.5 py-1 text-xs font-medium text-deep-cobalt">{t("hero.card.live")}</span>
           </div>
           <div className="flex flex-col gap-3">
             {PREVIEW_SLOTS.map((slot) => (

@@ -178,7 +178,7 @@ function HelpPage() {
 
   return (
     <div>
-      <section className="relative mx-auto max-w-4xl overflow-hidden px-6 pt-16 pb-10 text-center sm:pt-24">
+      <section className="relative mx-auto max-w-4xl px-6 pt-16 pb-10 text-center sm:pt-24">
         <DecorativeBlob color="cyan" className="-top-10 right-10 size-64" />
         <DecorativeBlob color="magenta" className="bottom-0 left-0 size-56" />
         <SectionHeader eyebrow={t("help.hero.eyebrow")} title={t("help.hero.title")} description={t("help.hero.description")} />

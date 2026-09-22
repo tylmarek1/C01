@@ -16,6 +16,15 @@
   --coral-magenta: #e55cff;
   --sky-cyan: #0099ff;
   --deep-cobalt: #004eba;
+  /* A lighter, "tinted" background for a badge/pill/icon-tile on the
+     signal-blue hue — was repeated as a literal bg-[#e6f0ff] in ~6 files. */
+  --tint-blue: #e6f0ff;
+  /* A step lighter than --tint-blue, for a selected/active/highlighted row
+     or card (a chosen court, a selected chat conversation, "today" on the
+     calendar) — was repeated as a literal bg-[#eaf3ff] in ~14 files. */
+  --highlight-blue: #eaf3ff;
+  --signal-blue-hover: #0059d6;
+  --ink-navy-hover: #082943;
 
   /* shadcn semantic tokens, mapped onto the palette above */
   --background: var(--cloud);
@@ -79,6 +88,10 @@
   --color-coral-magenta: var(--coral-magenta);
   --color-sky-cyan: var(--sky-cyan);
   --color-deep-cobalt: var(--deep-cobalt);
+  --color-tint-blue: var(--tint-blue);
+  --color-highlight-blue: var(--highlight-blue);
+  --color-signal-blue-hover: var(--signal-blue-hover);
+  --color-ink-navy-hover: var(--ink-navy-hover);
 
   --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 

@@ -349,7 +349,7 @@ function CourtFormDialog({
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                       active
-                        ? "border-signal-blue bg-[#eaf3ff] text-signal-blue"
+                        ? "border-signal-blue bg-highlight-blue text-signal-blue"
                         : "border-hairline bg-paper text-slate-gray hover:text-ink-navy",
                     )}
                   >
