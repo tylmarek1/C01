@@ -23,6 +23,7 @@ import {
 } from "@/components/shared/dropdown-menu"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
+import { PlayerSearch } from "@/components/shared/player-search"
 import { Skeleton } from "@/components/shared/skeleton"
 import { SportIcon } from "@/components/shared/sport-icon"
 import { StarRatingInput } from "@/components/shared/star-rating"
@@ -33,7 +34,7 @@ import { useAuth } from "@/lib/auth-context"
 import { formatCurrency, formatDateRange } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
-import type { Reservation } from "@/types"
+import type { PlayerSearchResult, Reservation } from "@/types"
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" })
 
@@ -239,7 +240,7 @@ interface ReservationCardProps {
   onCheckIn?: (reservation: Reservation) => void
   onReschedule?: (reservation: Reservation, startTime: string, endTime: string) => void
   onOpenDetail?: (reservation: Reservation) => void
-  onInviteGuest?: (reservation: Reservation, email: string) => void
+  onInviteGuest?: (reservation: Reservation, player: PlayerSearchResult) => void
   onSetOpen?: (reservation: Reservation, openToJoin: boolean, note: string) => void
   isSettingOpen?: boolean
   hasReview?: boolean
@@ -267,7 +268,6 @@ function ReservationCard({
   const { court, status } = reservation
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [guestOpen, setGuestOpen] = useState(false)
-  const [guestEmail, setGuestEmail] = useState("")
   const [reviewOpen, setReviewOpen] = useState(false)
   const [splitOpen, setSplitOpen] = useState(false)
   const [resultOpen, setResultOpen] = useState(false)
@@ -314,13 +314,6 @@ function ReservationCard({
     const newEnd = new Date(newStart.getTime() + durationMs)
     onReschedule?.(reservation, newStart.toISOString(), newEnd.toISOString())
     setRescheduleOpen(false)
-  }
-
-  function submitGuest() {
-    if (!guestEmail.trim()) return
-    onInviteGuest?.(reservation, guestEmail.trim())
-    setGuestEmail("")
-    setGuestOpen(false)
   }
 
   function submitReview() {
@@ -451,21 +444,18 @@ function ReservationCard({
                 <DialogDescription>{t("reservationCard.guest.description", { court: court.name })}</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`guest-email-${reservation.id}`}>{t("reservationCard.guest.email")}</Label>
-                <Input
-                  id={`guest-email-${reservation.id}`}
-                  type="email"
-                  value={guestEmail}
-                  onChange={(event) => setGuestEmail(event.target.value)}
-                  placeholder="teammate@example.com"
+                <Label>{t("reservationCard.guest.email")}</Label>
+                <PlayerSearch
+                  autoFocus
+                  onSelect={(player) => {
+                    onInviteGuest?.(reservation, player)
+                    setGuestOpen(false)
+                  }}
                 />
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setGuestOpen(false)}>
                   {t("common.cancel")}
-                </Button>
-                <Button onClick={submitGuest} disabled={!guestEmail.trim()}>
-                  {t("reservationCard.guest.send")}
                 </Button>
               </DialogFooter>
             </DialogContent>

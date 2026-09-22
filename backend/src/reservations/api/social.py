@@ -23,10 +23,42 @@ from reservations.schemas.social import (
     FollowerOut,
     PlayerProfileOut,
     PlayerProfileStats,
+    PlayerSearchResult,
     ProfileUpdate,
 )
 
 router = APIRouter(prefix="/users", tags=["social"])
+
+
+@router.get("/search", response_model=list[PlayerSearchResult])
+def search_players(
+    q: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[PlayerSearchResult]:
+    query = q.strip()
+    if len(query) < 2:
+        return []
+
+    # Name search only surfaces public profiles — searching by name must not
+    # let someone discover a private profile exists. An exact email match is
+    # exempt: the team/guest "invite by email" flow already lets you resolve
+    # a private-profile user you already know the address of, so this search
+    # box has to keep supporting that same case, not regress it.
+    matches = db.scalars(
+        select(User)
+        .where(User.id != current_user.id)
+        .where(
+            (User.profile_public.is_(True) & User.name.ilike(f"%{query}%"))
+            | (func.lower(User.email) == query.lower())
+        )
+        .order_by(User.name)
+        .limit(10)
+    ).all()
+    return [
+        PlayerSearchResult(id=u.id, name=u.name, avatar_url=u.avatar_url)
+        for u in matches
+    ]
 
 
 def _follow_count(db: Session, column, user_id: uuid.UUID) -> int:

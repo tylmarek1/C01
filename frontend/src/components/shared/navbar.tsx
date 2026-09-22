@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
-import { CalendarPlus, LayoutDashboard, LogOut, MessageCircle, Menu, ShieldCheck, Users, UserRound, X } from "lucide-react"
+import { CalendarPlus, LayoutDashboard, LogOut, MessageCircle, Menu, Search, ShieldCheck, Users, UserRound, X } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Button } from "@/components/shared/button"
@@ -123,6 +123,11 @@ function Navbar() {
                   </NavLink>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <NavLink to="/app/players">
+                    <Search /> {t("playersDirectory.nav")}
+                  </NavLink>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <NavLink to="/app/teams">
                     <Users /> {t("nav.teams")}
                   </NavLink>
@@ -186,6 +191,9 @@ function Navbar() {
                 </NavItem>
                 <NavItem to="/app/chat" onClick={() => setMobileOpen(false)}>
                   {t("nav.chat")}
+                </NavItem>
+                <NavItem to="/app/players" onClick={() => setMobileOpen(false)}>
+                  {t("playersDirectory.nav")}
                 </NavItem>
                 <NavItem to="/app/teams" onClick={() => setMobileOpen(false)}>
                   {t("nav.teams")}

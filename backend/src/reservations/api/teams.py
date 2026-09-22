@@ -168,11 +168,12 @@ def add_team_member(
             status.HTTP_403_FORBIDDEN, "Only the team owner can add members"
         )
 
-    new_user = db.scalar(select(User).where(User.email == payload.email))
+    if payload.user_id is not None:
+        new_user = db.get(User, payload.user_id)
+    else:
+        new_user = db.scalar(select(User).where(User.email == payload.email))
     if new_user is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, "No player found with that email"
-        )
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No player found")
 
     if _get_membership(db, team_id, new_user.id) is None:
         db.add(TeamMember(team_id=team_id, user_id=new_user.id, role=TeamRole.MEMBER))

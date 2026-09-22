@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -33,6 +34,12 @@ class PlayerProfileOut(BaseModel):
 class FollowerOut(BaseModel):
     user: UserOut
     followed_at: datetime
+
+
+class PlayerSearchResult(BaseModel):
+    id: uuid.UUID
+    name: str
+    avatar_url: str | None = None
 
 
 class ProfileUpdate(BaseModel):

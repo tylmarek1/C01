@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, MessageCircle, Trash2, UserPlus, X } from "lucide-react"
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -10,12 +10,13 @@ import { Button } from "@/components/shared/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/card"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { ErrorState } from "@/components/shared/error-state"
-import { Input } from "@/components/shared/input"
+import { PlayerSearch } from "@/components/shared/player-search"
 import { Skeleton } from "@/components/shared/skeleton"
 import { useSportLabels } from "@/components/shared/sport-icon"
 import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
+import type { PlayerSearchResult } from "@/types"
 
 function initials(name: string) {
   return name
@@ -33,7 +34,6 @@ function TeamDetailPage() {
   const queryClient = useQueryClient()
   const { t } = useTranslation()
   const sportLabels = useSportLabels()
-  const [memberEmail, setMemberEmail] = useState("")
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -51,9 +51,8 @@ function TeamDetailPage() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["team", id] })
 
   const addMemberMutation = useMutation({
-    mutationFn: (email: string) => api.addTeamMember(token!, id!, email),
+    mutationFn: (player: PlayerSearchResult) => api.addTeamMember(token!, id!, { userId: player.id }),
     onSuccess: () => {
-      setMemberEmail("")
       invalidate()
       toast.success(t("teams.toast.memberAdded"))
     },
@@ -90,13 +89,6 @@ function TeamDetailPage() {
     onSuccess: (conversation) => navigate(`/app/chat?conversation=${conversation.id}`),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.error.chatFailed")),
   })
-
-  function handleAddMember(event: FormEvent) {
-    event.preventDefault()
-    const email = memberEmail.trim()
-    if (!email) return
-    addMemberMutation.mutate(email)
-  }
 
   if (isLoading) {
     return (
@@ -173,18 +165,16 @@ function TeamDetailPage() {
           ))}
 
           {isOwner && (
-            <form onSubmit={handleAddMember} className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex items-center gap-2">
               <UserPlus className="size-4 shrink-0 text-slate-gray" />
-              <Input
-                type="email"
-                value={memberEmail}
-                onChange={(event) => setMemberEmail(event.target.value)}
-                placeholder={t("teams.field.addMemberPlaceholder")}
-              />
-              <Button type="submit" size="sm" disabled={addMemberMutation.isPending || memberEmail.trim().length === 0}>
-                {t("teams.addMember")}
-              </Button>
-            </form>
+              <div className="flex-1">
+                <PlayerSearch
+                  placeholder={t("teams.field.addMemberPlaceholder")}
+                  excludeIds={team.members.map((member) => member.user.id)}
+                  onSelect={(player) => addMemberMutation.mutate(player)}
+                />
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

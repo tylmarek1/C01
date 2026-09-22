@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from reservations.models import SportType, TeamRole
 from reservations.schemas.auth import UserOut
@@ -14,10 +14,18 @@ class TeamCreate(BaseModel):
 
 
 class TeamMemberAdd(BaseModel):
-    # By email, not id — matches how inviting a guest to a reservation
-    # already works (GuestInvite), rather than requiring the frontend to
-    # already know the target's opaque user id.
-    email: EmailStr
+    # user_id is the primary path now that the frontend has a player-search
+    # box (an id is already in hand once someone is picked from it); email
+    # stays as a fallback for adding someone by an address you already know
+    # without searching. Exactly one of the two must be given.
+    email: EmailStr | None = None
+    user_id: uuid.UUID | None = None
+
+    @model_validator(mode="after")
+    def exactly_one_target(self) -> "TeamMemberAdd":
+        if (self.email is None) == (self.user_id is None):
+            raise ValueError("Provide exactly one of email or user_id")
+        return self
 
 
 class TeamMemberOut(BaseModel):

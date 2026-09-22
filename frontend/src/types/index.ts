@@ -276,6 +276,12 @@ export interface FollowerEntry {
   followed_at: string
 }
 
+export interface PlayerSearchResult {
+  id: string
+  name: string
+  avatar_url: string | null
+}
+
 export interface Message {
   id: string
   conversation_id: string
