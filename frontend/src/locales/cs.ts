@@ -245,6 +245,9 @@ const cs: Record<TranslationKey, string> = {
 
   "notificationPrefs.title": "Oznámení",
   "notificationPrefs.error": "Nastavení oznámení se nepodařilo uložit",
+  "notificationPrefs.push.title": "Oznámení prohlížeče",
+  "notificationPrefs.push.description": "Upozornění na tomto zařízení, i když Courtly není otevřené v záložce. Stále respektuje kategorie níže.",
+  "notificationPrefs.push.error": "Oznámení prohlížeče se nepodařilo nastavit",
   "notificationPrefs.reservations.title": "Aktualizace rezervací",
   "notificationPrefs.reservations.description": "Vytvoření, potvrzení, zrušení, změna, vypršení nebo zamítnutí rezervace.",
   "notificationPrefs.reminders.title": "Připomenutí",

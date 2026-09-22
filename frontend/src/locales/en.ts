@@ -243,6 +243,9 @@ const en = {
 
   "notificationPrefs.title": "Notifications",
   "notificationPrefs.error": "Could not update your notification preferences",
+  "notificationPrefs.push.title": "Browser notifications",
+  "notificationPrefs.push.description": "Get notified on this device even when Courtly isn't open in a tab. Still follows the categories below.",
+  "notificationPrefs.push.error": "Could not update browser notifications",
   "notificationPrefs.reservations.title": "Reservation updates",
   "notificationPrefs.reservations.description": "Created, confirmed, cancelled, changed, expired or rejected bookings.",
   "notificationPrefs.reminders.title": "Reminders",

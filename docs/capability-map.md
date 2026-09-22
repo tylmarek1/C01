@@ -81,7 +81,7 @@ here just because it exists, only ones worth tracking status on.
 | Admin reporting/export | Strong | Overview's "reservations in window" stat now has a 7/30/90-day selector (`/admin/stats?days=`); CSV export now respects the current status filter instead of silently ignoring it (a real bug found while touching this) | 2026-09-22 |
 | Mobile responsiveness (general) | Strong | `accessibility-responsive` checklist, whole-app polish pass (PR #19) | 2026-09-22 |
 | Mobile responsiveness (`week-calendar.tsx`) | Strong | Below `sm`, shows one day at a time (tappable day-chip strip) instead of a horizontally-scrolled 7-column grid — desktop/tablet unchanged. Verified in a real browser at 375px and 1280px (Playwright, no horizontal overflow, day-switching and "Today" reset both correct) | 2026-09-22 |
-| Notification UX | Strong | Mark-all-read, plus per-category mute preferences (`GET/PUT /notifications/preferences`, grouped into 7 user-facing categories on the profile page) — `notify()` now skips creating a row for a muted type | 2026-09-22 |
+| Notification UX | Strong | Mark-all-read, plus per-category mute preferences (`GET/PUT /notifications/preferences`, grouped into 7 user-facing categories on the profile page) — `notify()` now skips creating a row for a muted type. Web push (`PushSubscription`, `pywebpush`) now delivers the same notifications to the browser even when the tab is closed, gated by a toggle on the profile page and respecting the same per-category mutes. Delivery failure (dead subscription, push service unreachable) never breaks the request that triggered it — best-effort by design, verified via monkeypatched `pywebpush.webpush` in tests | 2026-09-22 |
 | Keyboard-only completability (booking flow) | Strong | Actually walked end-to-end with a real browser and no mouse (Playwright: Tab-only navigation, Enter/ArrowDown on every `Select`, native date-input digit entry, final submit) — court card, date, duration, start time, repeat-weekly switch, and Reserve-slot button were all reachable and operable, error toast (advance-booking-window rejection) was clear, and a valid submission succeeded and appeared correctly on the dashboard. Found and fixed a real, systemic gap this surfaced: 5 `<Switch>` usages across 3 files had no accessible name for screen readers (a visible label sibling, never programmatically associated) — all 5 now have `aria-label` | 2026-09-22 |
 
 ## Product capabilities
@@ -117,6 +117,21 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Web push notifications — `PushSubscription` table, `GET /push/public-key`,
+  `POST/DELETE /push/subscribe`, a minimal `public/sw.js` service worker,
+  and a "Browser notifications" toggle on the profile page (next to the
+  per-category mute list, which it still respects — `notify()` now also
+  best-effort-delivers via `pywebpush` whenever a type isn't muted). Not
+  email — a separate, explicitly-excluded backlog item. Verified: backend
+  subscribe/unsubscribe/upsert round-trip and delivery-failure handling
+  (7 pytest tests, `pywebpush.webpush` monkeypatched); frontend permission
+  request, service-worker registration and public-key fetch all verified
+  working in a real (non-incognito) browser via Playwright — the final
+  FCM handshake itself fails in that sandbox because Playwright's bundled
+  Chromium has no Google API keys ("push service not available"), a
+  browser/environment limitation confirmed via the exact error, not an
+  app defect; the resulting error toast and graceful no-crash fallback
+  were verified directly. New table only — no manual reseed cycle needed.
 - Review photos — `ReviewImage` (same shape as `CourtImage`), `POST/DELETE
   /reviews/{id}/images` (author-only, capped at 4 — a review is a casual
   single-visit comment, not a court's marketing gallery), shown publicly

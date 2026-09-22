@@ -255,6 +255,14 @@ export const api = {
       token,
     ),
 
+  getPushPublicKey: () => request<{ public_key: string }>("/push/public-key"),
+
+  subscribeToPush: (token: string, payload: { endpoint: string; p256dh: string; auth: string }) =>
+    request<void>("/push/subscribe", { method: "POST", body: JSON.stringify(payload) }, token),
+
+  unsubscribeFromPush: (token: string, endpoint: string) =>
+    request<void>(`/push/subscribe${buildQuery({ endpoint })}`, { method: "DELETE" }, token),
+
   listFacilityBlocks: (courtId?: string) => request<FacilityBlock[]>(`/facility-blocks${buildQuery({ court_id: courtId })}`),
 
   createFacilityBlock: (
