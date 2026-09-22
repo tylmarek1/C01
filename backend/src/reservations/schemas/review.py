@@ -16,6 +16,13 @@ class ReviewReplyCreate(BaseModel):
     reply: str = Field(min_length=1, max_length=1000)
 
 
+class ReviewImageOut(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    url: str
+
+
 class ReviewOut(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -32,3 +39,4 @@ class ReviewOut(BaseModel):
     # left at defaults wherever a review is nested inside another response.
     helpful_count: int = 0
     voted_helpful_by_me: bool = False
+    images: list[ReviewImageOut] = []

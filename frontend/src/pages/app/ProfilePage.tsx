@@ -8,11 +8,13 @@ import {
   Copy,
   Flame,
   MapPinned,
+  Plus,
   ShieldCheck,
   Star,
   Trash2,
   Trophy,
   Volleyball,
+  X,
 } from "lucide-react"
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
 import { Link } from "react-router-dom"
@@ -380,6 +382,8 @@ function ReviewsTab() {
   const courtNameById = new Map(courts?.map((c) => [c.id, c.name]) ?? [])
 
   const [deleteTarget, setDeleteTarget] = useState<Review | null>(null)
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteReview(token!, id),
@@ -389,6 +393,20 @@ function ReviewsTab() {
       queryClient.invalidateQueries({ queryKey: ["reviews-mine"] })
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.reviewDeleteFailed")),
+  })
+
+  const addPhotoMutation = useMutation({
+    mutationFn: async ({ reviewId, file }: { reviewId: string; file: File }) =>
+      api.addReviewImage(token!, reviewId, await compressImageFile(file, 1200, 0.85)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reviews-mine"] }),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.reviewPhotoFailed")),
+  })
+
+  const removePhotoMutation = useMutation({
+    mutationFn: ({ reviewId, imageId }: { reviewId: string; imageId: string }) =>
+      api.deleteReviewImage(token!, reviewId, imageId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reviews-mine"] }),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.reviewPhotoFailed")),
   })
 
   if (isLoading) {
@@ -409,6 +427,8 @@ function ReviewsTab() {
     return <EmptyState title={t("profile.reviews.empty.title")} description={t("profile.reviews.empty.description")} />
   }
 
+  const MAX_REVIEW_IMAGES = 4
+
   return (
     <div className="flex flex-col gap-3">
       {reviews?.map((review) => (
@@ -416,7 +436,7 @@ function ReviewsTab() {
           key={review.id}
           className="flex flex-col gap-2 rounded-2xl border border-hairline bg-card p-4 shadow-card sm:flex-row sm:items-start sm:justify-between"
         >
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className="font-medium text-ink-navy">{courtNameById.get(review.court_id) ?? "Court"}</span>
               <StarRating value={review.rating} />
@@ -426,6 +446,36 @@ function ReviewsTab() {
               {new Date(review.created_at).toLocaleDateString()}
               {review.helpful_count > 0 && ` · ${t("courtDetail.reviews.helpfulCount", { count: review.helpful_count })}`}
             </span>
+            <div className="flex flex-wrap gap-2">
+              {review.images.map((image) => (
+                <div key={image.id} className="group relative size-14 shrink-0 overflow-hidden rounded-lg border border-hairline">
+                  <img src={assetUrl(image.url)} alt="" className="size-full object-cover" />
+                  <button
+                    type="button"
+                    disabled={removePhotoMutation.isPending}
+                    onClick={() => removePhotoMutation.mutate({ reviewId: review.id, imageId: image.id })}
+                    aria-label={t("profile.reviews.removePhoto")}
+                    className="absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-ink-navy/70 text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+              {review.images.length < MAX_REVIEW_IMAGES && (
+                <button
+                  type="button"
+                  disabled={addPhotoMutation.isPending}
+                  onClick={() => {
+                    setUploadTargetId(review.id)
+                    photoInputRef.current?.click()
+                  }}
+                  aria-label={t("profile.reviews.addPhoto")}
+                  className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-hairline text-slate-gray transition-colors hover:border-signal-blue hover:text-signal-blue"
+                >
+                  <Plus className="size-4" />
+                </button>
+              )}
+            </div>
           </div>
           <Button
             size="sm"
@@ -438,6 +488,18 @@ function ReviewsTab() {
           </Button>
         </div>
       ))}
+
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ""
+          if (file && uploadTargetId) addPhotoMutation.mutate({ reviewId: uploadTargetId, file })
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

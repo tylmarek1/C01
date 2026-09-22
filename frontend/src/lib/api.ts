@@ -288,6 +288,15 @@ export const api = {
   deleteReviewReply: (token: string, id: string) =>
     request<Review>(`/reviews/${id}/reply`, { method: "DELETE" }, token),
 
+  addReviewImage: (token: string, id: string, file: File | Blob) => {
+    const formData = new FormData()
+    formData.append("file", file, "review.jpg")
+    return request<Review>(`/reviews/${id}/images`, { method: "POST", body: formData }, token)
+  },
+
+  deleteReviewImage: (token: string, id: string, imageId: string) =>
+    request<Review>(`/reviews/${id}/images/${imageId}`, { method: "DELETE" }, token),
+
   // Favorites
   listMyFavorites: (token: string) => request<Court[]>("/favorites/mine", {}, token),
 

@@ -244,6 +244,15 @@ function CourtDetailPage() {
                       <StarRating value={review.rating} />
                     </div>
                     {review.comment && <p className="text-sm text-slate-gray">{review.comment}</p>}
+                    {review.images.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {review.images.map((image) => (
+                          <div key={image.id} className="size-14 shrink-0 overflow-hidden rounded-lg border border-hairline">
+                            <img src={assetUrl(image.url)} alt="" className="size-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-mist-gray">{new Date(review.created_at).toLocaleDateString()}</span>
                       {user && (

@@ -161,6 +161,11 @@ export interface Notification {
   created_at: string
 }
 
+export interface ReviewImage {
+  id: string
+  url: string
+}
+
 export interface Review {
   id: string
   court_id: string
@@ -173,6 +178,7 @@ export interface Review {
   manager_reply_at: string | null
   helpful_count: number
   voted_helpful_by_me: boolean
+  images: ReviewImage[]
 }
 
 export interface ReservationGuest {

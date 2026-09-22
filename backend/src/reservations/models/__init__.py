@@ -14,6 +14,7 @@ from reservations.models.reservation_event import ReservationEvent, ReservationE
 from reservations.models.reservation_guest import ReservationGuest
 from reservations.models.reservation_series import ReservationSeries
 from reservations.models.review import Review
+from reservations.models.review_image import ReviewImage
 from reservations.models.review_vote import ReviewVote
 from reservations.models.user import User, UserRole
 from reservations.models.waitlist import WaitlistEntry, WaitlistStatus
@@ -37,6 +38,7 @@ __all__ = [
     "ReservationSeries",
     "FacilityBlock",
     "Review",
+    "ReviewImage",
     "ReviewVote",
     "Favorite",
     "ReservationGuest",
