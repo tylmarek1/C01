@@ -117,6 +117,20 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Seasonal challenges — mirrors `achievements.py`'s exact shape (compute
+  the metric fresh each call, store only the earned/completed marker via
+  `ChallengeCompletion`), but a `Challenge` is admin/manager-authored via
+  `POST /challenges` rather than hardcoded in code, so a manager can run a
+  new seasonal push without a redeploy. Time-boxed (`starts_at`/`ends_at`)
+  and optionally scoped to one sport. Four metrics reusing existing data
+  (`RESERVATIONS_COMPLETED`, `COURTS_PLAYED`, `GUESTS_INVITED`,
+  `REVIEWS_WRITTEN`) — no new tracking needed, all four are just a scoped
+  version of a query this app already runs elsewhere (achievements,
+  reviews, guest invites). `GET /challenges/mine` evaluates + awards +
+  returns progress in one call, same pattern as `GET /achievements/mine`.
+  New "Challenges" tab on the profile page (progress bars) and a small
+  manager-only creation form on the admin page. New tables + a new
+  `NotificationType` value — ran the manual drop/recreate/reseed cycle.
 - Match results + skill rating — a standard Elo update per sport
   (`ratings.py`, K=32, default 1000), `SkillRating` (one row per user per
   sport, created lazily), `MatchResult` (one per reservation).

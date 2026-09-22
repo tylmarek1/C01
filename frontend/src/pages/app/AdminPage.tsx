@@ -55,7 +55,17 @@ import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
-import type { Amenity, Court, FacilityBlock, ReservationAdmin, ReservationStatus, SportType, UserAdmin, UserRole } from "@/types"
+import type {
+  Amenity,
+  ChallengeMetric,
+  Court,
+  FacilityBlock,
+  ReservationAdmin,
+  ReservationStatus,
+  SportType,
+  UserAdmin,
+  UserRole,
+} from "@/types"
 
 const SPORTS: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
 
@@ -1241,6 +1251,195 @@ function OverviewTab() {
   )
 }
 
+const CHALLENGE_METRICS: ChallengeMetric[] = [
+  "RESERVATIONS_COMPLETED",
+  "COURTS_PLAYED",
+  "GUESTS_INVITED",
+  "REVIEWS_WRITTEN",
+]
+
+function ChallengesTab() {
+  const { token } = useAuth()
+  const { t } = useTranslation()
+  const sportLabels = useSportLabels()
+  const queryClient = useQueryClient()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [sport, setSport] = useState<SportType | "ANY">("ANY")
+  const [metric, setMetric] = useState<ChallengeMetric>("RESERVATIONS_COMPLETED")
+  const [target, setTarget] = useState("5")
+  const [startsAt, setStartsAt] = useState("")
+  const [endsAt, setEndsAt] = useState("")
+
+  const { data: challenges, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-challenges"],
+    queryFn: () => api.listChallenges(token!),
+    enabled: Boolean(token),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      api.createChallenge(token!, {
+        title,
+        description,
+        sport_type: sport === "ANY" ? undefined : sport,
+        metric,
+        target: Number(target),
+        starts_at: new Date(startsAt).toISOString(),
+        ends_at: new Date(endsAt).toISOString(),
+      }),
+    onSuccess: () => {
+      toast.success(t("admin.challenges.toast.created"))
+      setCreateOpen(false)
+      setTitle("")
+      setDescription("")
+      setSport("ANY")
+      setTarget("5")
+      setStartsAt("")
+      setEndsAt("")
+      queryClient.invalidateQueries({ queryKey: ["admin-challenges"] })
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("admin.challenges.error.create")),
+  })
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Plus className="size-4" /> {t("admin.challenges.create")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("admin.challenges.create.title")}</DialogTitle>
+            </DialogHeader>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault()
+                createMutation.mutate()
+              }}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="challenge-title">{t("admin.challenges.field.title")}</Label>
+                <Input id="challenge-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} required />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="challenge-description">{t("admin.challenges.field.description")}</Label>
+                <Textarea
+                  id="challenge-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  maxLength={500}
+                  rows={2}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2">
+                  <Label>{t("admin.challenges.field.sport")}</Label>
+                  <Select value={sport} onValueChange={(value) => setSport(value as SportType | "ANY")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ANY">{t("teams.field.sport.any")}</SelectItem>
+                      {(["TENNIS", "VOLLEYBALL", "BADMINTON"] as SportType[]).map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {sportLabels[option]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>{t("admin.challenges.field.metric")}</Label>
+                  <Select value={metric} onValueChange={(value) => setMetric(value as ChallengeMetric)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CHALLENGE_METRICS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {t(`admin.challenges.metric.${option}` as TranslationKey)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="challenge-target">{t("admin.challenges.field.target")}</Label>
+                  <Input
+                    id="challenge-target"
+                    type="number"
+                    min={1}
+                    value={target}
+                    onChange={(event) => setTarget(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="challenge-starts">{t("admin.challenges.field.startsAt")}</Label>
+                  <Input
+                    id="challenge-starts"
+                    type="datetime-local"
+                    value={startsAt}
+                    onChange={(event) => setStartsAt(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="challenge-ends">{t("admin.challenges.field.endsAt")}</Label>
+                  <Input
+                    id="challenge-ends"
+                    type="datetime-local"
+                    value={endsAt}
+                    onChange={(event) => setEndsAt(event.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <Button type="submit" disabled={createMutation.isPending} className="mt-1 w-fit">
+                {t("admin.challenges.create.submit")}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}
+
+      {isError && (
+        <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
+      )}
+
+      {!isLoading && challenges?.length === 0 && <EmptyState title={t("admin.challenges.empty")} />}
+
+      {challenges?.map((challenge) => (
+        <DataRow key={challenge.id}>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-ink-navy">{challenge.title}</span>
+              {challenge.sport_type && <Badge variant="secondary">{sportLabels[challenge.sport_type]}</Badge>}
+            </div>
+            <span className="text-sm text-slate-gray">{challenge.description}</span>
+            <span className="text-xs text-slate-gray">
+              {t(`admin.challenges.metric.${challenge.metric}` as TranslationKey)} ·{" "}
+              {t("admin.challenges.target", { target: challenge.target })} ·{" "}
+              {new Date(challenge.starts_at).toLocaleDateString()} – {new Date(challenge.ends_at).toLocaleDateString()}
+            </span>
+          </div>
+        </DataRow>
+      ))}
+    </div>
+  )
+}
+
 function UsersTab() {
   const { token, user: currentUser } = useAuth()
   const { t } = useTranslation()
@@ -1390,6 +1589,7 @@ function AdminPage() {
             <TabsTrigger value="courts">{t("admin.tabs.courts")}</TabsTrigger>
             <TabsTrigger value="reservations">{t("admin.tabs.reservations")}</TabsTrigger>
             <TabsTrigger value="availability">{t("admin.tabs.availability")}</TabsTrigger>
+            <TabsTrigger value="challenges">{t("admin.tabs.challenges")}</TabsTrigger>
             <TabsTrigger value="users">{t("admin.tabs.users")}</TabsTrigger>
           </TabsList>
         </div>
@@ -1404,6 +1604,9 @@ function AdminPage() {
         </TabsContent>
         <TabsContent value="availability">
           <AvailabilityTab />
+        </TabsContent>
+        <TabsContent value="challenges">
+          <ChallengesTab />
         </TabsContent>
         <TabsContent value="users">
           <UsersTab />

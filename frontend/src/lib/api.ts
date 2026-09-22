@@ -4,6 +4,9 @@ import type {
   Amenity,
   AuthResponse,
   CalendarToken,
+  Challenge,
+  ChallengeMetric,
+  ChallengeProgress,
   Conversation,
   Court,
   CourtAvailability,
@@ -487,4 +490,22 @@ export const api = {
 
   getRatingLeaderboard: (token: string, sport: SportType, limit?: number) =>
     request<RatingLeaderboardEntry[]>(`/ratings/leaderboard${buildQuery({ sport, limit })}`, {}, token),
+
+  // Seasonal challenges
+  listChallenges: (token: string) => request<Challenge[]>("/challenges", {}, token),
+
+  listMyChallengeProgress: (token: string) => request<ChallengeProgress[]>("/challenges/mine", {}, token),
+
+  createChallenge: (
+    token: string,
+    payload: {
+      title: string
+      description: string
+      sport_type?: SportType
+      metric: ChallengeMetric
+      target: number
+      starts_at: string
+      ends_at: string
+    },
+  ) => request<Challenge>("/challenges", { method: "POST", body: JSON.stringify(payload) }, token),
 }

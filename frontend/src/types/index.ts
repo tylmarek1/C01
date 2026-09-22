@@ -312,6 +312,26 @@ export interface Team {
   my_role: TeamRole
 }
 
+export type ChallengeMetric = "RESERVATIONS_COMPLETED" | "COURTS_PLAYED" | "GUESTS_INVITED" | "REVIEWS_WRITTEN"
+
+export interface Challenge {
+  id: string
+  title: string
+  description: string
+  sport_type: SportType | null
+  metric: ChallengeMetric
+  target: number
+  starts_at: string
+  ends_at: string
+  created_by: string
+}
+
+export interface ChallengeProgress extends Challenge {
+  progress: number
+  completed: boolean
+  completed_at: string | null
+}
+
 export interface MatchResult {
   id: string
   reservation_id: string

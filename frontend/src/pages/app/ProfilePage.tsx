@@ -677,6 +677,71 @@ function AchievementsTab() {
   )
 }
 
+function ChallengesTab() {
+  const { token } = useAuth()
+  const { t } = useTranslation()
+  const sportLabels = useSportLabels()
+
+  const { data: challenges, isLoading, isError, refetch } = useQuery({
+    queryKey: ["challenges-mine"],
+    queryFn: () => api.listMyChallengeProgress(token!),
+    enabled: Boolean(token),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Skeleton key={index} className="h-24 w-full rounded-2xl" />
+        ))}
+      </div>
+    )
+  }
+
+  if (isError) {
+    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
+  }
+
+  if (challenges?.length === 0) {
+    return <EmptyState title={t("challenges.empty.title")} description={t("challenges.empty.description")} />
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {challenges?.map((challenge) => {
+        const now = Date.now()
+        const isActive = new Date(challenge.starts_at).getTime() <= now && now <= new Date(challenge.ends_at).getTime()
+        const percent = Math.min(100, Math.round((challenge.progress / challenge.target) * 100))
+        return (
+          <div key={challenge.id} className="flex flex-col gap-2 rounded-2xl border border-hairline bg-card p-4 shadow-card">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold text-ink-navy">{challenge.title}</span>
+              <div className="flex items-center gap-1.5">
+                {challenge.sport_type && <Badge variant="secondary">{sportLabels[challenge.sport_type]}</Badge>}
+                {challenge.completed ? (
+                  <Badge variant="success">{t("challenges.completed")}</Badge>
+                ) : (
+                  !isActive && <Badge variant="outline">{t("challenges.ended")}</Badge>
+                )}
+              </div>
+            </div>
+            <p className="text-sm text-slate-gray">{challenge.description}</p>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-pebble">
+              <div
+                className={cn("h-full rounded-full", challenge.completed ? "bg-emerald-500" : "bg-signal-blue")}
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <span className="text-xs text-slate-gray">
+              {t("challenges.progress", { progress: challenge.progress, target: challenge.target })}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function LeaderboardTab() {
   const { token, user } = useAuth()
   const { t } = useTranslation()
@@ -827,6 +892,7 @@ function ProfilePage() {
         <TabsList>
           <TabsTrigger value="overview">{t("profile.tabs.overview")}</TabsTrigger>
           <TabsTrigger value="achievements">{t("profile.tabs.achievements")}</TabsTrigger>
+          <TabsTrigger value="challenges">{t("profile.tabs.challenges")}</TabsTrigger>
           <TabsTrigger value="leaderboard">{t("profile.tabs.leaderboard")}</TabsTrigger>
           <TabsTrigger value="rating">{t("profile.tabs.rating")}</TabsTrigger>
           <TabsTrigger value="favorites">{t("profile.tabs.favorites")}</TabsTrigger>
@@ -837,6 +903,9 @@ function ProfilePage() {
         </TabsContent>
         <TabsContent value="achievements">
           <AchievementsTab />
+        </TabsContent>
+        <TabsContent value="challenges">
+          <ChallengesTab />
         </TabsContent>
         <TabsContent value="leaderboard">
           <LeaderboardTab />
