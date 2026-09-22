@@ -28,6 +28,7 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   { key: "waitlist", types: ["WAITLIST_JOINED", "WAITLIST_SLOT_OFFERED"] },
   { key: "achievements", types: ["ACHIEVEMENT_UNLOCKED"] },
   { key: "joinRequests", types: ["JOIN_REQUEST_RECEIVED", "JOIN_REQUEST_ACCEPTED", "JOIN_REQUEST_DECLINED"] },
+  { key: "social", types: ["NEW_FOLLOWER"] },
 ]
 
 export function useNotificationCategoryLabels(): Record<string, { title: string; description: string }> {
@@ -60,6 +61,10 @@ export function useNotificationCategoryLabels(): Record<string, { title: string;
     joinRequests: {
       title: t("notificationPrefs.joinRequests.title"),
       description: t("notificationPrefs.joinRequests.description"),
+    },
+    social: {
+      title: t("notificationPrefs.social.title"),
+      description: t("notificationPrefs.social.description"),
     },
   }
 }

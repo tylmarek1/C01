@@ -37,6 +37,7 @@ export type NotificationType =
   | "JOIN_REQUEST_RECEIVED"
   | "JOIN_REQUEST_ACCEPTED"
   | "JOIN_REQUEST_DECLINED"
+  | "NEW_FOLLOWER"
 export type ReservationEventType =
   | "CREATED"
   | "SUBMITTED"
@@ -239,6 +240,30 @@ export interface LeaderboardEntry {
   completed_reservations: number
   hours_played: number
   rank: number
+}
+
+export interface PlayerProfileStats {
+  completed_reservations: number
+  distinct_courts_played: number
+  sports_played: number
+  current_streak_weeks: number
+  achievements: Achievement[]
+}
+
+export interface PlayerProfile {
+  user: User
+  bio: string | null
+  profile_public: boolean
+  is_self: boolean
+  is_following: boolean
+  followers_count: number
+  following_count: number
+  stats: PlayerProfileStats | null
+}
+
+export interface FollowerEntry {
+  user: User
+  followed_at: string
 }
 
 export interface JoinRequest {

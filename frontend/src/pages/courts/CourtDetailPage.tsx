@@ -241,7 +241,9 @@ function CourtDetailPage() {
                   </Avatar>
                   <div className="flex flex-1 flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-ink-navy">{review.user.name}</span>
+                      <Link to={`/app/players/${review.user.id}`} className="text-sm font-medium text-ink-navy hover:underline">
+                        {review.user.name}
+                      </Link>
                       <StarRating value={review.rating} />
                     </div>
                     {review.comment && <p className="text-sm text-slate-gray">{review.comment}</p>}

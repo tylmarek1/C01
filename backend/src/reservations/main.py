@@ -19,6 +19,7 @@ from reservations.api import (
     push,
     reservations,
     reviews,
+    social,
     stats,
     waitlist,
 )
@@ -84,6 +85,7 @@ app.include_router(favorites.router)
 app.include_router(admin.router)
 app.include_router(stats.router)
 app.include_router(push.router)
+app.include_router(social.router)
 
 
 @app.exception_handler(Exception)

@@ -45,6 +45,11 @@ class User(Base):
     muted_notification_types: Mapped[list[str]] = mapped_column(
         ARRAY(String(50)), default=list
     )
+    bio: Mapped[str | None] = mapped_column(String(300), default=None)
+    # Opt-out, not opt-in: a public profile is the sports-app norm (reviews
+    # and achievements are already public), so this only needs to exist for
+    # the player who wants to hide their stats/bio from other players.
+    profile_public: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
