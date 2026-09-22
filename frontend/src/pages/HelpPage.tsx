@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   Clock3,
   Coins,
+  Crown,
   Handshake,
   Heart,
   Hourglass,
@@ -107,6 +108,7 @@ const MANAGE_FEATURES: { icon: typeof Bell; titleKey: TranslationKey; descriptio
   { icon: CalendarSync, titleKey: "help.manage.calendar.title", descriptionKey: "help.manage.calendar.description" },
   { icon: Repeat, titleKey: "help.manage.recurring.title", descriptionKey: "help.manage.recurring.description" },
   { icon: CalendarClock, titleKey: "help.manage.reschedule.title", descriptionKey: "help.manage.reschedule.description" },
+  { icon: Heart, titleKey: "help.manage.favorites.title", descriptionKey: "help.manage.favorites.description" },
 ]
 
 const VENUE_MANAGER_FEATURES: { icon: typeof LayoutGrid; titleKey: TranslationKey; descriptionKey: TranslationKey }[] = [
@@ -115,6 +117,7 @@ const VENUE_MANAGER_FEATURES: { icon: typeof LayoutGrid; titleKey: TranslationKe
   { icon: Ban, titleKey: "help.venueManagers.item3.title", descriptionKey: "help.venueManagers.item3.description" },
   { icon: BarChart3, titleKey: "help.venueManagers.item4.title", descriptionKey: "help.venueManagers.item4.description" },
   { icon: UserCog, titleKey: "help.venueManagers.item5.title", descriptionKey: "help.venueManagers.item5.description" },
+  { icon: Crown, titleKey: "help.venueManagers.item6.title", descriptionKey: "help.venueManagers.item6.description" },
 ]
 
 const FAQ_ITEMS: { questionKey: TranslationKey; answerKey: TranslationKey }[] = [

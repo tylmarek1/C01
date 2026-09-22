@@ -10,6 +10,23 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **A second UX-completeness pass**, this time auditing in the direction
+  the first one didn't: every backend endpoint checked for a real,
+  reachable frontend consumer (not just every page checked against its
+  own API calls). Found and fixed: a team join request could be sent but
+  never cancelled (`cancelTeamJoinRequest` existed, had no button —
+  Discover's "Requested" state is now a working "Cancel request"); the
+  profile's Rating tab only ever showed one sport's leaderboard, with no
+  way to see your own rating across every sport you'd played without
+  cycling through each one (`GET /ratings/me` existed, had no caller — now
+  a small "Your ratings" summary above the leaderboard). Also closed
+  content gaps a second pass over previously-unaudited pages found: the
+  landing page's "Why Courtly" section promised "the whole social side of
+  showing up to play" while showing 0 of the 6 shipped social features —
+  added teams, chat, and rating/challenges tiles; the Help Center gained
+  a favorites entry (never covered) and an admin-only-powers entry in the
+  venue-manager section, and its recurring-facility-block description now
+  actually says it's recurring.
 - **Chat rebuild: delete, reactions, and photo attachments.** You can now
   delete your own message (soft-deleted — other participants see a
   "Message deleted" placeholder rather than the row just vanishing);

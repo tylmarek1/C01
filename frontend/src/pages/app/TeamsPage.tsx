@@ -205,7 +205,7 @@ function DiscoverTeams() {
     queryFn: () => api.listMyTeamJoinRequests(token!),
     enabled: Boolean(token),
   })
-  const requestedTeamIds = new Set((myRequests ?? []).map((request) => request.team_id))
+  const requestIdByTeamId = new Map((myRequests ?? []).map((request) => [request.team_id, request.id]))
 
   const requestMutation = useMutation({
     mutationFn: (teamId: string) => api.requestToJoinTeam(token!, teamId),
@@ -214,6 +214,16 @@ function DiscoverTeams() {
       toast.success(t("teams.discover.toast.requested"))
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.discover.error.requestFailed")),
+  })
+
+  const cancelRequestMutation = useMutation({
+    mutationFn: ({ teamId, requestId }: { teamId: string; requestId: string }) =>
+      api.cancelTeamJoinRequest(token!, teamId, requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-join-requests-mine"] })
+      toast.success(t("teams.discover.toast.requestCancelled"))
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.discover.error.cancelFailed")),
   })
 
   return (
@@ -251,7 +261,7 @@ function DiscoverTeams() {
       {teams && teams.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2">
           {teams.map((team) => {
-            const alreadyRequested = requestedTeamIds.has(team.id)
+            const requestId = requestIdByTeamId.get(team.id)
             return (
               <Card key={team.id}>
                 <CardContent className="flex flex-col gap-2 p-5">
@@ -268,14 +278,20 @@ function DiscoverTeams() {
                     <span className="flex items-center gap-1.5 text-xs text-slate-gray">
                       <Users className="size-3.5" /> {t("teams.memberCount", { count: team.member_count })}
                     </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={alreadyRequested || requestMutation.isPending}
-                      onClick={() => requestMutation.mutate(team.id)}
-                    >
-                      {alreadyRequested ? t("teams.discover.requested") : t("teams.discover.requestToJoin")}
-                    </Button>
+                    {requestId ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={cancelRequestMutation.isPending}
+                        onClick={() => cancelRequestMutation.mutate({ teamId: team.id, requestId })}
+                      >
+                        {t("teams.discover.cancelRequest")}
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" disabled={requestMutation.isPending} onClick={() => requestMutation.mutate(team.id)}>
+                        {t("teams.discover.requestToJoin")}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

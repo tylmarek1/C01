@@ -74,6 +74,12 @@ const cs: Record<TranslationKey, string> = {
   "landing.why.recurring.description": "Nastavte si opakovanou rezervaci na stejný čas každý týden, na tolik týdnů, kolik chcete.",
   "landing.why.achievements.title": "Úspěchy a žebříček",
   "landing.why.achievements.description": "Sledujte svou šňůru a odehrané kurty a porovnejte se s ostatními pravidelnými hráči.",
+  "landing.why.teams.title": "Týmy a kluby",
+  "landing.why.teams.description": "Založte nebo se přidejte k týmu s vlastní soupiskou a skupinovým chatem pro svou partu.",
+  "landing.why.chat.title": "Chat naživo",
+  "landing.why.chat.description": "Napište jakémukoliv hráči, své rezervační skupině nebo týmu — doručeno okamžitě.",
+  "landing.why.rating.title": "Herní hodnocení a výzvy",
+  "landing.why.rating.description": "Nahlaste výsledek zápasu, posuňte se v žebříčku podle sportu, sledujte ostatní hráče a plňte sezónní výzvy.",
 
   "landing.faq.eyebrow": "Časté dotazy",
   "landing.faq.title": "Rychlé odpovědi",
@@ -285,6 +291,7 @@ const cs: Record<TranslationKey, string> = {
   "playerProfile.achievements.title": "Úspěchy",
   "playerProfile.ratings.title": "Herní hodnocení",
   "playerProfile.ratings.matchesPlayed": "({count}×)",
+  "playerProfile.ratings.mine": "Tvoje hodnocení",
   "playerProfile.recentGames.title": "Nedávné zápasy",
   "playerProfile.recentGames.vs": "vs {name}",
   "playerProfile.recentGames.result.win": "Výhra",
@@ -357,9 +364,11 @@ const cs: Record<TranslationKey, string> = {
   "teams.discover.searchPlaceholder": "Hledat týmy podle názvu",
   "teams.discover.empty": "Žádné veřejné týmy nenalezeny.",
   "teams.discover.requestToJoin": "Požádat o vstup",
-  "teams.discover.requested": "Požádáno",
+  "teams.discover.cancelRequest": "Zrušit žádost",
   "teams.discover.toast.requested": "Žádost o vstup odeslána",
+  "teams.discover.toast.requestCancelled": "Žádost o vstup zrušena",
   "teams.discover.error.requestFailed": "Žádost o vstup se nepodařilo odeslat",
+  "teams.discover.error.cancelFailed": "Žádost o vstup se nepodařilo zrušit",
   "teams.joinRequests.title": "Žádosti o vstup ({count})",
   "teams.joinRequests.accept": "Přijmout",
   "teams.joinRequests.decline": "Odmítnout",
@@ -963,6 +972,9 @@ const cs: Record<TranslationKey, string> = {
   "help.manage.reschedule.title": "Přesuňte termín",
   "help.manage.reschedule.description":
     "Přesuňte podrženou nebo potvrzenou rezervaci na nové datum a čas ve svém přehledu — délka zůstává stejná.",
+  "help.manage.favorites.title": "Oblíbené kurty",
+  "help.manage.favorites.description":
+    "Klepnutím na srdíčko u kurtu si ho uložíte — všechny najdete v Profil → Oblíbené.",
 
   "help.venueManagers.eyebrow": "Pro provozovatele",
   "help.venueManagers.title": "Správa sportoviště",
@@ -975,12 +987,15 @@ const cs: Record<TranslationKey, string> = {
     "Označte kurt jako vyžadující schválení a poté schvalujte nebo zamítejte žádosti v záložce Rezervace.",
   "help.venueManagers.item3.title": "Blokování kurtů kvůli údržbě",
   "help.venueManagers.item3.description":
-    "Uzavřete kurt na časové období — nové rezervace se odmítnou a stávající v tomto období se automaticky zruší.",
+    "Uzavřete kurt na časové období — nové rezervace se odmítnou a stávající v tomto období se automaticky zruší. Nastavte opakování týdně na 2–26 týdnů a všechny výskyty pak zrušte najednou.",
   "help.venueManagers.item4.title": "Přehledy a export",
   "help.venueManagers.item4.description":
     "Sledujte rozložení stavů, míru neúčasti, nejvytíženější hodiny a využití jednotlivých kurtů a exportujte všechny rezervace do CSV.",
   "help.venueManagers.item5.title": "Správa rolí hráčů",
   "help.venueManagers.item5.description": "Povyšte hráče na provozovatele nebo ho zase degradujte zpět v záložce Uživatelé.",
+  "help.venueManagers.item6.title": "Pravomoci pouze pro admina",
+  "help.venueManagers.item6.description":
+    "Admin navíc může udělit nebo odebrat roli komukoliv — včetně jiných adminů — a natrvalo smazat kurt bez historie rezervací.",
 
   "help.faq.eyebrow": "Časté dotazy",
   "help.faq.title": "Často kladené otázky",

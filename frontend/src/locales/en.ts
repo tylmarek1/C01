@@ -72,6 +72,12 @@ const en = {
   "landing.why.recurring.description": "Set up a recurring reservation for the same time each week, for as many weeks as you like.",
   "landing.why.achievements.title": "Achievements & leaderboard",
   "landing.why.achievements.description": "Track streaks and courts played, and see how you stack up against other regulars.",
+  "landing.why.teams.title": "Teams & clubs",
+  "landing.why.teams.description": "Create or join a team with its own roster and group chat for your regular crew.",
+  "landing.why.chat.title": "Live chat",
+  "landing.why.chat.description": "Message any player, your reservation group, or your team — delivered instantly.",
+  "landing.why.rating.title": "Skill rating & challenges",
+  "landing.why.rating.description": "Report match results, climb the sport leaderboard, follow other players, and take on seasonal challenges.",
 
   "landing.faq.eyebrow": "FAQ",
   "landing.faq.title": "Quick answers",
@@ -283,6 +289,7 @@ const en = {
   "playerProfile.achievements.title": "Achievements",
   "playerProfile.ratings.title": "Skill rating",
   "playerProfile.ratings.matchesPlayed": "({count} played)",
+  "playerProfile.ratings.mine": "Your ratings",
   "playerProfile.recentGames.title": "Recent games",
   "playerProfile.recentGames.vs": "vs {name}",
   "playerProfile.recentGames.result.win": "Win",
@@ -355,9 +362,11 @@ const en = {
   "teams.discover.searchPlaceholder": "Search teams by name",
   "teams.discover.empty": "No public teams found.",
   "teams.discover.requestToJoin": "Request to join",
-  "teams.discover.requested": "Requested",
+  "teams.discover.cancelRequest": "Cancel request",
   "teams.discover.toast.requested": "Join request sent",
+  "teams.discover.toast.requestCancelled": "Join request cancelled",
   "teams.discover.error.requestFailed": "Could not send the join request",
+  "teams.discover.error.cancelFailed": "Could not cancel the join request",
   "teams.joinRequests.title": "Join requests ({count})",
   "teams.joinRequests.accept": "Accept",
   "teams.joinRequests.decline": "Decline",
@@ -969,6 +978,9 @@ const en = {
   "help.manage.reschedule.title": "Reschedule",
   "help.manage.reschedule.description":
     "Move a held or confirmed booking to a new date and time from your dashboard — the duration stays the same.",
+  "help.manage.favorites.title": "Favorite courts",
+  "help.manage.favorites.description":
+    "Tap the heart on any court to save it — find them all again from Profile → Favorites.",
 
   "help.venueManagers.eyebrow": "For venue managers",
   "help.venueManagers.title": "Running the venue",
@@ -981,12 +993,15 @@ const en = {
     "Mark a court as requiring approval, then approve or reject the requests it generates from the Reservations tab.",
   "help.venueManagers.item3.title": "Block courts for maintenance",
   "help.venueManagers.item3.description":
-    "Close a court for a time range — new bookings are rejected and any existing ones in that window are cancelled automatically.",
+    "Close a court for a time range — new bookings are rejected and any existing ones in that window are cancelled automatically. Repeat it weekly for 2-26 weeks and remove every occurrence at once later.",
   "help.venueManagers.item4.title": "Reports and exports",
   "help.venueManagers.item4.description":
     "See status breakdowns, no-show rate, busiest hours and per-court utilization, and export all reservations as CSV.",
   "help.venueManagers.item5.title": "Manage player roles",
   "help.venueManagers.item5.description": "Promote a player to venue manager, or demote one back, from the Users tab.",
+  "help.venueManagers.item6.title": "Admin-only powers",
+  "help.venueManagers.item6.description":
+    "An admin can additionally grant or revoke anyone's role — including other admins — and permanently delete a court that has no booking history.",
 
   "help.faq.eyebrow": "FAQ",
   "help.faq.title": "Frequently asked questions",

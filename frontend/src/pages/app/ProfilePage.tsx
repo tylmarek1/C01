@@ -816,8 +816,35 @@ function RatingLeaderboardTab() {
     enabled: Boolean(token),
   })
 
+  // A single sport's leaderboard only highlights you if you're actually on
+  // it — with no cross-sport summary, seeing your own numbers meant
+  // clicking through every sport one at a time. GET /ratings/me exists
+  // specifically for this and had no frontend call site anywhere.
+  const { data: myRatings } = useQuery({
+    queryKey: ["ratings-mine"],
+    queryFn: () => api.getMyRatings(token!),
+    enabled: Boolean(token),
+  })
+
   return (
     <div className="flex flex-col gap-4">
+      {myRatings && myRatings.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-slate-gray">{t("playerProfile.ratings.mine")}</span>
+          <div className="flex flex-wrap gap-2">
+            {myRatings.map((entry) => (
+              <span
+                key={entry.sport_type}
+                className="flex items-center gap-1.5 rounded-full border border-hairline bg-card px-3 py-1.5 text-xs text-ink-navy"
+              >
+                <span className="font-medium">{sportLabels[entry.sport_type]}</span>
+                {t("ratingLeaderboard.rating", { rating: entry.rating })} ·{" "}
+                {t("playerProfile.ratings.matchesPlayed", { count: entry.matches_played })}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <Select value={sport} onValueChange={(value) => setSport(value as SportType)}>
         <SelectTrigger className="w-fit">
           <SelectValue />
