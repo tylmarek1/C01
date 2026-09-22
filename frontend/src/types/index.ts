@@ -257,6 +257,7 @@ export interface PlayerProfileStats {
   sports_played: number
   current_streak_weeks: number
   achievements: Achievement[]
+  ratings: SkillRatingEntry[]
 }
 
 export interface PlayerProfile {
@@ -309,6 +310,28 @@ export interface Team {
   created_at: string
   members: TeamMemberEntry[]
   my_role: TeamRole
+}
+
+export interface MatchResult {
+  id: string
+  reservation_id: string
+  reported_by: string
+  winner_user_id: string | null
+  created_at: string
+}
+
+export interface SkillRatingEntry {
+  sport_type: SportType
+  rating: number
+  matches_played: number
+}
+
+export interface RatingLeaderboardEntry {
+  user: User
+  sport_type: SportType
+  rating: number
+  matches_played: number
+  rank: number
 }
 
 export interface JoinRequest {

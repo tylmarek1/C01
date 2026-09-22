@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { CalendarClock, CalendarPlus, Clock3, Coins, MoreHorizontal, Repeat, Star, UserPlus, Users } from "lucide-react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { CalendarClock, CalendarPlus, Clock3, Coins, MoreHorizontal, Repeat, Star, Trophy, UserPlus, Users } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
@@ -86,6 +86,81 @@ function SplitCostDialog({
             </div>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ReportResultDialog({
+  reservation,
+  open,
+  onOpenChange,
+}: {
+  reservation: Reservation
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { token, user } = useAuth()
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [winner, setWinner] = useState<"me" | "opponent" | "draw">("me")
+
+  const { data: guests, isLoading } = useQuery({
+    queryKey: ["reservation-guests", reservation.id],
+    queryFn: () => api.listGuests(token!, reservation.id),
+    enabled: open,
+  })
+  const opponent = guests?.length === 1 ? guests[0] : undefined
+
+  const reportMutation = useMutation({
+    mutationFn: () => {
+      const winnerUserId = winner === "draw" ? null : winner === "me" ? user!.id : opponent!.user.id
+      return api.reportMatchResult(token!, reservation.id, winnerUserId)
+    },
+    onSuccess: () => {
+      onOpenChange(false)
+      toast.success(t("reservationCard.result.toast.reported"))
+      queryClient.invalidateQueries({ queryKey: ["ratings-me"] })
+      queryClient.invalidateQueries({ queryKey: ["ratings-leaderboard"] })
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationCard.result.error")),
+  })
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("reservationCard.result.title")}</DialogTitle>
+        </DialogHeader>
+        {isLoading && <Skeleton className="h-24 w-full" />}
+        {!isLoading && !opponent && <p className="text-sm text-slate-gray">{t("reservationCard.result.notEligible")}</p>}
+        {!isLoading && opponent && (
+          <div className="flex flex-col gap-2">
+            {(["me", "opponent", "draw"] as const).map((option) => (
+              <label
+                key={option}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-hairline px-3 py-2 has-[:checked]:border-signal-blue"
+              >
+                <input type="radio" name="winner" checked={winner === option} onChange={() => setWinner(option)} />
+                <span className="text-sm text-ink-navy">
+                  {option === "me" && t("reservationCard.result.iWon")}
+                  {option === "opponent" && t("reservationCard.result.theyWon", { name: opponent.user.name })}
+                  {option === "draw" && t("reservationCard.result.draw")}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          {opponent && (
+            <Button disabled={reportMutation.isPending} onClick={() => reportMutation.mutate()}>
+              {t("reservationCard.result.submit")}
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
@@ -195,6 +270,7 @@ function ReservationCard({
   const [guestEmail, setGuestEmail] = useState("")
   const [reviewOpen, setReviewOpen] = useState(false)
   const [splitOpen, setSplitOpen] = useState(false)
+  const [resultOpen, setResultOpen] = useState(false)
   const [openToJoinOpen, setOpenToJoinOpen] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
@@ -226,10 +302,12 @@ function ReservationCard({
     court.active
   const canOpenToJoin = status === "CONFIRMED" && Boolean(onSetOpen)
   const canSplit = status !== "CANCELLED" && status !== "EXPIRED" && status !== "REJECTED"
+  const canReportResult = status === "COMPLETED"
   const canExportCalendar = status === "CONFIRMED" || status === "CHECKED_IN" || status === "COMPLETED"
   // Lower-frequency utility actions live behind the "more" menu so the primary
   // action (confirm/check-in/review) and cancel stay the clear focal points.
-  const hasMoreActions = canExportCalendar || canSplit || canOpenToJoin || canInviteGuest || canReschedule
+  const hasMoreActions =
+    canExportCalendar || canSplit || canOpenToJoin || canInviteGuest || canReschedule || canReportResult
 
   function submitReschedule() {
     const newStart = new Date(`${date}T${time}:00`)
@@ -325,6 +403,11 @@ function ReservationCard({
                   <Coins /> {t("reservationCard.split.button")}
                 </DropdownMenuItem>
               )}
+              {canReportResult && (
+                <DropdownMenuItem onSelect={() => setResultOpen(true)}>
+                  <Trophy /> {t("reservationCard.result.button")}
+                </DropdownMenuItem>
+              )}
               {canOpenToJoin && (
                 <DropdownMenuItem onSelect={() => setOpenToJoinOpen(true)}>
                   <Users /> {t("reservationCard.openToJoin.button")}
@@ -345,6 +428,10 @@ function ReservationCard({
         )}
 
         {canSplit && <SplitCostDialog reservation={reservation} open={splitOpen} onOpenChange={setSplitOpen} />}
+
+        {canReportResult && (
+          <ReportResultDialog reservation={reservation} open={resultOpen} onOpenChange={setResultOpen} />
+        )}
 
         {canOpenToJoin && (
           <OpenToJoinDialog

@@ -32,7 +32,9 @@ import { ErrorState } from "@/components/shared/error-state"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
 import { SectionHeader } from "@/components/shared/section-header"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shared/select"
 import { Skeleton } from "@/components/shared/skeleton"
+import { useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"
 import { StatTile } from "@/components/shared/stat-tile"
 import { Switch } from "@/components/shared/switch"
@@ -46,7 +48,9 @@ import { NOTIFICATION_CATEGORIES, useNotificationCategoryLabels } from "@/lib/no
 import { getExistingPushSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "@/lib/push"
 import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
-import type { Court, NotificationType, PlayerProfile, Review } from "@/types"
+import type { Court, NotificationType, PlayerProfile, Review, SportType } from "@/types"
+
+const RATING_SPORTS: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
 
 function ProfileVisibilityCard({ profile }: { profile: PlayerProfile }) {
   const { token } = useAuth()
@@ -735,6 +739,83 @@ function LeaderboardTab() {
   )
 }
 
+function RatingLeaderboardTab() {
+  const { token, user } = useAuth()
+  const { t } = useTranslation()
+  const sportLabels = useSportLabels()
+  const [sport, setSport] = useState<SportType>("TENNIS")
+
+  const { data: leaderboard, isLoading, isError, refetch } = useQuery({
+    queryKey: ["ratings-leaderboard", sport],
+    queryFn: () => api.getRatingLeaderboard(token!, sport, 20),
+    enabled: Boolean(token),
+  })
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Select value={sport} onValueChange={(value) => setSport(value as SportType)}>
+        <SelectTrigger className="w-fit">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {RATING_SPORTS.map((option) => (
+            <SelectItem key={option} value={option}>
+              {sportLabels[option]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {isLoading && (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-16 w-full rounded-2xl" />
+          ))}
+        </div>
+      )}
+
+      {isError && (
+        <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
+      )}
+
+      {!isLoading && !isError && leaderboard?.length === 0 && <EmptyState title={t("ratingLeaderboard.empty")} />}
+
+      {leaderboard && leaderboard.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {leaderboard.map((entry) => (
+            <Link
+              key={entry.user.id}
+              to={`/app/players/${entry.user.id}`}
+              className={cn(
+                "flex items-center gap-4 rounded-2xl border p-4 shadow-card transition-colors hover:bg-pebble",
+                entry.user.id === user?.id ? "border-signal-blue bg-[#eaf3ff]" : "border-hairline bg-card",
+              )}
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-pebble text-sm font-semibold text-ink-navy">
+                {entry.rank <= 3 ? <Trophy className="size-4 text-amber-500" /> : t("leaderboard.rank", { rank: entry.rank })}
+              </span>
+              <Avatar className="size-9">
+                <AvatarImage src={assetUrl(entry.user.avatar_url)} alt={entry.user.name} loading="lazy" className="object-cover" />
+                <AvatarFallback>{initials(entry.user.name)}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-medium text-ink-navy">
+                  {entry.user.name}
+                  {entry.user.id === user?.id && <span className="ml-1.5 text-xs text-signal-blue">({t("leaderboard.you")})</span>}
+                </span>
+                <span className="text-xs text-slate-gray">
+                  {t("ratingLeaderboard.rating", { rating: entry.rating })} ·{" "}
+                  {t("playerProfile.ratings.matchesPlayed", { count: entry.matches_played })}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ProfilePage() {
   const { t } = useTranslation()
 
@@ -747,6 +828,7 @@ function ProfilePage() {
           <TabsTrigger value="overview">{t("profile.tabs.overview")}</TabsTrigger>
           <TabsTrigger value="achievements">{t("profile.tabs.achievements")}</TabsTrigger>
           <TabsTrigger value="leaderboard">{t("profile.tabs.leaderboard")}</TabsTrigger>
+          <TabsTrigger value="rating">{t("profile.tabs.rating")}</TabsTrigger>
           <TabsTrigger value="favorites">{t("profile.tabs.favorites")}</TabsTrigger>
           <TabsTrigger value="reviews">{t("profile.tabs.reviews")}</TabsTrigger>
         </TabsList>
@@ -758,6 +840,9 @@ function ProfilePage() {
         </TabsContent>
         <TabsContent value="leaderboard">
           <LeaderboardTab />
+        </TabsContent>
+        <TabsContent value="rating">
+          <RatingLeaderboardTab />
         </TabsContent>
         <TabsContent value="favorites">
           <FavoritesTab />
