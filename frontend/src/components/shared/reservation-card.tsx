@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { CalendarClock, CalendarPlus, Clock3, Coins, MoreHorizontal, Star, UserPlus, Users } from "lucide-react"
+import { CalendarClock, CalendarPlus, Clock3, Coins, MoreHorizontal, Repeat, Star, UserPlus, Users } from "lucide-react"
 import { useState } from "react"
+import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/shared/badge"
@@ -220,6 +221,9 @@ function ReservationCard({
   const canInviteGuest =
     (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onInviteGuest)
   const canReview = status === "COMPLETED" && !hasReview && Boolean(onSubmitReview)
+  const canBookAgain =
+    (status === "COMPLETED" || status === "CANCELLED" || status === "EXPIRED" || status === "REJECTED" || status === "NO_SHOW") &&
+    court.active
   const canOpenToJoin = status === "CONFIRMED" && Boolean(onSetOpen)
   const canSplit = status !== "CANCELLED" && status !== "EXPIRED" && status !== "REJECTED"
   const canExportCalendar = status === "CONFIRMED" || status === "CHECKED_IN" || status === "COMPLETED"
@@ -379,6 +383,14 @@ function ReservationCard({
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        )}
+
+        {canBookAgain && (
+          <Button size="sm" variant="outline" asChild>
+            <Link to={`/app/book?court=${court.id}`}>
+              <Repeat className="size-3.5" /> {t("reservationCard.bookAgain")}
+            </Link>
+          </Button>
         )}
 
         {canReview && (

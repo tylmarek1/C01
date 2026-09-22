@@ -366,6 +366,7 @@ const cs: Record<TranslationKey, string> = {
   "reservationCard.cancel": "Zrušit",
   "reservationCard.invite": "Pozvat",
   "reservationCard.rateIt": "Ohodnotit",
+  "reservationCard.bookAgain": "Rezervovat znovu",
   "reservationCard.history": "Historie",
   "reservationCard.holdExpires": "Podržení vyprší {time}",
   "reservationCard.requestApproval": "Požádat o schválení",

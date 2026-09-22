@@ -364,6 +364,7 @@ const en = {
   "reservationCard.cancel": "Cancel",
   "reservationCard.invite": "Invite",
   "reservationCard.rateIt": "Rate it",
+  "reservationCard.bookAgain": "Book again",
   "reservationCard.history": "History",
   "reservationCard.holdExpires": "Hold expires {time}",
   "reservationCard.requestApproval": "Request approval",

@@ -121,6 +121,7 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- "Book again" shortcut on a past reservation's card (dashboard) — links straight into the booking flow with the same court pre-selected (`/app/book?court=`), for any completed/cancelled/expired/rejected/no-show reservation on a still-active court. Verified in a real browser.
 - Venue manager replies to reviews — `Review.manager_reply`/`manager_reply_at`, `PUT/DELETE /reviews/{id}/reply` (manager-only), rendered as a public "Venue reply" block on the court detail page with an inline reply composer for managers. Verified in a real browser (Playwright, separate anonymous browser context): the reply is public, but only a manager sees the reply/remove controls.
 - Court photo gallery — `CourtImage` model, `POST/DELETE /courts/{id}/images` (manager-only, capped at 8), admin gallery editor and a clickable thumbnail strip on the court detail page. Verified in a real browser (Playwright): upload, detail-page render, and removal all round-trip correctly.
 - Auth rate-limiting on `/auth/login`/`/auth/register` — `rate_limit.py`, PR merging `security/auth-rate-limit`.
