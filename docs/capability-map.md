@@ -117,6 +117,12 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Review photos — `ReviewImage` (same shape as `CourtImage`), `POST/DELETE
+  /reviews/{id}/images` (author-only, capped at 4 — a review is a casual
+  single-visit comment, not a court's marketing gallery), shown publicly
+  on the court detail page and manageable from the profile page's "My
+  reviews" tab. New table, no column change — no manual reseed cycle
+  needed.
 - Recurring (weekly) facility blocks — `FacilityBlock.series_id` groups every
   occurrence created by one "repeat weekly" request (2-26 weeks, same
   pattern as `ReservationSeries`); `DELETE /facility-blocks/series/{id}`

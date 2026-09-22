@@ -1,7 +1,11 @@
+import io
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy.orm import sessionmaker
 
 from reservations.main import app
@@ -208,3 +212,142 @@ def test_non_manager_cannot_reply_to_a_review(session_factory: sessionmaker) -> 
         headers={"Authorization": f"Bearer {player_token}"},
     )
     assert response.status_code == 403
+
+
+def _tiny_jpeg() -> io.BytesIO:
+    buffer = io.BytesIO()
+    Image.new("RGB", (400, 300), color=(20, 90, 200)).save(buffer, format="JPEG")
+    buffer.seek(0)
+    return buffer
+
+
+def test_author_can_add_and_remove_review_photos(
+    session_factory: sessionmaker, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("reservations.images.settings.upload_dir", tmp_path)
+    client = TestClient(app)
+    token = register_and_login(client, "hana@example.com")
+    user_id = get_user_id(session_factory, "hana@example.com")
+    _, reservation_id = seed_completed_reservation(session_factory, user_id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    review_id = client.post(
+        "/reviews",
+        json={"reservation_id": reservation_id, "rating": 5},
+        headers=headers,
+    ).json()["id"]
+
+    added = client.post(
+        f"/reviews/{review_id}/images",
+        headers=headers,
+        files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+    )
+    assert added.status_code == 201
+    images = added.json()["images"]
+    assert len(images) == 1
+    assert images[0]["url"].startswith("/static/reviews/")
+
+    listing = client.get(f"/courts/{added.json()['court_id']}/reviews").json()
+    assert len(listing[0]["images"]) == 1
+
+    image_id = images[0]["id"]
+    removed = client.delete(f"/reviews/{review_id}/images/{image_id}", headers=headers)
+    assert removed.status_code == 200
+    assert removed.json()["images"] == []
+
+
+def test_review_photos_are_capped(
+    session_factory: sessionmaker, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("reservations.images.settings.upload_dir", tmp_path)
+    from reservations.api.reviews import MAX_REVIEW_IMAGES
+
+    client = TestClient(app)
+    token = register_and_login(client, "ivy@example.com")
+    user_id = get_user_id(session_factory, "ivy@example.com")
+    _, reservation_id = seed_completed_reservation(session_factory, user_id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    review_id = client.post(
+        "/reviews",
+        json={"reservation_id": reservation_id, "rating": 5},
+        headers=headers,
+    ).json()["id"]
+
+    for _ in range(MAX_REVIEW_IMAGES):
+        response = client.post(
+            f"/reviews/{review_id}/images",
+            headers=headers,
+            files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+        )
+        assert response.status_code == 201
+
+    over_limit = client.post(
+        f"/reviews/{review_id}/images",
+        headers=headers,
+        files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+    )
+    assert over_limit.status_code == 400
+
+
+def test_only_the_author_can_manage_review_photos(
+    session_factory: sessionmaker, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("reservations.images.settings.upload_dir", tmp_path)
+    client = TestClient(app)
+    author_token = register_and_login(client, "jack@example.com")
+    author_id = get_user_id(session_factory, "jack@example.com")
+    _, reservation_id = seed_completed_reservation(session_factory, author_id)
+
+    review_id = client.post(
+        "/reviews",
+        json={"reservation_id": reservation_id, "rating": 5},
+        headers={"Authorization": f"Bearer {author_token}"},
+    ).json()["id"]
+
+    other_token = register_and_login(client, "kim@example.com")
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+
+    upload = client.post(
+        f"/reviews/{review_id}/images",
+        headers=other_headers,
+        files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+    )
+    assert upload.status_code == 403
+
+    added = client.post(
+        f"/reviews/{review_id}/images",
+        headers={"Authorization": f"Bearer {author_token}"},
+        files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+    )
+    image_id = added.json()["images"][0]["id"]
+
+    delete = client.delete(
+        f"/reviews/{review_id}/images/{image_id}", headers=other_headers
+    )
+    assert delete.status_code == 403
+
+
+def test_deleting_a_review_with_photos_does_not_error(
+    session_factory: sessionmaker, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("reservations.images.settings.upload_dir", tmp_path)
+    client = TestClient(app)
+    token = register_and_login(client, "liam@example.com")
+    user_id = get_user_id(session_factory, "liam@example.com")
+    _, reservation_id = seed_completed_reservation(session_factory, user_id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    review_id = client.post(
+        "/reviews",
+        json={"reservation_id": reservation_id, "rating": 5},
+        headers=headers,
+    ).json()["id"]
+    client.post(
+        f"/reviews/{review_id}/images",
+        headers=headers,
+        files={"file": ("photo.jpg", _tiny_jpeg(), "image/jpeg")},
+    )
+
+    response = client.delete(f"/reviews/{review_id}", headers=headers)
+    assert response.status_code == 204
