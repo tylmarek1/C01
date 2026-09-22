@@ -129,6 +129,8 @@ def create_reservation(
 
 @router.get("", response_model=list[ReservationOut])
 def list_my_reservations(
+    limit: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[Reservation]:
@@ -136,6 +138,8 @@ def list_my_reservations(
         select(Reservation)
         .where(Reservation.user_id == current_user.id)
         .order_by(Reservation.start_time.desc())
+        .offset(offset)
+        .limit(limit)
     )
     return list(db.scalars(stmt))
 
@@ -143,12 +147,15 @@ def list_my_reservations(
 @router.get("/admin", response_model=list[ReservationAdminOut])
 def list_all_reservations(
     status_filter: ReservationStatus | None = Query(default=None, alias="status"),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     _manager: User = Depends(get_current_manager),
 ) -> list[Reservation]:
     stmt = select(Reservation).order_by(Reservation.start_time.desc())
     if status_filter is not None:
         stmt = stmt.where(Reservation.status == status_filter)
+    stmt = stmt.offset(offset).limit(limit)
     return list(db.scalars(stmt))
 
 

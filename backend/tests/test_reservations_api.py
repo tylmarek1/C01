@@ -416,6 +416,114 @@ def test_manager_lists_all_reservations_with_booker(
     assert body[0]["user"]["email"] == "mia@example.com"
 
 
+def test_list_my_reservations_respects_limit_and_offset(
+    session_factory: sessionmaker,
+) -> None:
+    from reservations.models import Reservation, ReservationStatus, User
+
+    client = TestClient(app)
+    token = register_and_login(client, "paige@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    with session_factory() as session:
+        user = session.query(User).filter_by(email="paige@example.com").one()
+        for i in range(5):
+            court = Court(
+                name=f"Pagination Court {i}", sport_type=SportType.TENNIS, indoor=False
+            )
+            session.add(court)
+            session.flush()
+            start = datetime(
+                future_date().year,
+                future_date().month,
+                future_date().day,
+                8 + i,
+                tzinfo=PRAGUE,
+            )
+            session.add(
+                Reservation(
+                    court_id=court.id,
+                    user_id=user.id,
+                    start_time=start,
+                    end_time=start + timedelta(hours=1),
+                    status=ReservationStatus.CONFIRMED,
+                )
+            )
+        session.commit()
+
+    first_page = client.get(
+        "/reservations", params={"limit": 2, "offset": 0}, headers=headers
+    )
+    assert first_page.status_code == 200
+    assert len(first_page.json()) == 2
+
+    second_page = client.get(
+        "/reservations", params={"limit": 2, "offset": 2}, headers=headers
+    )
+    assert len(second_page.json()) == 2
+
+    first_ids = {r["id"] for r in first_page.json()}
+    second_ids = {r["id"] for r in second_page.json()}
+    assert first_ids.isdisjoint(second_ids)
+
+    all_default = client.get("/reservations", headers=headers)
+    assert len(all_default.json()) == 5
+
+
+def test_admin_reservations_list_respects_limit_and_offset(
+    session_factory: sessionmaker,
+) -> None:
+    from reservations.models import Reservation, ReservationStatus, User, UserRole
+
+    client = TestClient(app)
+    register_and_login(client, "quinn@example.com")
+
+    with session_factory() as session:
+        user = session.query(User).filter_by(email="quinn@example.com").one()
+        for i in range(4):
+            court = Court(
+                name=f"Admin Pagination Court {i}",
+                sport_type=SportType.TENNIS,
+                indoor=False,
+            )
+            session.add(court)
+            session.flush()
+            start = datetime(
+                future_date().year,
+                future_date().month,
+                future_date().day,
+                8 + i,
+                tzinfo=PRAGUE,
+            )
+            session.add(
+                Reservation(
+                    court_id=court.id,
+                    user_id=user.id,
+                    start_time=start,
+                    end_time=start + timedelta(hours=1),
+                    status=ReservationStatus.CONFIRMED,
+                )
+            )
+        session.commit()
+
+    manager_token = register_and_login(client, "quinn-manager@example.com")
+    with session_factory() as session:
+        manager = session.query(User).filter_by(email="quinn-manager@example.com").one()
+        manager.role = UserRole.VENUE_MANAGER
+        session.commit()
+
+    headers = {"Authorization": f"Bearer {manager_token}"}
+    first_page = client.get(
+        "/reservations/admin", params={"limit": 3, "offset": 0}, headers=headers
+    )
+    assert len(first_page.json()) == 3
+
+    second_page = client.get(
+        "/reservations/admin", params={"limit": 3, "offset": 3}, headers=headers
+    )
+    assert len(second_page.json()) == 1
+
+
 def test_manager_can_cancel_any_reservation(session_factory: sessionmaker) -> None:
     from reservations.models import User, UserRole
 

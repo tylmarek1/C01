@@ -210,6 +210,27 @@ def test_search_courts_by_name(session_factory: sessionmaker) -> None:
     assert names == ["Riverside Tennis Court"]
 
 
+def test_list_courts_respects_limit_and_offset(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    names = [f"Pagination Court {i}" for i in range(5)]
+    for name in names:
+        seed_court(session_factory, name=name)
+
+    first_page = client.get(
+        "/courts", params={"limit": 2, "offset": 0, "q": "Pagination Court"}
+    )
+    assert first_page.status_code == 200
+    assert [c["name"] for c in first_page.json()] == names[0:2]
+
+    second_page = client.get(
+        "/courts", params={"limit": 2, "offset": 2, "q": "Pagination Court"}
+    )
+    assert [c["name"] for c in second_page.json()] == names[2:4]
+
+    all_of_them = client.get("/courts", params={"q": "Pagination Court"})
+    assert len(all_of_them.json()) == 5
+
+
 def test_filter_courts_by_amenity(session_factory: sessionmaker) -> None:
     client = TestClient(app)
     token = register_and_login(client, "amenity-manager@example.com")

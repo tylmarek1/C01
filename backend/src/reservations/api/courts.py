@@ -105,6 +105,8 @@ def list_courts(
     include_inactive: bool = False,
     q: str | None = Query(default=None, description="Search court name/description"),
     amenity: Amenity | None = None,
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_user),
 ) -> list[Court]:
@@ -124,7 +126,7 @@ def list_courts(
         stmt = stmt.where(or_(Court.name.ilike(like), Court.description.ilike(like)))
     if amenity is not None:
         stmt = stmt.where(Court.amenities.any(amenity.value))
-    stmt = stmt.order_by(Court.name)
+    stmt = stmt.order_by(Court.name).offset(offset).limit(limit)
     courts = _attach_ratings(db, list(db.scalars(stmt)))
     # Needed here (unlike trending/recommended) because this is the endpoint
     # the admin Courts tab's gallery editor reads from after an upload.
