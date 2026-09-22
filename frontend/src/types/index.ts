@@ -332,6 +332,22 @@ export interface ChallengeProgress extends Challenge {
   completed_at: string | null
 }
 
+export type ActivityEventType =
+  | "FOLLOWED_PLAYER"
+  | "JOINED_TEAM"
+  | "MATCH_RESULT"
+  | "CHALLENGE_COMPLETED"
+  | "ACHIEVEMENT_UNLOCKED"
+  | "OPENED_GAME"
+
+export interface ActivityEvent {
+  id: string
+  user: User
+  type: ActivityEventType
+  payload: Record<string, string>
+  created_at: string
+}
+
 export interface MatchResult {
   id: string
   reservation_id: string

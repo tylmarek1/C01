@@ -7,6 +7,7 @@ import {
   Clock3,
   LayoutGrid,
   ListChecks,
+  Newspaper,
   Rows3,
   Sparkles,
 } from "lucide-react"
@@ -14,6 +15,7 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
+import { ActivityFeedItem } from "@/components/shared/activity-feed-item"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
@@ -38,7 +40,7 @@ import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
 import { cn } from "@/lib/utils"
 import type { OpenGame, Reservation } from "@/types"
 
-type ViewMode = "list" | "calendar" | "open"
+type ViewMode = "list" | "calendar" | "open" | "feed"
 
 function DashboardPage() {
   const { user, token } = useAuth()
@@ -88,6 +90,17 @@ function DashboardPage() {
     queryKey: ["reservations-open"],
     queryFn: () => api.listOpenGames(token!),
     enabled: Boolean(token) && viewMode === "open",
+  })
+
+  const {
+    data: activityFeed,
+    isLoading: isLoadingFeed,
+    isError: isFeedError,
+    refetch: refetchFeed,
+  } = useQuery({
+    queryKey: ["activity-feed"],
+    queryFn: () => api.getActivityFeed(token!, 30),
+    enabled: Boolean(token) && viewMode === "feed",
   })
 
   const { data: myJoinRequests } = useQuery({
@@ -284,6 +297,17 @@ function DashboardPage() {
           <Sparkles className="size-3.5" />
           {t("dashboard.view.open")}
         </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("feed")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            viewMode === "feed" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
+          )}
+        >
+          <Newspaper className="size-3.5" />
+          {t("dashboard.view.feed")}
+        </button>
       </div>
 
       {viewMode === "calendar" && (
@@ -362,6 +386,26 @@ function DashboardPage() {
               </DataRow>
             )
           })}
+        </div>
+      )}
+
+      {viewMode === "feed" && (
+        <div className="flex flex-col gap-3">
+          {isLoadingFeed && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-20 w-full" />)}
+
+          {isFeedError && (
+            <ErrorState
+              title={t("common.error.title")}
+              description={t("common.error.description")}
+              onRetry={() => refetchFeed()}
+            />
+          )}
+
+          {!isLoadingFeed && !isFeedError && activityFeed?.length === 0 && (
+            <EmptyState title={t("dashboard.feed.empty.title")} description={t("dashboard.feed.empty.description")} />
+          )}
+
+          {activityFeed?.map((event) => <ActivityFeedItem key={event.id} event={event} />)}
         </div>
       )}
 

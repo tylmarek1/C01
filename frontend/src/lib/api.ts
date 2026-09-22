@@ -1,5 +1,6 @@
 import type {
   Achievement,
+  ActivityEvent,
   AdminStats,
   Amenity,
   AuthResponse,
@@ -508,4 +509,8 @@ export const api = {
       ends_at: string
     },
   ) => request<Challenge>("/challenges", { method: "POST", body: JSON.stringify(payload) }, token),
+
+  // Activity feed
+  getActivityFeed: (token: string, limit?: number, offset?: number) =>
+    request<ActivityEvent[]>(`/activity/feed${buildQuery({ limit, offset })}`, {}, token),
 }

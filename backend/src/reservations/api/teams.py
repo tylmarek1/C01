@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from reservations import chat
+from reservations.activity import emit_activity
 from reservations.deps import get_current_user, get_db
 from reservations.models import (
     Conversation,
@@ -183,6 +184,9 @@ def add_team_member(
             NotificationType.TEAM_MEMBER_ADDED,
             "Added to a team",
             f"You were added to {team.name}.",
+        )
+        emit_activity(
+            db, new_user.id, "JOINED_TEAM", team_id=str(team.id), team_name=team.name
         )
     db.commit()
     return _to_out(db, team, current_user.id)

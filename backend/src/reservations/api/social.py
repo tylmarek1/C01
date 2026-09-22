@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from reservations import achievements
+from reservations.activity import emit_activity
 from reservations.deps import get_current_user, get_db
 from reservations.models import (
     NotificationType,
@@ -146,6 +147,13 @@ def follow_player(
             NotificationType.NEW_FOLLOWER,
             "New follower",
             f"{current_user.name} started following you.",
+        )
+        emit_activity(
+            db,
+            current_user.id,
+            "FOLLOWED_PLAYER",
+            followee_id=str(user_id),
+            followee_name=target.name,
         )
         db.commit()
 

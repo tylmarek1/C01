@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from reservations.api import (
+    activity,
     admin,
     auth,
     challenges,
@@ -94,6 +95,7 @@ app.include_router(chat.router)
 app.include_router(teams.router)
 app.include_router(ratings.router)
 app.include_router(challenges.router)
+app.include_router(activity.router)
 
 
 @app.exception_handler(Exception)

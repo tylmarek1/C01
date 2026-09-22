@@ -117,6 +117,22 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Activity feed — the 7th and final PR of the "Courtly Communities" plan.
+  `ActivityEvent` (`user_id`, a plain-string `type` — deliberately not a
+  Postgres enum, so a future event type is a pure code change, never
+  another manual migration cycle — and a JSON `payload`), populated by
+  `activity.emit_activity()` called at the point of action across six
+  existing modules (`social.py` on follow, `teams.py` on joining,
+  `ratings.py` on a match result — for both participants, `challenges.py`
+  on completion, `achievements.py` on unlocking, `reservations.py` on
+  opening a game to join) rather than the feed being assembled as a live
+  union query across five differently-shaped tables at read time.
+  `GET /activity/feed` returns events from users the caller follows,
+  paginated with the same `limit`/`offset` convention as PR #33's other
+  bounded list endpoints. New 4th tab on the dashboard's existing view-mode
+  switcher (list/calendar/open/**feed**) — reuses the tab UI already
+  there instead of a new nav item. New table only — no manual reseed
+  cycle needed.
 - Seasonal challenges — mirrors `achievements.py`'s exact shape (compute
   the metric fresh each call, store only the earned/completed marker via
   `ChallengeCompletion`), but a `Challenge` is admin/manager-authored via
