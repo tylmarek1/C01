@@ -117,6 +117,20 @@ Format: `[Priority] Finding — Mechanism`. Priority is High/Med/Low, matching
 
 ## Recently closed
 
+- Player profiles + follow — `User.bio`/`profile_public` (opt-out, default
+  public), `PlayerFollow` (one-directional, no accept/decline handshake —
+  mirrors how `ReservationGuest` invites already work), `GET /users/{id}/
+  profile` (`PlayerProfileOut`: bio + achievements/stats reused from
+  `achievements.player_stats`, `POST/DELETE /users/{id}/follow` (idempotent,
+  mirrors `favorites.py`), `GET /users/{id}/followers`/`/following`. A
+  private profile hides bio/stats server-side for non-owners (not just a
+  frontend check) — verified directly in tests and in a real browser.
+  New `PlayerProfilePage` (`/app/players/:id`), linked from anywhere a
+  player's name already renders (frequent teammates, leaderboard, review
+  authors). First PR of a 7-PR "Courtly Communities" social expansion
+  (chat, teams, skill rating, seasonal challenges, activity feed to
+  follow — see the rest land as separate PRs). New column + new
+  `NotificationType` value — ran the manual drop/recreate/reseed cycle.
 - Image loading performance — uploaded photos were already resized/
   recompressed client- and server-side (`images.py`), but the actual
   `<img>` tags had no `loading="lazy"` (every photo on a page downloaded

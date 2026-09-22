@@ -19,6 +19,7 @@ const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage").then((m) => 
 const DashboardPage = lazy(() => import("@/pages/app/DashboardPage").then((m) => ({ default: m.DashboardPage })))
 const BookCourtPage = lazy(() => import("@/pages/app/BookCourtPage").then((m) => ({ default: m.BookCourtPage })))
 const ProfilePage = lazy(() => import("@/pages/app/ProfilePage").then((m) => ({ default: m.ProfilePage })))
+const PlayerProfilePage = lazy(() => import("@/pages/app/PlayerProfilePage").then((m) => ({ default: m.PlayerProfilePage })))
 const AdminPage = lazy(() => import("@/pages/app/AdminPage").then((m) => ({ default: m.AdminPage })))
 
 function App() {
@@ -71,6 +72,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="app/players/:id"
+          element={
+            <ProtectedRoute>
+              <PlayerProfilePage />
             </ProtectedRoute>
           }
         />

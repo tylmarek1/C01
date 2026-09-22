@@ -47,6 +47,7 @@ const NOTIFICATION_DESTINATION: Record<NotificationType, string> = {
   JOIN_REQUEST_RECEIVED: "/app",
   JOIN_REQUEST_ACCEPTED: "/app",
   JOIN_REQUEST_DECLINED: "/app",
+  NEW_FOLLOWER: "/app/profile",
 }
 
 function NotificationRow({

@@ -8,12 +8,14 @@ import type {
   CourtAvailability,
   CourtUtilization,
   FacilityBlock,
+  FollowerEntry,
   JoinRequest,
   JoinRequestWithReservation,
   LeaderboardEntry,
   Notification,
   NotificationType,
   OpenGame,
+  PlayerProfile,
   PlayerStats,
   Reservation,
   ReservationAdmin,
@@ -403,4 +405,23 @@ export const api = {
   // Review helpfulness
   toggleReviewHelpful: (token: string, reviewId: string) =>
     request<Review>(`/reviews/${reviewId}/helpful`, { method: "POST" }, token),
+
+  // Player profiles + follow
+  getPlayerProfile: (token: string, userId: string) =>
+    request<PlayerProfile>(`/users/${userId}/profile`, {}, token),
+
+  updateMyProfile: (token: string, payload: { bio?: string | null; profile_public?: boolean }) =>
+    request<PlayerProfile>("/users/me/profile", { method: "PUT", body: JSON.stringify(payload) }, token),
+
+  followPlayer: (token: string, userId: string) =>
+    request<void>(`/users/${userId}/follow`, { method: "POST" }, token),
+
+  unfollowPlayer: (token: string, userId: string) =>
+    request<void>(`/users/${userId}/follow`, { method: "DELETE" }, token),
+
+  listFollowers: (token: string, userId: string) =>
+    request<FollowerEntry[]>(`/users/${userId}/followers`, {}, token),
+
+  listFollowing: (token: string, userId: string) =>
+    request<FollowerEntry[]>(`/users/${userId}/following`, {}, token),
 }

@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Copy,
   Flame,
+  Globe,
   MapPinned,
   Plus,
   ShieldCheck,
@@ -36,6 +37,7 @@ import { StarRating } from "@/components/shared/star-rating"
 import { StatTile } from "@/components/shared/stat-tile"
 import { Switch } from "@/components/shared/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/tabs"
+import { Textarea } from "@/components/shared/textarea"
 import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
@@ -44,7 +46,72 @@ import { NOTIFICATION_CATEGORIES, useNotificationCategoryLabels } from "@/lib/no
 import { getExistingPushSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "@/lib/push"
 import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
-import type { Court, NotificationType, Review } from "@/types"
+import type { Court, NotificationType, PlayerProfile, Review } from "@/types"
+
+function ProfileVisibilityCard({ profile }: { profile: PlayerProfile }) {
+  const { token } = useAuth()
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [bio, setBio] = useState(profile.bio ?? "")
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: { bio?: string; profile_public?: boolean }) => api.updateMyProfile(token!, payload),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["player-profile", profile.user.id], updated)
+      toast.success(t("profile.toast.updated"))
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.updateFailed")),
+  })
+
+  function handleBioSubmit(event: FormEvent) {
+    event.preventDefault()
+    updateMutation.mutate({ bio })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="size-5 text-signal-blue" /> {t("playerProfile.visibility.title")}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        <div className="flex items-center justify-between gap-4 border-b border-hairline pb-4">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-ink-navy">{t("playerProfile.visibility.publicToggle")}</span>
+            <span className="text-xs text-slate-gray">{t("playerProfile.visibility.publicToggleHint")}</span>
+          </div>
+          <Switch
+            checked={profile.profile_public}
+            disabled={updateMutation.isPending}
+            onCheckedChange={(next) => updateMutation.mutate({ profile_public: next })}
+            aria-label={t("playerProfile.visibility.publicToggle")}
+          />
+        </div>
+
+        <form onSubmit={handleBioSubmit} className="flex flex-col gap-3">
+          <Label htmlFor="bio">{t("playerProfile.visibility.bioLabel")}</Label>
+          <Textarea
+            id="bio"
+            value={bio}
+            onChange={(event) => setBio(event.target.value)}
+            maxLength={300}
+            placeholder={t("playerProfile.visibility.bioPlaceholder")}
+            rows={3}
+          />
+          <div className="flex items-center justify-between gap-3">
+            <Link to={`/app/players/${profile.user.id}`} className="text-sm text-signal-blue hover:underline">
+              {t("playerProfile.visibility.viewPublic")}
+            </Link>
+            <Button type="submit" size="sm" disabled={updateMutation.isPending || bio === (profile.bio ?? "")}>
+              {updateMutation.isPending ? t("profile.saving") : t("profile.save")}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
 
 function initials(name: string) {
   return name
@@ -72,6 +139,12 @@ function OverviewTab() {
     queryKey: ["stats-me"],
     queryFn: () => api.getMyStats(token!),
     enabled: Boolean(token),
+  })
+
+  const { data: myProfile } = useQuery({
+    queryKey: ["player-profile", user?.id],
+    queryFn: () => api.getPlayerProfile(token!, user!.id),
+    enabled: Boolean(token && user),
   })
 
   const calendarTokenMutation = useMutation({
@@ -335,6 +408,8 @@ function OverviewTab() {
           </form>
         </CardContent>
       </Card>
+
+      {myProfile && <ProfileVisibilityCard profile={myProfile} />}
     </div>
   )
 }
@@ -628,10 +703,11 @@ function LeaderboardTab() {
   return (
     <div className="flex flex-col gap-2">
       {leaderboard?.map((entry) => (
-        <div
+        <Link
           key={entry.user.id}
+          to={`/app/players/${entry.user.id}`}
           className={cn(
-            "flex items-center gap-4 rounded-2xl border p-4 shadow-card",
+            "flex items-center gap-4 rounded-2xl border p-4 shadow-card transition-colors hover:bg-pebble",
             entry.user.id === user?.id ? "border-signal-blue bg-[#eaf3ff]" : "border-hairline bg-card",
           )}
         >
@@ -652,7 +728,7 @@ function LeaderboardTab() {
             </span>
           </div>
           <Star className="ml-auto size-4 text-mist-gray" />
-        </div>
+        </Link>
       ))}
     </div>
   )

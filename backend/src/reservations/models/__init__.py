@@ -5,6 +5,7 @@ from reservations.models.facility_block import FacilityBlock
 from reservations.models.favorite import Favorite
 from reservations.models.join_request import JoinRequest, JoinRequestStatus
 from reservations.models.notification import Notification, NotificationType
+from reservations.models.player_follow import PlayerFollow
 from reservations.models.push_subscription import PushSubscription
 from reservations.models.reservation import (
     ACTIVE_RESERVATION_STATUSES,
@@ -47,4 +48,5 @@ __all__ = [
     "UserAchievement",
     "JoinRequest",
     "JoinRequestStatus",
+    "PlayerFollow",
 ]

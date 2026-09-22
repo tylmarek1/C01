@@ -24,6 +24,7 @@ class NotificationType(enum.StrEnum):
     JOIN_REQUEST_RECEIVED = "JOIN_REQUEST_RECEIVED"
     JOIN_REQUEST_ACCEPTED = "JOIN_REQUEST_ACCEPTED"
     JOIN_REQUEST_DECLINED = "JOIN_REQUEST_DECLINED"
+    NEW_FOLLOWER = "NEW_FOLLOWER"
 
 
 class Notification(Base):
@@ -33,8 +34,14 @@ class Notification(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
-    type: Mapped[NotificationType] = mapped_column(Enum(NotificationType, name="notification_type"))
+    type: Mapped[NotificationType] = mapped_column(
+        Enum(NotificationType, name="notification_type")
+    )
     title: Mapped[str] = mapped_column(String(200))
     message: Mapped[str] = mapped_column(String(500))
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

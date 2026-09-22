@@ -373,7 +373,11 @@ function DashboardPage() {
             <SubsectionHeading title={t("dashboard.teammates.title")} />
             <div className="flex flex-wrap gap-3">
               {teammates.map((teammate) => (
-                <div key={teammate.user.id} className="flex items-center gap-2.5 rounded-2xl border border-hairline bg-card px-3 py-2 shadow-card">
+                <Link
+                  key={teammate.user.id}
+                  to={`/app/players/${teammate.user.id}`}
+                  className="flex items-center gap-2.5 rounded-2xl border border-hairline bg-card px-3 py-2 shadow-card transition-colors hover:bg-pebble"
+                >
                   <Avatar className="size-8">
                     <AvatarImage src={assetUrl(teammate.user.avatar_url)} alt={teammate.user.name} loading="lazy" className="object-cover" />
                     <AvatarFallback className="text-xs">
@@ -389,7 +393,7 @@ function DashboardPage() {
                     <span className="text-sm font-medium text-ink-navy">{teammate.user.name}</span>
                     <span className="text-xs text-slate-gray">{t("dashboard.teammates.gamesTogether", { count: teammate.games_together })}</span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
