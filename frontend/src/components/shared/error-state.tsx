@@ -1,6 +1,6 @@
 import { AlertCircle } from "lucide-react"
 
-import { Button } from "@/components/shared/button"
+import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 

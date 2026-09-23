@@ -8,6 +8,24 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+### Changed
+
+- **Every primitive UI component now sources from the real shadcn/ui CLI
+  registry instead of being hand-rolled.** `components/shared/{avatar,badge,
+  button,card,dialog,dropdown-menu,input,label,select,separator,skeleton,
+  sonner,switch,tabs,textarea}.tsx` moved to `components/ui/` and were
+  regenerated via `npx shadcn add <name>` (`components.json` added), with
+  this app's design-token classes, custom variants (e.g. `Button`'s `dark`
+  variant), and previously-fixed bugs (e.g. `Tabs`' tab-bar overflow fix)
+  ported forward onto the regenerated files rather than discarded — a raw,
+  unmodified CLI drop-in would have reverted those to shadcn's generic
+  neutral-gray defaults. The app now depends on the unified `radix-ui`
+  package instead of per-primitive `@radix-ui/react-*` packages. No visual
+  or behavioral change for users — verified by screenshotting every major
+  page/state (landing, auth, courts, dashboard, profile, admin, dialogs,
+  dropdowns) before and after. See `component-design` for the pattern to
+  follow when adding a new primitive.
+
 ## [0.2.0] - 2026-09-23
 
 ### Fixed

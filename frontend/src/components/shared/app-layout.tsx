@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom"
 
 import { Footer } from "@/components/shared/footer"
 import { Navbar } from "@/components/shared/navbar"
-import { Skeleton } from "@/components/shared/skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function RouteLoadingFallback() {
   return (

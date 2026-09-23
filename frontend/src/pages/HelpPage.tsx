@@ -31,8 +31,8 @@ import {
 } from "lucide-react"
 import { Link } from "react-router-dom"
 
-import { Badge } from "@/components/shared/badge"
-import { Button } from "@/components/shared/button"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { DecorativeBlob } from "@/components/shared/decorative-blob"
 import { FeatureItem } from "@/components/shared/feature-item"
 import { SectionHeader } from "@/components/shared/section-header"

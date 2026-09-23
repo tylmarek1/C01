@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react"
 import { Navigate, useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
-import { Skeleton } from "@/components/shared/skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 import type { UserRole } from "@/types"

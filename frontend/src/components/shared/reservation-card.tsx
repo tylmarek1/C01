@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
-import { Badge } from "@/components/shared/badge"
-import { Button } from "@/components/shared/button"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -14,21 +14,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/shared/dialog"
+} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/shared/dropdown-menu"
-import { Input } from "@/components/shared/input"
-import { Label } from "@/components/shared/label"
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { PlayerSearch } from "@/components/shared/player-search"
-import { Skeleton } from "@/components/shared/skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import { SportIcon } from "@/components/shared/sport-icon"
 import { StarRatingInput } from "@/components/shared/star-rating"
-import { Switch } from "@/components/shared/switch"
-import { Textarea } from "@/components/shared/textarea"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { formatCurrency, formatDateRange } from "@/lib/format"

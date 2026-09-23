@@ -2,8 +2,8 @@ import { useState, type ReactNode } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { CalendarPlus, LayoutDashboard, LogOut, MessageCircle, Menu, Search, ShieldCheck, Users, UserRound, X } from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
-import { Button } from "@/components/shared/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import { ChatNavButton } from "@/components/shared/chat-nav-button"
 import {
   DropdownMenu,
@@ -12,7 +12,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/shared/dropdown-menu"
+} from "@/components/ui/dropdown-menu"
 import { LanguageSwitcher } from "@/components/shared/language-switcher"
 import { Logo } from "@/components/shared/logo"
 import { NotificationsBell } from "@/components/shared/notifications-bell"

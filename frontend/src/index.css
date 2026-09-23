@@ -1,5 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* This app has no dark-mode UI (no ThemeProvider, no toggle) — the shadcn
+   components pulled from the registry ship `dark:` variants for one anyway.
+   Scoping `dark:` to an explicit `.dark` ancestor (never applied here) keeps
+   those variants inert instead of firing off the OS `prefers-color-scheme`,
+   which would otherwise half dark-mode this app's fixed light palette. */
+@custom-variant dark (&:is(.dark *));
 
 :root {
   --radius: 0.5rem;

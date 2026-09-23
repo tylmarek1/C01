@@ -7,13 +7,25 @@ description: Where new UI belongs on Courtly's frontend (shared vs page-local), 
 
 ## Where does this UI belong?
 
-- Check `frontend/src/components/shared/index.ts` first — a
-  button/card/badge/dialog/tabs/select/avatar/skeleton primitive very likely
-  already exists. Don't create a second version because it was faster than
-  finding the existing one.
-- **Genuinely reusable** UI (usable by more than one page, or a natural
-  primitive like the existing `star-rating.tsx`/`stat-tile.tsx`) goes in
-  `components/shared/`, added to `index.ts`'s exports alongside the others.
+- Check `frontend/src/components/ui/` (shadcn/ui primitives: button, card,
+  badge, dialog, tabs, select, avatar, skeleton, ...) and
+  `frontend/src/components/shared/index.ts` (composite, app-specific pieces)
+  first — the thing you need very likely already exists in one of the two.
+  Don't create a second version because it was faster than finding the
+  existing one.
+- **A base primitive that shadcn/ui's registry provides** (see
+  `ui.shadcn.com/docs/components` for the catalog) belongs in
+  `components/ui/`, added via `npx shadcn add <name>` from `frontend/` —
+  don't hand-roll a Radix wrapper the registry already has. After adding,
+  re-apply this app's variant/token deltas the same way the existing files
+  in `components/ui/` do (see "Follow the existing pattern" below) —
+  the raw CLI output uses shadcn's generic neutral-gray theme, not this
+  app's navy palette or its custom variants (e.g. `Button`'s `dark`
+  variant), so it always needs that adaptation pass, never a raw drop-in.
+- **Genuinely reusable, app-specific** UI (usable by more than one page, not
+  a shadcn/ui catalog primitive, or a natural composite like the existing
+  `star-rating.tsx`/`stat-tile.tsx`) goes in `components/shared/`, added to
+  `index.ts`'s exports alongside the others.
 - **Page-specific composition** goes in `pages/<area>/` — don't promote
   something to `shared/` speculatively "in case it's reused later"; wait
   until a second real call site exists (see `architecture-review`,
@@ -25,13 +37,24 @@ description: Where new UI belongs on Courtly's frontend (shared vs page-local), 
 
 ## Follow the existing pattern for a new primitive
 
-Look at an existing `components/shared/*.tsx` file matching the kind of
-thing you're building (e.g. `badge.tsx` for a new small stateless display
-primitive, `dialog.tsx` for a new modal) and match its shape: Radix
-primitive underneath where one exists, `class-variance-authority` (`cva`)
-for variants, `clsx`/`tailwind-merge` for combining classes — this is the
-shadcn-style pattern already used throughout, don't introduce a different
-component-authoring style.
+For a `components/ui/` primitive: run `npx shadcn add <name>` (from
+`frontend/`), then diff the result against a sibling file already in
+`components/ui/` (e.g. `button.tsx`, `select.tsx`) and port forward the same
+kind of deltas they already carry — this app's Tailwind classes/tokens in
+place of the registry's default neutral-gray ones, any app-specific variant
+the old design added (e.g. `Button`'s `dark` variant), and any
+previously-fixed bug that lives in a comment (e.g. `tabs.tsx`'s
+`overflow-x-auto` fix) — while keeping the registry version's structure,
+new sub-components, and accessibility improvements. Never commit the raw
+CLI output unmodified. The app also uses the unified `radix-ui` package
+(not per-primitive `@radix-ui/react-*` packages) and imports `cn` from
+`@/lib/utils` (not the `cn` npm package) — rewrite both on every fresh
+`add`, the registry defaults to the opposite of each.
+
+For a `components/shared/` composite: look at an existing file matching the
+kind of thing you're building and match its shape — built from
+`components/ui/` primitives, `class-variance-authority` (`cva`) for
+variants, `clsx`/`tailwind-merge` for combining classes.
 
 ## Design tokens — extend, don't redesign
 

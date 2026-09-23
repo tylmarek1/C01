@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import { Card } from "@/components/shared/card"
+import { Card } from "@/components/ui/card"
 import { DecorativeBlob } from "@/components/shared/decorative-blob"
 import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
 import { useTranslation } from "@/lib/i18n"

@@ -61,7 +61,8 @@ PostgreSQL exclusion constraint, not in application code (ADR-001) — see
 
 | Path | Responsible for |
 |---|---|
-| `components/shared/` | The single reuse layer — shadcn-style primitives (button, card, dialog, select, tabs, ...) and composite components (navbar, footer, court-card, reservation-card, week-calendar, confirm-dialog, error-state, ...). Pages are built *from* this, not with one-off markup. |
+| `components/ui/` | shadcn/ui registry primitives (button, card, dialog, select, tabs, ...), pulled via the `shadcn` CLI and hand-adapted onto the app's design tokens/variants. Add a new primitive with `npx shadcn add <name>` from `frontend/`, then reapply this app's variant/token deltas the same way the existing files do — don't hand-roll one from scratch. |
+| `components/shared/` | Composite, app-specific components built from `components/ui/` primitives (navbar, footer, court-card, reservation-card, week-calendar, confirm-dialog, error-state, ...). Pages are built *from* `ui/` + `shared/`, not with one-off markup. |
 | `pages/{landing,auth,app,courts}/` | Page-level composition per area; `app/` is behind `ProtectedRoute` |
 | `pages/` (top level) | `AboutPage`, `ContactPage`, `HelpPage`, `NotFoundPage` — standalone pages that don't belong to one of the areas above |
 | `lib/api.ts` | The only fetch wrapper — throws `ApiError`; never call raw `fetch()` from a component |
