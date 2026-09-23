@@ -3,14 +3,14 @@ import { Bell, CheckCheck } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-import { Button } from "@/components/shared/button"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/shared/dropdown-menu"
+} from "@/components/ui/dropdown-menu"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"

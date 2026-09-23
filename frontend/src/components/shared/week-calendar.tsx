@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useMemo, useState } from "react"
 
-import { Button } from "@/components/shared/button"
+import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import type { Reservation } from "@/types"

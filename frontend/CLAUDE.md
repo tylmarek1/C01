@@ -18,12 +18,15 @@ code, as a side effect of an unrelated change.
 
 ## Directory layout
 
-See `docs/codebase-map.md` for the full `components/shared/`/`pages/`/
-`lib/` map. Before adding a new primitive, check `components/shared/index.ts`
-— it's very likely something close already exists (button/card/badge/
-dialog/tabs/select/etc.). New page-specific composition goes under
-`pages/<area>/`; new genuinely-reusable UI goes in `components/shared/`,
-not duplicated inline in a page.
+See `docs/codebase-map.md` for the full `components/ui/`/`components/shared/`/
+`pages/`/`lib/` map. Before adding a new primitive, check `components/ui/`
+(shadcn/ui registry components: button/card/badge/dialog/tabs/select/etc.,
+pulled via `npx shadcn add <name>` and adapted onto this app's tokens — see
+`component-design`) and `components/shared/index.ts` (composite, app-specific
+pieces) — it's very likely something close already exists in one of the two.
+New page-specific composition goes under `pages/<area>/`; new
+genuinely-reusable app-specific UI goes in `components/shared/`, not
+duplicated inline in a page.
 
 ## Design system — extend it, don't redesign it
 

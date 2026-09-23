@@ -41,11 +41,14 @@ rather than hardcoding new values in a component.
 
 ```
 src/
-  components/shared/   every reusable building block — shadcn-style primitives
-                        (button, card, input, select, dialog, ...) AND
-                        composed pieces (navbar, footer, court-card,
-                        reservation-card, auth-layout, ...). Barrel-exported
-                        from index.ts; pages import only from here.
+  components/ui/       shadcn/ui registry primitives (button, card, input,
+                        select, dialog, ...), pulled via the shadcn CLI and
+                        adapted onto this app's design tokens/variants.
+  components/shared/   composite, app-specific pieces built from ui/
+                        (navbar, footer, court-card, reservation-card,
+                        auth-layout, ...). Barrel-exported from index.ts
+                        alongside ui/, for existing call sites that import
+                        from there.
   pages/
     landing/             marketing home page
     auth/                login, register

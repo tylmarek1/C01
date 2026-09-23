@@ -1,7 +1,7 @@
 import { ExternalLink, LifeBuoy, MessageCircle } from "lucide-react"
 import { Link } from "react-router-dom"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SectionHeader } from "@/components/shared/section-header"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
 

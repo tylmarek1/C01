@@ -1,4 +1,4 @@
-import type { BadgeProps } from "@/components/shared/badge"
+import type { BadgeProps } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/i18n"
 import type { ReservationStatus } from "@/types"
 

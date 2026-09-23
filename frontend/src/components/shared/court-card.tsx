@@ -1,7 +1,7 @@
 import { ArrowRight, Heart } from "lucide-react"
 import { Link } from "react-router-dom"
 
-import { Badge } from "@/components/shared/badge"
+import { Badge } from "@/components/ui/badge"
 import { CourtArt } from "@/components/shared/court-art"
 import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"

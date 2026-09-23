@@ -2,7 +2,7 @@ import { Award, Sparkles, Trophy, UserPlus, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { AchievementIcon } from "@/components/shared/achievement-icon"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { assetUrl } from "@/lib/api"
 import { useTranslation } from "@/lib/i18n"
 import type { ActivityEvent } from "@/types"
