@@ -8,6 +8,20 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+### Changed
+
+- **Achievement icons switched from emoji to Lucide**, matching every other
+  icon in the app (sport icons, activity-feed icons, stat tiles). The
+  Achievements tab, a player's public profile, and the activity feed's
+  "unlocked an achievement" entries all previously rendered a raw emoji
+  (🎾, 🏆, 🦋, ...) next to otherwise-Lucide UI — a visual inconsistency
+  flagged during the UI polish audit and confirmed with the user rather
+  than resolved unilaterally, since it was a genuine style call. New
+  `components/shared/achievement-icon.tsx` maps each achievement's `key` to
+  a specific Lucide icon (e.g. `Flame` for a play streak, `Compass` for
+  visiting different courts); the backend's `Achievement.icon` emoji field
+  is unchanged and still returned, just no longer rendered by the frontend.
+
 ### Added
 
 - **UI polish pass, round 2 — a second mobile-overflow bug in the

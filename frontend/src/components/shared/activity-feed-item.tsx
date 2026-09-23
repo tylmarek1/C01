@@ -1,6 +1,7 @@
 import { Award, Sparkles, Trophy, UserPlus, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 
+import { AchievementIcon } from "@/components/shared/achievement-icon"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { assetUrl } from "@/lib/api"
 import { useTranslation } from "@/lib/i18n"
@@ -68,8 +69,8 @@ function ActivityFeedItem({ event }: { event: ActivityEvent }) {
         <span className="text-xs text-mist-gray">{new Date(event.created_at).toLocaleString()}</span>
       </div>
       <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-pebble text-signal-blue">
-        {event.type === "ACHIEVEMENT_UNLOCKED" && event.payload.achievement_icon ? (
-          <span className="text-lg">{event.payload.achievement_icon}</span>
+        {event.type === "ACHIEVEMENT_UNLOCKED" && event.payload.achievement_key ? (
+          <AchievementIcon achievementKey={event.payload.achievement_key} className="size-4" />
         ) : (
           <Icon className="size-4" />
         )}

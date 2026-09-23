@@ -21,6 +21,7 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
+import { AchievementIcon } from "@/components/shared/achievement-icon"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
@@ -659,8 +660,8 @@ function AchievementsTab() {
             achievement.unlocked ? "border-hairline bg-card" : "border-dashed border-hairline bg-cloud opacity-70",
           )}
         >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-pebble text-xl">
-            {achievement.icon}
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-pebble text-signal-blue">
+            <AchievementIcon achievementKey={achievement.key} className="size-5" />
           </span>
           <div className="flex flex-col gap-0.5">
             <span className="font-semibold text-ink-navy">{achievement.title}</span>
