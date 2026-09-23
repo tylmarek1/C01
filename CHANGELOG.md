@@ -8,8 +8,23 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
-### Changed
+### Fixed
 
+- **Five pages were missing the app's page-shell convention entirely** —
+  `mx-auto max-w-*xl px-6 py-16` plus a `SectionHeader` (eyebrow + big bold
+  title + description), which every other page (Courts, Dashboard, Profile,
+  Admin, Court detail, Book a court) already uses. `/app/players`,
+  `/app/teams`, a team's detail page, and a player's public profile instead
+  rendered a plain `<h1>` flush against the browser's edge with no gutter
+  or max-width, and `/app/chat` had no page padding at all — the four
+  looked like an unfinished fragment of the app next to every other page,
+  not a deliberate visual difference. Found by direct comparison against
+  the rest of the app rather than the earlier per-page UI audits, which
+  each looked at pages individually and missed that these four had never
+  been brought in line with the shell every other page converged on.
+  Fixed by applying the same container + `SectionHeader` (or, for Chat's
+  legitimately different full-height split-pane layout, the same page
+  gutter without forcing it into a card-grid shape it shouldn't have).
 - **Achievement icons switched from emoji to Lucide**, matching every other
   icon in the app (sport icons, activity-feed icons, stat tiles). The
   Achievements tab, a player's public profile, and the activity feed's

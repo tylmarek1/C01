@@ -327,6 +327,7 @@ const en = {
   "chat.error.deleteFailed": "Could not delete the message",
   "chat.error.reactFailed": "Could not update your reaction",
   "teams.title": "Teams",
+  "teams.hint": "Create a team with your regulars, or discover public teams to join.",
   "teams.create": "Create team",
   "teams.create.title": "Create a team",
   "teams.create.submit": "Create team",

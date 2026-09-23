@@ -324,7 +324,7 @@ function ChatPage() {
   if (!user) return null
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4">
+    <div className="mx-auto flex h-[calc(100vh-11rem)] max-w-6xl gap-4 px-6 py-6">
       <div className={cn("flex w-full flex-col gap-2 overflow-y-auto sm:w-80 sm:shrink-0", selectedId && "hidden sm:flex")}>
         <div className="flex items-center justify-between px-1">
           <h1 className="text-lg font-bold text-ink-navy">{t("chat.title")}</h1>

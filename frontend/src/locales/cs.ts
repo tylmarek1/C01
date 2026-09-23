@@ -329,6 +329,7 @@ const cs: Record<TranslationKey, string> = {
   "chat.error.deleteFailed": "Zprávu se nepodařilo smazat",
   "chat.error.reactFailed": "Reakci se nepodařilo aktualizovat",
   "teams.title": "Týmy",
+  "teams.hint": "Založte tým se svou partou, nebo si najděte veřejný tým, ke kterému se přidáte.",
   "teams.create": "Vytvořit tým",
   "teams.create.title": "Vytvořit tým",
   "teams.create.submit": "Vytvořit tým",
