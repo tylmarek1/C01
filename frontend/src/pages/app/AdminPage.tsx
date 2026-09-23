@@ -1020,7 +1020,7 @@ function AvailabilityTab() {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="block-start">{t("admin.availability.from")}</Label>
               <Input id="block-start" type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} />
@@ -1090,7 +1090,7 @@ function AvailabilityTab() {
           <EmptyState title={t("admin.availability.empty.title")} description={t("admin.availability.empty.description")} />
         )}
         {blocks?.map((block) => (
-          <DataRow key={block.id} className="gap-2 p-4">
+          <DataRow key={block.id} className="max-w-xl gap-2 p-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-ink-navy">{block.court.name}</span>
@@ -1569,7 +1569,7 @@ function UsersTab() {
                   onValueChange={(role) => handleRoleChange(user, role as UserRole)}
                   disabled={roleMutation.isPending}
                 >
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

@@ -10,6 +10,36 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **UI polish pass, round 2 — a second mobile-overflow bug in the
+  Dashboard's own layout, plus smaller fit-and-finish fixes** found by
+  re-verifying round 1's fixes in a real 375px viewport rather than trusting
+  them on sight:
+  - **Dashboard's two-column layout (`grid-cols-[1fr_320px]`) overflowed the
+    viewport below `lg`** even after round 1's tab-bar fix — CSS Grid's
+    `min-width: auto` default meant neither the reservation-list column nor
+    the sidebar would shrink below its own content's intrinsic width.
+    `document.documentElement.scrollWidth` measured 422px against a 375px
+    viewport; adding `min-w-0` to both grid children brought it back to
+    exactly 375px. This also explains why the round-1 tab-pill fix wasn't
+    fully effective on this page — it was resolving against an
+    already-oversized parent. The view-mode tab bar itself (List/Calendar/
+    Find a partner/Feed) also picked up `overflow-x-auto` and `shrink-0` so
+    it scrolls instead of wrapping oddly on narrow screens, and the stat-tile
+    row now uses a 2-column grid on mobile instead of stacking to one.
+  - **Admin's Availability tab**: the block-a-court "From"/"To" datetime
+    inputs sat side-by-side unconditionally, squeezing to unusable width on
+    mobile — now stack to one column below `sm`. The block-list cards had no
+    max width and stretched uncomfortably wide on a large desktop viewport —
+    capped at `max-w-xl`, matching the form column beside it.
+  - **Admin's Users tab**: the role `<Select>` was too narrow (`w-40`) for
+    "Správce sportoviště" (Czech for "Venue manager") to fit on one line —
+    widened to `w-48`.
+  - **Courts page's "All courts" section duplicated every card already
+    shown above it** in Trending/Recommended — with the seeded demo
+    catalog's small size, that meant nearly every court printed twice on
+    the page. Now filters "All courts" down to courts not already curated
+    above, and hides the section entirely rather than showing an empty grid
+    when nothing's left to show.
 - **UI polish pass, round 1 — a real shared-component bug, a real mobile
   overflow bug, and design-token cleanup.** A full visual audit of every
   page (4 parallel passes, desktop + mobile) against the existing "navy
