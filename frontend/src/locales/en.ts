@@ -139,6 +139,12 @@ const en = {
 
   "dashboard.welcome": "Welcome back, {name}",
   "dashboard.subtitle": "Here's what's coming up on your courts.",
+  "dashboard.venueSnapshot.eyebrow": "Venue management",
+  "dashboard.venueSnapshot.title": "Your venue at a glance",
+  "dashboard.venueSnapshot.description": "Live status for the whole venue — separate from your own bookings below.",
+  "dashboard.venueSnapshot.openAdmin": "Open admin dashboard",
+  "dashboard.venueSnapshot.pendingBanner": "Awaiting approval: {count}",
+  "dashboard.venueSnapshot.reviewRequests": "Review requests",
   "dashboard.stat.total": "total reservations",
   "dashboard.stat.confirmed": "confirmed",
   "dashboard.stat.held": "held",

@@ -8,6 +8,20 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+### Added
+
+- **Venue managers and admins now get a "Your venue at a glance" snapshot
+  on their `/app` dashboard** instead of landing on the same empty
+  player-style "book your first court" view every role saw before. Shown
+  only for `VENUE_MANAGER`/`ADMIN` (`DashboardPage.tsx`), it surfaces
+  pending-approval count, recent reservation volume, court count, and
+  no-show rate (reusing the existing `GET /admin/stats` endpoint — no
+  backend change), plus a direct link into the admin panel and, when
+  approvals are waiting, a one-click deep link to the pre-filtered
+  Reservations tab (`/app/admin?tab=reservations&status=PENDING_APPROVAL`,
+  the same convention the notification bell already used). The player's
+  own dashboard is unchanged.
+
 ### Changed
 
 - **Every primitive UI component now sources from the real shadcn/ui CLI

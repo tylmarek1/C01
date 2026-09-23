@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+  AlertTriangle,
   Award,
   CalendarClock,
   CalendarPlus,
@@ -9,6 +10,7 @@ import {
   ListChecks,
   Newspaper,
   Rows3,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react"
 import { useState } from "react"
@@ -88,6 +90,14 @@ function DashboardPage() {
     queryFn: () => api.getMyStats(token!),
     enabled: Boolean(token),
   })
+
+  const canManageVenue = user?.role === "VENUE_MANAGER" || user?.role === "ADMIN"
+  const { data: venueStats, isLoading: isLoadingVenueStats } = useQuery({
+    queryKey: ["admin-stats-snapshot"],
+    queryFn: () => api.getAdminStats(token!, 7),
+    enabled: Boolean(token) && canManageVenue,
+  })
+  const pendingApprovalCount = venueStats?.status_breakdown["PENDING_APPROVAL"] ?? 0
 
   const { data: openGames } = useQuery({
     queryKey: ["reservations-open"],
@@ -260,6 +270,67 @@ function DashboardPage() {
           </Button>
         }
       />
+
+      {canManageVenue && (
+        <div className="mt-10 flex flex-col gap-4 rounded-3xl border border-hairline bg-cloud px-6 py-6 sm:px-8 sm:py-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+              <span className="w-fit rounded-full bg-tint-blue px-2.5 py-1 text-xs font-medium text-deep-cobalt">
+                {t("dashboard.venueSnapshot.eyebrow")}
+              </span>
+              <h2 className="text-xl font-bold text-ink-navy">{t("dashboard.venueSnapshot.title")}</h2>
+              <p className="max-w-lg text-sm text-slate-gray">{t("dashboard.venueSnapshot.description")}</p>
+            </div>
+            <Button variant="dark" className="shrink-0" asChild>
+              <Link to="/app/admin">
+                <ShieldCheck className="size-4" />
+                {t("dashboard.venueSnapshot.openAdmin")}
+              </Link>
+            </Button>
+          </div>
+
+          {isLoadingVenueStats && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-20 w-full" />
+              ))}
+            </div>
+          )}
+
+          {venueStats && (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatTile icon={Clock3} label={statusLabels.PENDING_APPROVAL} value={pendingApprovalCount} />
+                <StatTile
+                  icon={CalendarClock}
+                  label={t("admin.overview.reservationsInWindow", { days: 7 })}
+                  value={venueStats.reservations_in_window}
+                />
+                <StatTile icon={LayoutGrid} label={t("admin.overview.courts")} value={venueStats.total_courts} />
+                <StatTile
+                  icon={AlertTriangle}
+                  label={t("admin.overview.noShowRate")}
+                  value={`${Math.round(venueStats.no_show_rate * 100)}%`}
+                />
+              </div>
+
+              {pendingApprovalCount > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    {t("dashboard.venueSnapshot.pendingBanner", { count: pendingApprovalCount })}
+                  </span>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to="/app/admin?tab=reservations&status=PENDING_APPROVAL">
+                      {t("dashboard.venueSnapshot.reviewRequests")}
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile icon={CalendarClock} label={t("dashboard.stat.total")} value={reservations?.length ?? 0} />
