@@ -22,6 +22,15 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   the same convention the notification bell already used). The player's
   own dashboard is unchanged.
 
+- **The navbar itself now reflects which of the three roles is signed
+  in**, not just which links are visible. The account dropdown header
+  (`navbar.tsx`) shows a role badge (Player/Venue manager/Admin, reusing
+  `ROLE_VARIANT`/`useRoleLabels` from `lib/user-role.ts`, the same pattern
+  `AdminPage.tsx`'s user list already used) next to the name. For
+  `VENUE_MANAGER`/`ADMIN`, "Admin" moved from last to right after
+  "Dashboard" in the top nav, the account dropdown, and the mobile menu —
+  their primary duty, not an afterthought at the end of the list.
+
 ### Changed
 
 - **Every primitive UI component now sources from the real shadcn/ui CLI
