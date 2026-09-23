@@ -81,6 +81,20 @@ function CourtsPage() {
   })
   const favoriteIds = new Set(favorites?.map((c) => c.id) ?? [])
 
+  // "All courts" shouldn't just repeat every card already shown above it in
+  // Trending/Recommended — with a small catalog, that used to mean nearly
+  // every court printed twice on the page.
+  const curatedIds = new Set([
+    ...(trendingCourts ?? []).map((c) => c.id),
+    ...(user && recommendedCourts ? recommendedCourts.map((c) => c.id) : []),
+  ])
+  const remainingCourts = hasFilters ? courts : courts?.filter((c) => !curatedIds.has(c.id))
+  // Every court that exists was already shown above (a small catalog, as in
+  // the seeded demo data) — nothing left to repeat, so skip the section
+  // entirely rather than a heading over an empty grid.
+  const hideAllCourtsSection =
+    !hasFilters && !isLoading && !isError && (courts?.length ?? 0) > 0 && (remainingCourts?.length ?? 0) === 0
+
   const favoriteMutation = useMutation({
     mutationFn: (court: Court) =>
       favoriteIds.has(court.id) ? api.removeFavorite(token!, court.id) : api.addFavorite(token!, court.id),
@@ -205,46 +219,50 @@ function CourtsPage() {
         </div>
       )}
 
-      {!hasFilters && ((trendingCourts && trendingCourts.length > 0) || (user && recommendedCourts && recommendedCourts.length > 0)) && (
-        <span className="mt-10 block text-sm font-semibold text-ink-navy">{t("courts.allCourts")}</span>
+      {!hideAllCourtsSection && (
+        <>
+          {!hasFilters && ((trendingCourts && trendingCourts.length > 0) || (user && recommendedCourts && recommendedCourts.length > 0)) && (
+            <span className="mt-10 block text-sm font-semibold text-ink-navy">{t("courts.allCourts")}</span>
+          )}
+          <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-3", !hasFilters ? "mt-4" : "mt-10")}>
+            {isLoading && Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="aspect-[16/10] w-full rounded-2xl" />)}
+
+            {isError && (
+              <ErrorState
+                className="col-span-full"
+                title={t("common.error.title")}
+                description={t("common.error.description")}
+                onRetry={() => refetch()}
+              />
+            )}
+
+            {!isLoading && !isError && courts?.length === 0 && (
+              <EmptyState
+                title={t("courts.empty.title")}
+                description={t("courts.empty.description")}
+                action={
+                  hasFilters && (
+                    <Button variant="outline" size="sm" onClick={handleClearFilters} className="mt-1">
+                      {t("courts.clearFilters")}
+                    </Button>
+                  )
+                }
+                className="col-span-full"
+              />
+            )}
+
+            {remainingCourts?.map((court) => (
+              <CourtCard
+                key={court.id}
+                court={court}
+                href={`/courts/${court.id}`}
+                isFavorite={favoriteIds.has(court.id)}
+                onToggleFavorite={user ? (c) => favoriteMutation.mutate(c) : undefined}
+              />
+            ))}
+          </div>
+        </>
       )}
-      <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-3", !hasFilters ? "mt-4" : "mt-10")}>
-        {isLoading && Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="aspect-[16/10] w-full rounded-2xl" />)}
-
-        {isError && (
-          <ErrorState
-            className="col-span-full"
-            title={t("common.error.title")}
-            description={t("common.error.description")}
-            onRetry={() => refetch()}
-          />
-        )}
-
-        {!isLoading && !isError && courts?.length === 0 && (
-          <EmptyState
-            title={t("courts.empty.title")}
-            description={t("courts.empty.description")}
-            action={
-              hasFilters && (
-                <Button variant="outline" size="sm" onClick={handleClearFilters} className="mt-1">
-                  {t("courts.clearFilters")}
-                </Button>
-              )
-            }
-            className="col-span-full"
-          />
-        )}
-
-        {courts?.map((court) => (
-          <CourtCard
-            key={court.id}
-            court={court}
-            href={`/courts/${court.id}`}
-            isFavorite={favoriteIds.has(court.id)}
-            onToggleFavorite={user ? (c) => favoriteMutation.mutate(c) : undefined}
-          />
-        ))}
-      </div>
     </div>
   )
 }

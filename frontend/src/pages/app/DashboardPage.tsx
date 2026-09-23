@@ -261,7 +261,7 @@ function DashboardPage() {
         }
       />
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile icon={CalendarClock} label={t("dashboard.stat.total")} value={reservations?.length ?? 0} />
         <StatTile icon={CheckCircle2} label={t("dashboard.stat.confirmed")} value={confirmedCount} />
         <StatTile icon={Clock3} label={t("dashboard.stat.held")} value={pendingCount} />
@@ -274,7 +274,7 @@ function DashboardPage() {
       </div>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_320px]">
-      <div className="flex flex-col gap-6">
+      <div className="flex min-w-0 flex-col gap-6">
 
       {isError && (
         <ErrorState
@@ -284,51 +284,53 @@ function DashboardPage() {
         />
       )}
 
-      <div className="flex items-center justify-end gap-1 rounded-xl border border-hairline bg-card p-1 shadow-sm w-fit ml-auto">
-        <button
-          type="button"
-          onClick={() => setViewMode("list")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            viewMode === "list" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
-          )}
-        >
-          <Rows3 className="size-3.5" />
-          {t("calendar.view.list")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode("calendar")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            viewMode === "calendar" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
-          )}
-        >
-          <LayoutGrid className="size-3.5" />
-          {t("calendar.view.week")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode("open")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            viewMode === "open" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
-          )}
-        >
-          <Sparkles className="size-3.5" />
-          {t("dashboard.view.open")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode("feed")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            viewMode === "feed" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
-          )}
-        >
-          <Newspaper className="size-3.5" />
-          {t("dashboard.view.feed")}
-        </button>
+      <div className="ml-auto w-fit max-w-full overflow-x-auto rounded-xl border border-hairline bg-card p-1 shadow-sm">
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+              viewMode === "list" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
+            )}
+          >
+            <Rows3 className="size-3.5" />
+            {t("calendar.view.list")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("calendar")}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+              viewMode === "calendar" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
+            )}
+          >
+            <LayoutGrid className="size-3.5" />
+            {t("calendar.view.week")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("open")}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+              viewMode === "open" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
+            )}
+          >
+            <Sparkles className="size-3.5" />
+            {t("dashboard.view.open")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("feed")}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+              viewMode === "feed" ? "bg-ink-navy text-paper" : "text-slate-gray hover:text-ink-navy",
+            )}
+          >
+            <Newspaper className="size-3.5" />
+            {t("dashboard.view.feed")}
+          </button>
+        </div>
       </div>
 
       {viewMode === "calendar" && (
@@ -445,7 +447,7 @@ function DashboardPage() {
 
       </div>
 
-      <div className="flex flex-col gap-10">
+      <div className="flex min-w-0 flex-col gap-10">
         {teammates && teammates.length > 0 && (
           <div className="flex flex-col gap-3">
             <SubsectionHeading title={t("dashboard.teammates.title")} />
