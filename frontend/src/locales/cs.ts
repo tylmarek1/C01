@@ -141,6 +141,12 @@ const cs: Record<TranslationKey, string> = {
 
   "dashboard.welcome": "Vítejte zpět, {name}",
   "dashboard.subtitle": "Tady je přehled toho, co vás čeká na kurtech.",
+  "dashboard.venueSnapshot.eyebrow": "Správa sportoviště",
+  "dashboard.venueSnapshot.title": "Přehled vašeho sportoviště",
+  "dashboard.venueSnapshot.description": "Aktuální stav celého sportoviště — odděleně od vašich vlastních rezervací níže.",
+  "dashboard.venueSnapshot.openAdmin": "Otevřít administraci",
+  "dashboard.venueSnapshot.pendingBanner": "Čeká na schválení: {count}",
+  "dashboard.venueSnapshot.reviewRequests": "Zobrazit žádosti",
   "dashboard.stat.total": "celkem rezervací",
   "dashboard.stat.confirmed": "potvrzeno",
   "dashboard.stat.held": "podrženo",
