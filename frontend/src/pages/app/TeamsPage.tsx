@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { EmptyState } from "@/components/shared/empty-state"
 import { Input } from "@/components/shared/input"
 import { Label } from "@/components/shared/label"
+import { SectionHeader } from "@/components/shared/section-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shared/select"
 import { Skeleton } from "@/components/shared/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/tabs"
@@ -71,7 +72,7 @@ function CreateTeamDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
+        <Button className="mt-2 w-fit">
           <Plus className="size-4" /> {t("teams.create")}
         </Button>
       </DialogTrigger>
@@ -313,13 +314,16 @@ function TeamsPage() {
   const { t } = useTranslation()
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-ink-navy">{t("teams.title")}</h1>
-        <CreateTeamDialog />
-      </div>
+    <div className="mx-auto max-w-6xl px-6 py-16">
+      <SectionHeader
+        align="left"
+        eyebrow={t("nav.teams")}
+        title={t("teams.title")}
+        description={t("teams.hint")}
+        action={<CreateTeamDialog />}
+      />
 
-      <Tabs defaultValue="mine">
+      <Tabs defaultValue="mine" className="mt-10">
         <TabsList>
           <TabsTrigger value="mine">{t("teams.tabs.mine")}</TabsTrigger>
           <TabsTrigger value="discover">{t("teams.tabs.discover")}</TabsTrigger>

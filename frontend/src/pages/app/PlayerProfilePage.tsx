@@ -121,7 +121,7 @@ function PlayerProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-16">
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-48 w-full" />
       </div>
@@ -129,13 +129,17 @@ function PlayerProfilePage() {
   }
 
   if (isError || !profile || !id) {
-    return <ErrorState title={t("playerProfile.error.loadFailed")} onRetry={() => refetch()} />
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <ErrorState title={t("playerProfile.error.loadFailed")} onRetry={() => refetch()} />
+      </div>
+    )
   }
 
   const stats = profile.stats
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-16">
       <Button variant="ghost" size="sm" className="w-fit" onClick={() => navigate(-1)}>
         <ArrowLeft className="size-4" /> {t("playerProfile.back")}
       </Button>
