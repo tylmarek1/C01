@@ -8,6 +8,8 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-23
+
 ### Fixed
 
 - **Five pages were missing the app's page-shell convention entirely** —
