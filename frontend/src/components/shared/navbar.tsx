@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom"
 import { CalendarPlus, LayoutDashboard, LogOut, MessageCircle, Menu, Search, ShieldCheck, Users, UserRound, X } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ChatNavButton } from "@/components/shared/chat-nav-button"
 import {
@@ -19,6 +20,7 @@ import { NotificationsBell } from "@/components/shared/notifications-bell"
 import { assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
+import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
 
 function initials(name: string) {
@@ -51,6 +53,7 @@ function Navbar() {
   const { user, logout, isLoading } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const roleLabels = useRoleLabels()
   const [mobileOpen, setMobileOpen] = useState(false)
   const canAccessAdmin = user?.role === "VENUE_MANAGER" || user?.role === "ADMIN"
 
@@ -74,9 +77,9 @@ function Navbar() {
           {user && (
             <>
               <NavItem to="/app">{t("nav.dashboard")}</NavItem>
+              {canAccessAdmin && <NavItem to="/app/admin">{t("nav.admin")}</NavItem>}
               <NavItem to="/app/book">{t("nav.book")}</NavItem>
               <NavItem to="/app/teams">{t("nav.teams")}</NavItem>
-              {canAccessAdmin && <NavItem to="/app/admin">{t("nav.admin")}</NavItem>}
             </>
           )}
         </nav>
@@ -103,7 +106,12 @@ function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel>
-                  <span className="block truncate font-semibold text-ink-navy">{user.name}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-semibold text-ink-navy">{user.name}</span>
+                    <Badge variant={ROLE_VARIANT[user.role]} className="shrink-0">
+                      {roleLabels[user.role]}
+                    </Badge>
+                  </div>
                   <span className="block truncate text-xs font-normal text-slate-gray">{user.email}</span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -112,6 +120,13 @@ function Navbar() {
                     <LayoutDashboard /> {t("nav.dashboard")}
                   </NavLink>
                 </DropdownMenuItem>
+                {canAccessAdmin && (
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/app/admin">
+                      <ShieldCheck /> {t("nav.admin")}
+                    </NavLink>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <NavLink to="/app/book">
                     <CalendarPlus /> {t("nav.book")}
@@ -137,13 +152,6 @@ function Navbar() {
                     <UserRound /> {t("nav.profile")}
                   </NavLink>
                 </DropdownMenuItem>
-                {canAccessAdmin && (
-                  <DropdownMenuItem asChild>
-                    <NavLink to="/app/admin">
-                      <ShieldCheck /> {t("nav.admin")}
-                    </NavLink>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
                   <LogOut /> {t("nav.logout")}
@@ -186,6 +194,11 @@ function Navbar() {
                 <NavItem to="/app" onClick={() => setMobileOpen(false)}>
                   {t("nav.dashboard")}
                 </NavItem>
+                {canAccessAdmin && (
+                  <NavItem to="/app/admin" onClick={() => setMobileOpen(false)}>
+                    {t("nav.admin")}
+                  </NavItem>
+                )}
                 <NavItem to="/app/book" onClick={() => setMobileOpen(false)}>
                   {t("nav.book")}
                 </NavItem>
@@ -201,11 +214,6 @@ function Navbar() {
                 <NavItem to="/app/profile" onClick={() => setMobileOpen(false)}>
                   {t("nav.profile")}
                 </NavItem>
-                {canAccessAdmin && (
-                  <NavItem to="/app/admin" onClick={() => setMobileOpen(false)}>
-                    {t("nav.admin")}
-                  </NavItem>
-                )}
               </>
             )}
             <div className="flex items-center justify-between border-t border-hairline pt-4">
