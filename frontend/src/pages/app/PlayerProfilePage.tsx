@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
+import { AchievementIcon } from "@/components/shared/achievement-icon"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar"
 import { Badge } from "@/components/shared/badge"
 import { Button } from "@/components/shared/button"
@@ -238,7 +239,7 @@ function PlayerProfilePage() {
               <CardContent className="flex flex-wrap gap-3">
                 {stats.achievements.map((achievement) => (
                   <Badge key={achievement.key} variant="secondary" className="gap-1.5 py-1.5 text-sm">
-                    <span>{achievement.icon}</span> {achievement.title}
+                    <AchievementIcon achievementKey={achievement.key} className="size-3.5" /> {achievement.title}
                   </Badge>
                 ))}
               </CardContent>

@@ -1,3 +1,4 @@
+export * from "@/components/shared/achievement-icon"
 export * from "@/components/shared/activity-feed-item"
 export * from "@/components/shared/app-layout"
 export * from "@/components/shared/auth-layout"
