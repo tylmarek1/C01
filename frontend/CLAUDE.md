@@ -39,6 +39,21 @@ classes derived from them. If a new token is genuinely needed, add it to
 `index.css` alongside the others and derive a semantic token from it; don't
 invent an inline one-off color.
 
+**This app has dark mode** (`lib/theme.tsx`'s `ThemeProvider`, toggled via
+`components/shared/theme-toggle.tsx`, class-scoped `dark:` variant defined in
+`index.css`). Because every named token above is a CSS custom property
+redefined wholesale under `index.css`'s `.dark { }` block, a component using
+only those tokens re-themes automatically — no per-component work needed.
+The exception is a raw Tailwind palette color (`bg-amber-50`, `text-red-500`,
+etc.), which does *not* respond to `.dark` on its own: if you add one for a
+status chip, warning banner, or similar, pair it with an explicit `dark:`
+variant (see the existing `dark:bg-amber-500/15 dark:text-amber-400`-style
+pairs in `badge.tsx`/`error-state.tsx` for the pattern) — don't assume light
+mode is the only mode a new raw color needs to work in. A purely decorative,
+already mid-toned icon color (a star rating, a favorite heart) usually reads
+fine unchanged in both modes and doesn't need one; a light chip background
+(`*-50`) almost always does.
+
 ## Data fetching
 
 Always through TanStack Query + `lib/api.ts`'s typed fetch wrapper, which

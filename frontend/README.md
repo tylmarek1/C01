@@ -59,6 +59,7 @@ src/
     api.ts               fetch wrapper for the backend, throws ApiError
     auth-context.tsx     AuthProvider / useAuth (JWT in localStorage)
     i18n.tsx              t() + the EN/CS language switcher
+    theme.tsx              ThemeProvider / useTheme (light/dark, persisted)
     query-client.ts       TanStack Query client
     format.ts             date/time formatting helpers
   locales/                en.ts (source of truth for TranslationKey), cs.ts

@@ -69,6 +69,7 @@ PostgreSQL exclusion constraint, not in application code (ADR-001) — see
 | `lib/chat-socket.ts` | The one WebSocket client — a module-level singleton connection, opened/closed by `auth-context.tsx` alongside the JWT session; not per-component |
 | `lib/auth-context.tsx` | `AuthProvider`/`useAuth` — JWT held client-side |
 | `lib/i18n.tsx` | `t()` + the EN/CS language switcher |
+| `lib/theme.tsx` | `ThemeProvider`/`useTheme` — light/dark, persisted to `localStorage`, toggled via `components/shared/theme-toggle.tsx` |
 | `locales/en.ts` / `cs.ts` | `en.ts` defines `TranslationKey`; `cs.ts` is typed against it, so a *missing* translation is a compile error — a hardcoded string that never became a key is not (see `i18n-check`) |
 | `types/` | Hand-maintained TypeScript mirror of the backend's Pydantic schemas — **no codegen**, so a backend shape change doesn't automatically surface here (see `schema-change-sweep`) |
 

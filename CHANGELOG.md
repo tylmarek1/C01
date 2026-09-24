@@ -31,6 +31,28 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   "Dashboard" in the top nav, the account dropdown, and the mobile menu —
   their primary duty, not an afterthought at the end of the list.
 
+- **App-wide dark mode.** A new `lib/theme.tsx` `ThemeProvider` (mirroring
+  `lib/i18n.tsx`'s provider/hook shape) toggles a `.dark` class on `<html>`,
+  detected from `prefers-color-scheme` on first visit and persisted to
+  `localStorage` after that, with a toggle button (`components/shared/
+  theme-toggle.tsx`) next to the language switcher in the navbar (desktop
+  and mobile). Because every existing color in this app already flows
+  through the CSS custom properties in `index.css` (`--ink-navy`,
+  `--paper`, `--cloud`, `--hairline`, ...) rather than being hardcoded, a
+  single new `.dark { }` block redefining ~15 base tokens re-themes
+  essentially the entire UI with no per-component changes — see the new
+  comment in `index.css` explaining why redeclaring the derived shadcn
+  tokens (`--background`, `--card`, `--ring`, ...) individually isn't
+  needed. The handful of components using a raw Tailwind palette color
+  instead of a token (status badges, warning/error banners, the
+  destructive dropdown/button hover) got explicit `dark:` variants;
+  purely decorative mid-tone icons (star rating, favorite heart, trophy)
+  were deliberately left as-is since they read fine unchanged in both
+  modes. Also sets `color-scheme` (light/dark) so browser-rendered chrome
+  — the date-input calendar glyph, scrollbars — follows the theme instead
+  of staying stuck on its browser-default dark rendering, which was
+  otherwise nearly invisible against a dark input.
+
 ### Changed
 
 - **Every primitive UI component now sources from the real shadcn/ui CLI

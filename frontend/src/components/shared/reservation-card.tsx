@@ -352,13 +352,13 @@ function ReservationCard({
             {formatDateRange(reservation.start_time, reservation.end_time)}
           </span>
           {status === "PENDING" && reservation.hold_expires_at && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
               <Clock3 className="size-3.5" />
               {t("reservationCard.holdExpires", { time: timeFormatter.format(new Date(reservation.hold_expires_at)) })}
             </span>
           )}
           {status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
               <Clock3 className="size-3.5" />
               {t("reservationCard.approvalExpires", {
                 time: new Date(reservation.approval_expires_at).toLocaleString([], {

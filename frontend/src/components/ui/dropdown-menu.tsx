@@ -58,7 +58,7 @@ function DropdownMenuItem({
       data-variant={variant}
       className={cn(
         "relative flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-navy outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-pebble [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-slate-gray",
-        "data-[variant=destructive]:text-destructive data-[variant=destructive]:[&_svg]:text-destructive data-[variant=destructive]:data-[highlighted]:bg-red-50",
+        "data-[variant=destructive]:text-destructive data-[variant=destructive]:[&_svg]:text-destructive data-[variant=destructive]:data-[highlighted]:bg-red-50 dark:data-[variant=destructive]:data-[highlighted]:bg-red-500/15",
         inset && "pl-8",
         className,
       )}
