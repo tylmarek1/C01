@@ -44,7 +44,8 @@ concurrent demand (see [Architecture & decisions](#architecture--decisions)).
 - A personal calendar feed (Google/Apple/Outlook) and in-app
   notifications, including browser push.
 - A built-in Help Center (getting-started guide, a plain-language
-  reservation-status glossary, FAQ) and a full English/Czech UI.
+  reservation-status glossary, FAQ), a full English/Czech UI, and a
+  light/dark theme.
 
 ### For venue managers
 
