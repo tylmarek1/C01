@@ -17,6 +17,8 @@ import {
 import { LanguageSwitcher } from "@/components/shared/language-switcher"
 import { Logo } from "@/components/shared/logo"
 import { NotificationsBell } from "@/components/shared/notifications-bell"
+import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/shared/theme-toggle"
 import { assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
@@ -72,21 +74,32 @@ function Navbar() {
         <Logo />
 
         <nav className="hidden items-center gap-8 md:flex">
+          {/* Three logical groups, left to right: browse (everyone) → my
+              courts (signed-in player flow) → venue management (manager/
+              admin only) — separated visually so they don't read as one
+              undifferentiated list mixing marketing pages with app actions. */}
           <NavItem to="/courts">{t("nav.courts")}</NavItem>
           <NavItem to="/help">{t("nav.help")}</NavItem>
           {user && (
             <>
+              <Separator orientation="vertical" className="h-4" />
               <NavItem to="/app">{t("nav.dashboard")}</NavItem>
-              {canAccessAdmin && <NavItem to="/app/admin">{t("nav.admin")}</NavItem>}
               <NavItem to="/app/book">{t("nav.book")}</NavItem>
               <NavItem to="/app/teams">{t("nav.teams")}</NavItem>
+              {canAccessAdmin && (
+                <>
+                  <Separator orientation="vertical" className="h-4" />
+                  <NavItem to="/app/admin">{t("nav.admin")}</NavItem>
+                </>
+              )}
             </>
           )}
         </nav>
 
         <div className="flex items-center gap-1.5 sm:gap-3">
-          <div className="hidden sm:block">
+          <div className="hidden items-center gap-1.5 sm:flex">
             <LanguageSwitcher />
+            <ThemeToggle />
           </div>
           {user && <ChatNavButton />}
           {user && <NotificationsBell />}
@@ -120,18 +133,27 @@ function Navbar() {
                     <LayoutDashboard /> {t("nav.dashboard")}
                   </NavLink>
                 </DropdownMenuItem>
-                {canAccessAdmin && (
-                  <DropdownMenuItem asChild>
-                    <NavLink to="/app/admin">
-                      <ShieldCheck /> {t("nav.admin")}
-                    </NavLink>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem asChild>
                   <NavLink to="/app/book">
                     <CalendarPlus /> {t("nav.book")}
                   </NavLink>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <NavLink to="/app/teams">
+                    <Users /> {t("nav.teams")}
+                  </NavLink>
+                </DropdownMenuItem>
+                {canAccessAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <NavLink to="/app/admin">
+                        <ShieldCheck /> {t("nav.admin")}
+                      </NavLink>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <NavLink to="/app/chat">
                     <MessageCircle /> {t("nav.chat")}
@@ -140,11 +162,6 @@ function Navbar() {
                 <DropdownMenuItem asChild>
                   <NavLink to="/app/players">
                     <Search /> {t("playersDirectory.nav")}
-                  </NavLink>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <NavLink to="/app/teams">
-                    <Users /> {t("nav.teams")}
                   </NavLink>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -191,25 +208,30 @@ function Navbar() {
             </NavItem>
             {user && (
               <>
+                <div className="border-t border-hairline" />
                 <NavItem to="/app" onClick={() => setMobileOpen(false)}>
                   {t("nav.dashboard")}
                 </NavItem>
-                {canAccessAdmin && (
-                  <NavItem to="/app/admin" onClick={() => setMobileOpen(false)}>
-                    {t("nav.admin")}
-                  </NavItem>
-                )}
                 <NavItem to="/app/book" onClick={() => setMobileOpen(false)}>
                   {t("nav.book")}
                 </NavItem>
+                <NavItem to="/app/teams" onClick={() => setMobileOpen(false)}>
+                  {t("nav.teams")}
+                </NavItem>
+                {canAccessAdmin && (
+                  <>
+                    <div className="border-t border-hairline" />
+                    <NavItem to="/app/admin" onClick={() => setMobileOpen(false)}>
+                      {t("nav.admin")}
+                    </NavItem>
+                  </>
+                )}
+                <div className="border-t border-hairline" />
                 <NavItem to="/app/chat" onClick={() => setMobileOpen(false)}>
                   {t("nav.chat")}
                 </NavItem>
                 <NavItem to="/app/players" onClick={() => setMobileOpen(false)}>
                   {t("playersDirectory.nav")}
-                </NavItem>
-                <NavItem to="/app/teams" onClick={() => setMobileOpen(false)}>
-                  {t("nav.teams")}
                 </NavItem>
                 <NavItem to="/app/profile" onClick={() => setMobileOpen(false)}>
                   {t("nav.profile")}
@@ -217,7 +239,10 @@ function Navbar() {
               </>
             )}
             <div className="flex items-center justify-between border-t border-hairline pt-4">
-              <LanguageSwitcher />
+              <div className="flex items-center gap-1.5">
+                <LanguageSwitcher />
+                <ThemeToggle />
+              </div>
               {!user && (
                 <div className="flex items-center gap-3">
                   <Button variant="link" size="sm" asChild>

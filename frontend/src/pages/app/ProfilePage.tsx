@@ -592,7 +592,7 @@ function ReviewsTab() {
           <Button
             size="sm"
             variant="ghost"
-            className="text-destructive hover:bg-red-50"
+            className="text-destructive hover:bg-red-50 dark:hover:bg-red-500/15"
             disabled={deleteMutation.isPending}
             onClick={() => setDeleteTarget(review)}
           >

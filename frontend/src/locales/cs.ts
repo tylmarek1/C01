@@ -15,6 +15,8 @@ const cs: Record<TranslationKey, string> = {
   "nav.accountMenu": "Nabídka účtu",
   "nav.menu.open": "Otevřít menu",
   "nav.menu.close": "Zavřít menu",
+  "nav.theme.toggleToDark": "Přepnout na tmavý režim",
+  "nav.theme.toggleToLight": "Přepnout na světlý režim",
 
   "role.PLAYER": "Hráč",
   "role.VENUE_MANAGER": "Správce sportoviště",

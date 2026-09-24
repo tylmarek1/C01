@@ -8,19 +8,22 @@ import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/lib/auth-context"
 import { I18nProvider } from "@/lib/i18n"
 import { queryClient } from "@/lib/query-client"
+import { ThemeProvider } from "@/lib/theme"
 import "@/index.css"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <I18nProvider>
-          <AuthProvider>
-            <App />
-            <Toaster position="top-right" />
-          </AuthProvider>
-        </I18nProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <I18nProvider>
+            <AuthProvider>
+              <App />
+              <Toaster position="top-right" />
+            </AuthProvider>
+          </I18nProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

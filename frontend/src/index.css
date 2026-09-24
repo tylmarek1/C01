@@ -2,14 +2,18 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* This app has no dark-mode UI (no ThemeProvider, no toggle) — the shadcn
-   components pulled from the registry ship `dark:` variants for one anyway.
-   Scoping `dark:` to an explicit `.dark` ancestor (never applied here) keeps
-   those variants inert instead of firing off the OS `prefers-color-scheme`,
-   which would otherwise half dark-mode this app's fixed light palette. */
+/* `lib/theme.tsx`'s ThemeProvider toggles a `.dark` class on <html> — scoping
+   `dark:` to that explicit ancestor (rather than the OS `prefers-color-scheme`
+   directly) is what lets a user's explicit light/dark choice override the
+   system preference instead of always following it. */
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Tells the browser which palette to use for chrome it renders itself —
+     the date-input calendar glyph, native scrollbars, select arrows — none
+     of which `dark:` utility classes can reach. Without this, that glyph
+     stays browser-default dark and nearly disappears against a dark input. */
+  color-scheme: light;
   --radius: 0.5rem;
 
   /* Calendly-inspired palette — navy ink on cool marble */
@@ -62,6 +66,48 @@
     rgba(71, 103, 136, 0.05) 0px 10px 20px 0px;
   --shadow-button: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px,
     rgba(71, 103, 136, 0.06) 0px 15px 30px 0px;
+}
+
+/* Dark mode redefines only the base palette — every shadcn semantic token
+   below (--background, --card, --primary, --ring, ...) is declared in :root
+   as `var(--some-base-token)`, and CSS custom properties resolve those var()
+   references live, per element, at use time — not once at declaration time.
+   So a semantic token never needs to be repeated here: as long as the base
+   token it points to is overridden, the semantic token follows automatically
+   for any element under `.dark`. Placed after :root so it wins the tie on
+   equal specificity (both are effectively one-class selectors). */
+.dark {
+  color-scheme: dark;
+  --ink-navy: #e9f1fb;
+  --signal-blue: #3d8bff;
+  --slate-gray: #93a8c4;
+  --mist-gray: #5b7291;
+  --cloud: #0a1420;
+  --paper: #101d2e;
+  --pebble: #17253a;
+  --hairline: #26394f;
+  --coral-magenta: #ee7dff;
+  --sky-cyan: #1aa8ff;
+  --deep-cobalt: #8ec2ff;
+  --tint-blue: #163357;
+  --highlight-blue: #1b3d66;
+  --signal-blue-hover: #2f7ae6;
+  --ink-navy-hover: #cddaea;
+  /* Destructive is used both as a solid button fill (bg-destructive +
+     text-destructive-foreground) and as standalone text/border on a dark
+     card (text-destructive, aria-invalid:border-destructive) — one red has
+     to serve both roles, so it's brightened for standalone-text legibility
+     on a dark surface, and paired with a dark-red foreground (not white) so
+     the button fill still reads as clearly "danger" rather than washing out. */
+  --destructive: #f87171;
+  --destructive-foreground: #450a0a;
+
+  --shadow-card: rgba(0, 0, 0, 0.35) 0px 4px 5px 0px, rgba(0, 0, 0, 0.3) 0px 8px 15px 0px,
+    rgba(0, 0, 0, 0.45) 0px 30px 50px 0px;
+  --shadow-link: rgba(0, 0, 0, 0.3) 0px 4px 5px 0px, rgba(0, 0, 0, 0.25) 0px 4px 10px 0px,
+    rgba(0, 0, 0, 0.35) 0px 10px 20px 0px;
+  --shadow-button: rgba(0, 0, 0, 0.3) 0px 4px 5px 0px, rgba(0, 0, 0, 0.28) 0px 8px 15px 0px,
+    rgba(0, 0, 0, 0.4) 0px 15px 30px 0px;
 }
 
 @theme inline {
@@ -123,6 +169,7 @@
     color: var(--foreground);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
 }
 

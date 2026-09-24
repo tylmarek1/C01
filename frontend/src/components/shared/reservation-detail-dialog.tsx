@@ -139,7 +139,7 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
               </div>
 
               {reservation.status === "PENDING" && reservation.hold_expires_at && (
-                <p className="text-xs font-medium text-amber-600">
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
                   {t("reservationCard.holdExpires", {
                     time: new Date(reservation.hold_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
                   })}
@@ -147,7 +147,7 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
               )}
 
               {reservation.status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
-                <p className="text-xs font-medium text-amber-600">
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
                   {t("reservationCard.approvalExpires", {
                     time: new Date(reservation.approval_expires_at).toLocaleString([], {
                       day: "numeric",
@@ -205,7 +205,7 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                           type="button"
                           onClick={() => acceptJoinMutation.mutate(request.id)}
                           disabled={acceptJoinMutation.isPending || declineJoinMutation.isPending}
-                          className="flex size-7 items-center justify-center rounded-full text-emerald-700 hover:bg-emerald-50"
+                          className="flex size-7 items-center justify-center rounded-full text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/15"
                           aria-label={t("reservationDetail.joinRequests.accept")}
                         >
                           <Check className="size-4" />

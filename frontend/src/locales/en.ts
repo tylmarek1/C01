@@ -13,6 +13,8 @@ const en = {
   "nav.accountMenu": "Account menu",
   "nav.menu.open": "Open menu",
   "nav.menu.close": "Close menu",
+  "nav.theme.toggleToDark": "Switch to dark mode",
+  "nav.theme.toggleToLight": "Switch to light mode",
 
   "role.PLAYER": "Player",
   "role.VENUE_MANAGER": "Venue manager",

@@ -315,7 +315,7 @@ function DashboardPage() {
               </div>
 
               {pendingApprovalCount > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300">
                   <span className="flex items-center gap-2">
                     <AlertTriangle className="size-4 shrink-0" />
                     {t("dashboard.venueSnapshot.pendingBanner", { count: pendingApprovalCount })}
@@ -560,7 +560,7 @@ function DashboardPage() {
                     <span className="font-medium text-ink-navy">{entry.court.name}</span>
                     <span className="text-sm text-slate-gray">{formatDateRange(entry.start_time, entry.end_time)}</span>
                     {entry.status === "OFFERED" && entry.offer_expires_at && (
-                      <span className="text-xs font-medium text-amber-600">
+                      <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
                         {t("reservationCard.holdExpires", {
                           time: new Date(entry.offer_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
                         })}

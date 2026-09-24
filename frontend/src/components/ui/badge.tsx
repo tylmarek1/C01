@@ -12,9 +12,9 @@ const badgeVariants = cva(
         default: "bg-tint-blue text-deep-cobalt",
         secondary: "bg-pebble text-ink-navy",
         outline: "border border-hairline text-ink-navy",
-        success: "bg-emerald-50 text-emerald-700",
-        destructive: "bg-red-50 text-red-700",
-        warning: "bg-amber-50 text-amber-700",
+        success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+        destructive: "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+        warning: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
       },
     },
     defaultVariants: {

@@ -22,7 +22,7 @@ function ErrorState({ title, description, onRetry, className }: ErrorStateProps)
         className,
       )}
     >
-      <span className="flex size-11 items-center justify-center rounded-full bg-red-50 text-destructive">
+      <span className="flex size-11 items-center justify-center rounded-full bg-red-50 text-destructive dark:bg-red-500/15">
         <AlertCircle className="size-5" />
       </span>
       <p className="font-medium text-ink-navy">{title}</p>
