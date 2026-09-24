@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Input } from "@/components/ui/input"
 import { PlayerSearch } from "@/components/shared/player-search"
@@ -435,9 +435,10 @@ function ChatPage() {
       </div>
 
       <Dialog open={newMessageOpen} onOpenChange={setNewMessageOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("chat.newMessage")}</DialogTitle>
+            <DialogDescription>{t("chat.newMessageDescription")}</DialogDescription>
           </DialogHeader>
           <PlayerSearch
             autoFocus

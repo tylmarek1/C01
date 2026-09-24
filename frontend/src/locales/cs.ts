@@ -327,6 +327,7 @@ const cs: Record<TranslationKey, string> = {
   "chat.composerPlaceholder": "Napište zprávu…",
   "chat.error.sendFailed": "Zprávu se nepodařilo odeslat",
   "chat.newMessage": "Nová zpráva",
+  "chat.newMessageDescription": "Najděte hráče podle jména a začněte konverzaci.",
   "chat.error.startFailed": "Konverzaci se nepodařilo zahájit",
   "chat.messageDeleted": "Zpráva smazána",
   "chat.photoMessage": "📷 Fotka",

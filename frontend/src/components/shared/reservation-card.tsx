@@ -454,7 +454,7 @@ function ReservationCard({
 
         {canInviteGuest && (
           <Dialog open={guestOpen} onOpenChange={setGuestOpen}>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>{t("reservationCard.guest.title")}</DialogTitle>
                 <DialogDescription>{t("reservationCard.guest.description", { court: court.name })}</DialogDescription>

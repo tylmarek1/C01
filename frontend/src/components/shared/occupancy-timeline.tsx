@@ -62,21 +62,22 @@ function OccupancyTimeline({ opensAt, closesAt, busy, className }: OccupancyTime
 
       <div className="flex items-center justify-between text-xs text-slate-gray">
         <span>{timeFormatter.format(new Date(opensAt))}</span>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-ink-navy" /> {t("occupancy.booked")}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-signal-blue/45" /> {t("occupancy.held")}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-destructive/70" /> {t("occupancy.blockedLegend")}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full border border-hairline bg-paper" /> {t("occupancy.free")}
-          </span>
-        </div>
         <span>{timeFormatter.format(new Date(closesAt))}</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-gray">
+        <span className="flex items-center gap-1.5">
+          <span className="size-2.5 shrink-0 rounded-full bg-ink-navy" /> {t("occupancy.booked")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="size-2.5 shrink-0 rounded-full bg-signal-blue/45" /> {t("occupancy.held")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="size-2.5 shrink-0 rounded-full bg-destructive/70" /> {t("occupancy.blockedLegend")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="size-2.5 shrink-0 rounded-full border border-hairline bg-paper" /> {t("occupancy.free")}
+        </span>
       </div>
 
       <p className="text-xs text-slate-gray">

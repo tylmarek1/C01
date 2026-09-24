@@ -325,6 +325,7 @@ const en = {
   "chat.composerPlaceholder": "Write a message…",
   "chat.error.sendFailed": "Could not send the message",
   "chat.newMessage": "New message",
+  "chat.newMessageDescription": "Search for a player by name to start a conversation.",
   "chat.error.startFailed": "Could not start the conversation",
   "chat.messageDeleted": "Message deleted",
   "chat.photoMessage": "📷 Photo",
