@@ -106,6 +106,10 @@ it done (per the root `CLAUDE.md` "definition of done").
 - Check both languages (the language switcher toggles EN/CS) and the
   relevant role (player vs. venue manager) where the change touches
   role-gated UI.
+- Check both light and dark mode (the theme toggle next to the language
+  switcher) for any new or changed color — see the design-system note above
+  on why a raw Tailwind color needs an explicit `dark:` pair and a
+  semantic token doesn't.
 - Check the browser console for errors/warnings the change introduced.
 
 ## Build/lint gate

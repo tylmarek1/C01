@@ -94,6 +94,20 @@ This is a finished, deliberate design decision:
   needed — that's the signal to extract a real `components/shared/` table
   primitive instead of a fourth ad hoc grid (see `architecture-review`'s
   "evidence before abstraction" rule).
+- **`components/shared/player-search.tsx` is the pattern for "type a query,
+  pick a person from a list."** It renders results in normal document flow
+  directly under the input — never a floating `position: absolute`/
+  portaled overlay. That's deliberate, not an oversight: a floating overlay
+  breaks two different ways as soon as it's opened from inside a `Dialog`
+  (and this component is used from two) — `DialogContent`'s
+  `overflow-y-auto` treats an absolutely-positioned child as extra
+  *scrollable* height instead of showing it as a layer over the content,
+  and escaping that via a portal to `document.body` runs into Radix
+  `Dialog`'s own modality guard, which marks everything outside its own
+  portal `inert` (unclickable) while open — including a separate portal.
+  Follow this component's in-flow-list shape for a new "search and pick"
+  UI rather than reaching for a floating-dropdown/combobox pattern,
+  especially one that might ever render inside a `Dialog`.
 
 ## Before finishing
 
