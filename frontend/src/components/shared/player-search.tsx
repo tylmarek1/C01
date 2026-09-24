@@ -56,10 +56,10 @@ function PlayerSearch({
   })
 
   const filtered = (results ?? []).filter((player) => !excludeIds?.includes(player.id))
-  const showDropdown = open && debounced.length >= 2
+  const showResults = open && debounced.length >= 2
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="flex flex-col gap-2">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-gray" />
         <Input
@@ -74,11 +74,21 @@ function PlayerSearch({
           autoFocus={autoFocus}
         />
       </div>
-      {showDropdown && (
-        <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-hairline bg-card shadow-lg">
-          {isFetching && <div className="p-3 text-sm text-slate-gray">{t("playerSearch.searching")}</div>}
+      {/* Rendered in normal document flow, right under the input, instead of
+          as a floating `position: absolute`/portaled overlay — that overlay
+          approach broke in every Dialog it was used from: a Dialog's
+          `overflow-y-auto` content box swallowed an `absolute` dropdown as
+          extra scroll height instead of showing it, and escaping via a
+          portal to `document.body` ran straight into Radix Dialog's own
+          modality guard, which marks everything outside its own portal
+          `inert` (unclickable) while open — including a separate portal like
+          that one. Living in the layout avoids both failure modes outright:
+          nothing to clip, nothing external to be marked inert. */}
+      {showResults && (
+        <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+          {isFetching && <p className="px-1 py-2 text-sm text-slate-gray">{t("playerSearch.searching")}</p>}
           {!isFetching && filtered.length === 0 && (
-            <div className="p-3 text-sm text-slate-gray">{t("playerSearch.empty")}</div>
+            <p className="px-1 py-2 text-sm text-slate-gray">{t("playerSearch.empty")}</p>
           )}
           {!isFetching &&
             filtered.map((player) => (
@@ -91,9 +101,9 @@ function PlayerSearch({
                   setDebounced("")
                   setOpen(false)
                 }}
-                className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-pebble"
+                className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-pebble"
               >
-                <Avatar className="size-8">
+                <Avatar className="size-9">
                   <AvatarImage src={assetUrl(player.avatar_url)} alt={player.name} loading="lazy" className="object-cover" />
                   <AvatarFallback>{initials(player.name)}</AvatarFallback>
                 </Avatar>

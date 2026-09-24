@@ -71,6 +71,33 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   dropdowns) before and after. See `component-design` for the pattern to
   follow when adding a new primitive.
 
+### Fixed
+
+- **`PlayerSearch`'s result dropdown was broken inside every `Dialog` that
+  used it** ("New message" in Chat, "Invite a player" on a reservation
+  card) — a `position: absolute` overlay inside a `Dialog`'s
+  `overflow-y-auto` content box gets treated as extra *scrollable* height
+  rather than shown as a floating layer, so results rendered off-screen
+  and needed scrolling the whole dialog down to reach. Rebuilt as an
+  inline, in-flow list directly under the search input instead of a
+  floating overlay — the simpler shape avoids that failure mode outright
+  (nothing to clip, nothing to escape a scroll container for), rather
+  than fighting it with an escape-hatch (a portal + fixed positioning was
+  tried and hit a second failure mode — Radix `Dialog`'s modality guard
+  marks everything outside its own portal `inert` while open, which
+  included a separate portal). Both dialogs using it (`ChatPage.tsx`,
+  `reservation-card.tsx`) were also widened (`max-w-md` → `max-w-lg`) and
+  given a `DialogDescription`, since a name-search list needs more room
+  than a bare input did.
+- **The occupancy timeline's legend overlapped itself on `/book`.** Time
+  labels ("07:00"/"22:00") and the four status-dot legend items shared one
+  `justify-between` row with no minimum gap between them; on `/book`'s
+  narrower sidebar card (`max-w-4xl` vs. `CourtDetailPage`'s `max-w-5xl`,
+  where the same component happened to fit) the two ends collided with
+  the legend group with zero spacing. Split into two rows — times on one,
+  a `flex-wrap`-capable legend on the next — so it can never collide
+  regardless of container width.
+
 ## [0.2.0] - 2026-09-23
 
 ### Fixed
