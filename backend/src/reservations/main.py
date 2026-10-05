@@ -30,7 +30,7 @@ from reservations.api import (
 )
 from reservations.config import settings
 from reservations.deps import session_factory
-from reservations.worker import run_forever
+from reservations.worker import run_forever, run_push_dispatcher
 
 logger = logging.getLogger("reservations.api")
 
@@ -40,14 +40,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Skipped under pytest (TestClient(app) without `with` never triggers
     # lifespan anyway, but `uv run pytest` also sets this so a `with`-style
     # test client wouldn't accidentally spin up a second worker loop either).
-    worker_task = None
+    tasks: list[asyncio.Task] = []
     if os.environ.get("PYTEST_CURRENT_TEST") is None:
-        worker_task = asyncio.create_task(run_forever(session_factory))
+        tasks.append(asyncio.create_task(run_forever(session_factory)))
+        tasks.append(asyncio.create_task(run_push_dispatcher(session_factory)))
     try:
         yield
     finally:
-        if worker_task is not None:
-            worker_task.cancel()
+        for task in tasks:
+            task.cancel()
 
 
 app = FastAPI(title="Sports Court Reservations", lifespan=lifespan)

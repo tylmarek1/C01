@@ -14,6 +14,7 @@ from reservations.models.message import Message
 from reservations.models.message_reaction import ALLOWED_REACTION_EMOJI, MessageReaction
 from reservations.models.notification import Notification, NotificationType
 from reservations.models.player_follow import PlayerFollow
+from reservations.models.push_delivery import PushDelivery, PushDeliveryStatus
 from reservations.models.push_subscription import PushSubscription
 from reservations.models.reservation import (
     ACTIVE_RESERVATION_STATUSES,
@@ -49,6 +50,8 @@ __all__ = [
     "Notification",
     "NotificationType",
     "PushSubscription",
+    "PushDelivery",
+    "PushDeliveryStatus",
     "WaitlistEntry",
     "WaitlistStatus",
     "ReservationSeries",
