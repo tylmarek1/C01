@@ -50,7 +50,7 @@ def unsubscribe(
 ) -> None:
     # Idempotent by design: the frontend calls this on "turn notifications
     # off" without first checking whether a push delivery already deleted
-    # the same row as stale (see notifications.py's _send_web_push).
+    # the same row as stale (see push_delivery.py).
     subscription = db.scalar(
         select(PushSubscription)
         .where(PushSubscription.endpoint == endpoint)

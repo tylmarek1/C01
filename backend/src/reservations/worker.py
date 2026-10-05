@@ -7,6 +7,10 @@ reservation engine needs on its own:
 - send a one-time reminder ~2h before a confirmed slot starts
 - auto-complete reservations whose slot has passed
 - expire unanswered waitlist offers and cascade to the next person
+
+A second, faster loop drains the Web Push outbox (ADR-005). Both loops run
+their synchronous DB/HTTP work in a thread, so a slow push service or a
+long tick never blocks the event loop that serves API requests.
 """
 
 import asyncio
@@ -16,7 +20,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from reservations import achievements, rules, waitlist_service
+from reservations import achievements, push_delivery, rules, waitlist_service
 from reservations.lifecycle import transition
 from reservations.models import (
     NotificationType,
@@ -189,7 +193,16 @@ def tick(session_factory: sessionmaker) -> None:
 async def run_forever(session_factory: sessionmaker) -> None:
     while True:
         try:
-            tick(session_factory)
+            await asyncio.to_thread(tick, session_factory)
         except Exception:
             logger.exception("Background worker tick failed")
         await asyncio.sleep(TICK_SECONDS)
+
+
+async def run_push_dispatcher(session_factory: sessionmaker) -> None:
+    while True:
+        try:
+            await asyncio.to_thread(push_delivery.dispatch_once, session_factory)
+        except Exception:
+            logger.exception("Push dispatcher failed")
+        await asyncio.sleep(push_delivery.DISPATCH_SECONDS)

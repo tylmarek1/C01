@@ -55,6 +55,17 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Changed
 
+- **Browser push notifications are now sent after the change is saved, with
+  retries (C03, ADR-005).** `notify()` used to call the push service
+  synchronously inside the request's transaction — while holding the
+  reservation's row lock and before commit, so a slow push service delayed
+  competing Cancel/Approve/expiry, and a push could announce a change that
+  then rolled back. Pushes are now queued in a `push_deliveries` outbox in
+  the same transaction and sent by a 5 s background dispatcher
+  (`push_delivery.py`, the only `pywebpush` user) with retry/backoff;
+  pushes may arrive a few seconds later than before. Both background loops
+  now run off the event loop. New table only — `create_all` creates it.
+
 - **Every primitive UI component now sources from the real shadcn/ui CLI
   registry instead of being hand-rolled.** `components/shared/{avatar,badge,
   button,card,dialog,dropdown-menu,input,label,select,separator,skeleton,

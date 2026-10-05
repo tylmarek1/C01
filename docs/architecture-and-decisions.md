@@ -228,3 +228,532 @@ Block contents:
 | Question | **Should sending notifications (especially external Web Push) stay inside the transaction that holds the reservation's row lock, or move after commit (e.g. an outbox processed asynchronously)?** |
 | Evidence | `confirm_reservation()` takes `SELECT … FOR UPDATE` (`api/reservations.py:423`) and calls `notify()` → `_send_web_push()` **before** `db.commit()` (`:466-474`). `webpush()` is a synchronous HTTPS call with `timeout=5` per subscription (`notifications.py:42`). On an approval court the loop runs over every manager and admin and each of their subscriptions (`approval_service.py:41-52`). **Runtime probe (2026-10-05, temporary test, not committed):** with `webpush` replaced by a function that queries the database from a second session during the push, the second session's `SELECT … FOR UPDATE` failed with `LockNotAvailable`, and the committed status it saw was still `PENDING`. The API then returned `200 CONFIRMED`. The hold-expiry worker follows the same pattern: it calls `notify()` while holding the row lock (`worker.py:50-56`). So the push "Reservation confirmed" goes out while the change is uncommitted and the row is locked. |
 | Why it matters | **REQ-07 / AD-3:** every competing writer on that row (Cancel, Approve, Reject, the expiry worker) waits up to *n × 5 s* for external endpoints. The worker uses `SKIP LOCKED`, so a slow push silently delays the BR-06/BR-12 sweep. **Consistency:** if the commit fails (D-08's 409 backstop, or a connection error), the user has already received a push about a state change that never happened. `notifications.py:17-24` calls this "theoretical", but Confirm does fallible work (`db.commit()`) after `notify()`. **AD-5:** there is no retry or delivery guarantee for the person who has to act on an approval. This decides where the notification boundary sits in the target architecture. |
+
+## C03 — Architecture: Confirm Reservation and the notification boundary
+
+Assignment: `docs/course/C03.md` (the full C03 after Part A). This section
+builds on the Part A trace above, which is the AS-IS record and is not
+rewritten. Scenario: **OP-03 Confirm Reservation** (Baseline v0.2, REQ-04,
+REQ-05, REQ-07). Code paths are relative to `backend/src/reservations/`.
+Implementation commit: `65aad78`.
+
+**What changed in Part A since it was written:** only the notification
+path. A2 row 6a, the A6 "Web Push services" row, A7's "Notification
+integration" block and the A8 question describe code that was replaced
+in K below. In the TO-BE design, `notify()` makes no network call, and
+Web Push is sent by `push_delivery.py`. Every other Part A item still
+matches the code.
+
+### B. Architectural drivers
+
+This builds on C02's AD-1…AD-6 (`docs/change-c02-impact.md` §3) and the
+Part A findings. BR-02 concurrency is **not** reopened: ADR-001 already
+puts it in the database, and the Part A trace confirmed that Confirm
+cannot break it (D-08).
+
+| # | Source | Why it affects the architecture | Question the architecture must answer |
+|---|---|---|---|
+| **DR-1** | REQ-07, AD-3; Part A A5/A8 (row lock held while `notify()` ran) | Every state change on one reservation (Confirm, Cancel, Approve, Reject, both expiries) is serialised on that row's `FOR UPDATE` lock. Anything done while the lock is held adds to the wait of every competing writer, and the expiry sweep uses `SKIP LOCKED`, so it silently skips locked rows. | What may run while a reservation's row lock is held? In particular, may an external call run there? |
+| **DR-2** | OP-03 postconditions ("owner notified", "every Venue Manager notified"), AD-5; Part A A8 runtime probe | Telling the person who must act (a manager approving) is part of the behaviour. The external push service can be slow or down, and the AS-IS code sent a push for a change that was not committed yet. | Should a notification failure change the outcome of Confirm? Who retries? Can a notification ever announce a change that rolled back? |
+| **DR-3** | BR-09, BR-11, REQ-11, AD-4; Part A A5 (BR-11 checked in two places, the router picks the target state) | The approval rule is worthless if any path reaches `CONFIRMED` around it. Several entry points (Confirm, Approve, waitlist, worker) change one lifecycle. | Who owns each transition decision, and who may only *request* a transition? |
+| **DR-4** | BR-06, BR-12, REQ-05, REQ-10, AD-1 | A `PENDING_APPROVAL` request outlives its HTTP request by up to 24 h. Its expiry, and the hold's, must fire even if nobody calls the API. | Who owns the pending approval state, and who performs the later time-driven or manager-driven transitions? |
+
+### C1. Domain class model (Confirm + approval slice)
+
+```mermaid
+classDiagram
+    direction LR
+    class User {
+        role : PLAYER | VENUE_MANAGER | ADMIN
+        mutedNotificationTypes
+    }
+    class Court {
+        <<Resource>>
+        active : bool
+        requiresApproval : bool
+    }
+    class Reservation {
+        state : ReservationState
+    }
+    class TimeInterval {
+        <<value object>>
+        start : instant
+        end : instant
+        overlaps(other) half-open [start, end)
+    }
+    class Hold {
+        <<value object>>
+        deadline = createdAt + 5 min
+    }
+    class ApprovalRequest {
+        <<value object>>
+        submittedAt
+        deadline = min(submittedAt + 24 h, start)
+    }
+    class ReservationEvent {
+        type : CREATED | SUBMITTED | CONFIRMED | ...
+        at
+    }
+    class Notification {
+        type
+        title
+        message
+        readAt
+    }
+    class PushSubscription {
+        endpoint
+    }
+
+    User "1" -- "0..*" Reservation : owns
+    Court "1" -- "0..*" Reservation : allocates
+    Reservation "1" *-- "1" TimeInterval : slot
+    Reservation "1" *-- "0..1" Hold : while PENDING
+    Reservation "1" *-- "0..1" ApprovalRequest : while PENDING_APPROVAL
+    Reservation "1" *-- "1..*" ReservationEvent : audit trail
+    ReservationEvent "0..*" -- "0..1" User : actor
+    User "1" -- "0..*" Notification : recipient
+    User "1" -- "0..*" PushSubscription : device channel
+```
+
+Invariants attached to the relationships:
+- **Court–Reservation (BR-02):** the blocking reservations (`PENDING`, `PENDING_APPROVAL`, `CONFIRMED`, `CHECKED_IN`) of one court never have overlapping `TimeInterval`s.
+- **Reservation–ApprovalRequest (BR-11/BR-12):** exists only while the state is `PENDING_APPROVAL`. It is created only if `Court.requiresApproval`, and only a Venue Manager's Approve/Reject (or expiry) ends it.
+- **Reservation–Hold (BR-06):** exists only while `PENDING`. An expired hold cannot be confirmed.
+
+`Hold` and `ApprovalRequest` are domain concepts. In code they are the
+columns `hold_expires_at` and `approval_expires_at` on `reservations`
+(Part A A5), not separate tables. The model is consistent with v0.2 §1–§3
+and with the Project Frame's core concepts. "Time slot" became
+`TimeInterval`, and the notification concepts were added for DR-2.
+
+### C2. System responsibilities
+
+| # | Source | Responsibility | What it must decide / own | One clear owner? | Why | Group with (shared state/invariant) | Separate from (different change reason, failure/trust boundary, tech) |
+|---|---|---|---|---|---|---|---|
+| R1 | BR-10 | Authenticate the caller; check owner-or-manager / manager-only | identity, role | yes | two authorisation rules for one operation would drift | — | lifecycle rules (identity tech and token format change for their own reasons, ADR-003) |
+| R2 | OP-03, BR-09, BR-06, BR-11, statechart | Decide whether a transition is allowed and perform it, including Confirm's target per court | Reservation state, guards, audit event | **yes** | entry points must not decide differently (DR-3) | R4 (same row), the audit event | HTTP parsing; notifications; scheduling |
+| R3 | BR-02, REQ-02 | Keep blocking reservations non-overlapping under concurrency | the exclusion constraint | **yes** | only one mechanism is race-free (ADR-001) | reservation persistence | application code (a Python check would race) |
+| R4 | REQ-07, DR-1 | Serialise changes to one reservation; keep the critical section short | row lock scope | yes | a lock taken differently in each path reopens races | R2 | any external I/O (DR-1) |
+| R5 | BR-11, BR-12, DR-4 | Manage the approval request: submit, compute the deadline, choose who must be told | approval deadline, recipient set | yes | the request outlives the HTTP request | R2 (it requests transitions from R2) | authorisation of the approver (R1), delivery (R8) |
+| R6 | BR-06, BR-12, REQ-05/10, DR-4 | Fire time-driven transitions and background work | when expiry/dispatch runs | yes | must run without a request | — | request handling (different runtime trigger) |
+| R7 | OP-03 postconditions, DR-2 | Record a notification for the recipient atomically with the business change | `Notification` row, mute preference, the queued push | yes | "owner notified" must be true iff the change committed | the business transaction | external delivery (R8) |
+| R8 | DR-1, DR-2, AD-5 | Deliver the notification over Web Push: retry, give up, drop dead subscriptions | delivery attempts, vendor API (VAPID, `pywebpush`) | **yes, by design** | an external failure must have exactly one, explicit handler | `PushSubscription` | all business logic (external technology, failure boundary, vendor-driven change) |
+
+### D. Decision question
+
+> **Where should the Web Push integration be isolated, and when, relative
+> to the business transaction and its reservation row lock, should a
+> notification be delivered? In other words, what does a slow or failing
+> push service mean for Confirm Reservation?**
+
+This follows from DR-1 and DR-2. It affects structure (who may import the
+vendor SDK), interaction (sync vs. async), runtime (which loop sends) and
+ownership of delivery state. The AS-IS code (send inside the transaction,
+under the lock) is the baseline that both alternatives must improve on.
+
+### E1. Two materially different alternatives
+
+**Alternative A: send after commit, inside the request.**
+
+```
+[Reservation API] --commit--> [PostgreSQL]
+        |
+        | after commit: send collected pushes (sync, best effort)
+        v
+[Push Integration] --HTTPS--> [Web Push services]
+```
+
+`notify()` writes the `Notification` row and collects the pending pushes
+in the session. After a successful `db.commit()`, the request handler
+calls the push integration synchronously, then returns the response.
+There is no persistent delivery state and no retry.
+
+**Alternative B: transactional outbox and background dispatcher.**
+
+```
+[Reservation API] --notify()--> [Notification Inbox/Outbox] --INSERT Notification + PushDelivery--> [PostgreSQL]
+                                                                                                     ^
+[Scheduler loop, every 5 s] --dispatch_due()--> [Push Delivery Integration] --SELECT … SKIP LOCKED---+
+                                                         |
+                                                         +--HTTPS (VAPID)--> [Web Push services]
+```
+
+`notify()` writes the `Notification` row **and** a `push_deliveries`
+outbox row in the caller's transaction. A dedicated background loop sends
+committed outbox rows, retries with backoff and records the result.
+
+### E2. Comparison against the drivers
+
+| Criterion (driver) | A — after commit, in request | B — outbox + dispatcher |
+|---|---|---|
+| Lock duration (DR-1) | Lock released at commit. The push happens after it, so other writers no longer wait. | Lock released at commit. The request never touches the push service. |
+| Consistency: no push for a rolled-back change (DR-2) | Holds: sends only after a successful commit. | Holds: the outbox row commits or rolls back with the change. |
+| Durability: a committed change is eventually notified (DR-2) | **No.** A crash, deploy or restart between commit and send loses the push. A push-service outage loses it too (no retry). | **Yes** (at least once). The row survives restarts. A transient failure is retried after 30 s, 1 min, 2 min and 4 min, then `FAILED` (the in-app row still exists). |
+| Caller-visible latency / failure (DR-2) | Confirm's HTTP response waits for (recipients × subscriptions) × up to 5 s. On an approval court that means every manager's devices. The push service's health leaks into API latency. | Response time is independent of the push service (12 ms measured in K). The push arrives ≤ 5 s + send time after commit. |
+| Ownership / change (DR-3-style single owner) | The vendor SDK is isolated in one module, but the *trigger* is in every route that commits (each must remember the after-commit call) or in a session hook. | Vendor SDK and delivery state are owned by one module. Business code only calls `notify()`. One trigger (the scheduler loop). |
+| Operational complexity | No new table or loop. | One new table (`push_deliveries`, picked up by `create_all`), one more background loop, a backlog to watch (`status = FAILED`). |
+
+### E3. Walkthrough: Confirm on an approval-required court, with the push service hanging and a concurrent Cancel
+
+| Step / event | Alternative A | Alternative B |
+|---|---|---|
+| Confirm starts | API locks the row (`FOR UPDATE`), checks owner, hold, court | same |
+| Approval needed (OP-03 step 5b) | `submit_for_approval()` → `PENDING_APPROVAL`, deadline, `Notification` rows for the owner and N managers; N+1 pushes collected in memory | same transition and rows, plus N+1 `push_deliveries` rows in the same transaction |
+| Commit / request ends | Commit releases the lock. The request then makes N+1 (× subscriptions) synchronous HTTPS calls; with the service hanging, each takes the 5 s timeout before the response is sent. | Commit releases the lock; response returned immediately (`PENDING_APPROVAL`) |
+| Concurrent Cancel by the owner (REQ-07) | Not blocked (the lock is gone), so it ends `CANCELLED`. The Confirm caller is still waiting for its own response, and managers may get "Approval needed" for a request that is already cancelled. | Not blocked, ends `CANCELLED`. The dispatcher may still deliver "Approval needed" *and then* the cancellation notice. Both are true, committed facts, in creation order. |
+| Push service down | Pushes lost; only a log line. In-app notifications remain. | Rows stay `PENDING` and are retried; `FAILED` after 5 attempts; in-app notifications remain. Confirm's outcome is unaffected in both. |
+| Process crash right after commit | Pushes lost | Rows survive; sent after restart |
+| Commit fails (D-08 backstop or DB error) | Nothing sent | Outbox rows rolled back; nothing sent |
+| Approval comes later (OP-05, a separate request) | Same pattern in the Approve request: "Reservation approved" waits on the push service | Approve commits `CONFIRMED` + outbox row; dispatcher sends it |
+
+Both alternatives implement the required behaviour (state, in-app
+notification, BR-02/BR-11) and both fix the Part A defect. They differ in
+DR-2 (durability, caller latency) and in who owns delivery.
+
+### ADR-005: Deliver Web Push through a transactional outbox drained by a background dispatcher
+
+- **Status:** accepted (C03, 2026-10-05). Implemented in `65aad78`.
+- **Context:** the C03 Part A trace and its runtime probe showed that `notify()` made synchronous Web Push calls (5 s timeout each) inside the caller's transaction. For Confirm, that meant while holding the reservation's `FOR UPDATE` lock, and before commit, so a push could announce an uncommitted change. On an approval court the call is repeated for every manager and device.
+- **Drivers:** DR-1 (lock scope, REQ-07), DR-2 (notification after a business change, failure and retry, AD-5); secondarily DR-4 (work that outlives the request).
+- **Alternative A:** send after commit, synchronously, inside the request. No new state, but pushes are lost on crash or outage, and the API response waits for the push service.
+- **Alternative B:** a transactional outbox (`push_deliveries`) written by `notify()` in the business transaction, sent by a dispatcher loop in the background worker with retry and backoff.
+- **Decision:** B. `notify()` does no network I/O. It writes the `Notification` and, if the user has a subscription, a `PushDelivery` row. `push_delivery.py` is the only module that imports `pywebpush`. It sends due rows (`FOR UPDATE SKIP LOCKED`, batch 50), deletes subscriptions the push service reports gone (404/410), and retries other failures after 30 s, 1 min, 2 min and 4 min, then marks the row `FAILED`. The loop lives in `worker.py` (the scheduler owns all time-driven work, per `backend/CLAUDE.md`), runs every 5 s, and does its blocking work in a thread (`asyncio.to_thread`).
+- **Why:** it is the only option where a committed change is eventually pushed (DR-2) and where neither the row lock nor the API response depends on an external service (DR-1). Delivery state and the vendor API get exactly one owner (R8).
+- **Accepted negative consequences:**
+  - A push arrives up to ~5 s after the change. The in-app notification is immediate.
+  - Delivery is *at least once*: a delivery that reached one device and failed transiently on another is retried as a whole.
+  - Every malformed or misconfigured subscription is retried five times before `FAILED`, because non-`WebPushException` errors count as transient.
+  - There is a new table that grows without clean-up, and `FAILED` rows are only visible in the database.
+  - The dispatcher holds `FOR UPDATE` on its outbox batch while sending. These rows are not reservations, and `SKIP LOCKED` keeps a second dispatcher from blocking on them.
+  - Like the rest of `worker.py`, the loop assumes a single process (AD-1, ADR-004).
+- **Reopen when:**
+  - push latency of a few seconds becomes a product problem;
+  - the app runs as more than one process, and a scheduler or leader election is needed;
+  - a second external channel (e-mail/SMS) appears, which could make a broker or a provider-neutral delivery service worth it;
+  - outbox volume needs retention or monitoring;
+  - per-subscription delivery state is needed to avoid duplicate pushes.
+
+### G1. System context
+
+```mermaid
+flowchart LR
+    player(["Player"])
+    manager(["Venue Manager / Admin"])
+    sys["<b>Courtly Reservation System</b>"]
+    push["<b>Web Push services</b><br/>external: browser vendors' push endpoints"]
+    devices(["Player's / manager's browser<br/>(service worker)"])
+
+    player -->|"reservation commands: create, confirm, cancel;<br/>push subscription; JWT bearer token"| sys
+    manager -->|"approve / reject, court administration, confirm on behalf"| sys
+    sys -->|"reservation state, in-app notifications (HTTP responses)"| player
+    sys -->|"approval queue, in-app notifications"| manager
+    sys -->|"push message: title + body,<br/>VAPID-signed HTTPS POST"| push
+    push -->|"push event"| devices
+```
+
+There is no external IdP: identity is the system's own JWT and password
+store (ADR-003). The database is part of the system, not an external
+system. Time-driven behaviour (expiry) is triggered internally by the
+system clock.
+
+### G2. TO-BE static architecture
+
+```mermaid
+flowchart TB
+    subgraph sys["Courtly Reservation System"]
+        api["<b>Reservation API</b><br/>role: accept commands, authorise owner/manager,<br/>open txn + take row lock, commit<br/>owns: request scope only"]
+        idn["<b>Identity</b><br/>role: authenticate bearer token, load role<br/>owns: credentials, JWT validation"]
+        life["<b>Reservation Lifecycle</b><br/>role: decide + perform transitions (BR-06/09/11 guards), audit<br/>owns: Reservation lifecycle state, ReservationEvent"]
+        appr["<b>Approval Workflow</b><br/>role: submit for approval, BR-12 deadline, recipients<br/>owns: approval deadline"]
+        sched["<b>Scheduler</b><br/>role: time-driven work: hold/approval expiry,<br/>push dispatch loop (5 s)<br/>owns: when background work runs"]
+        inbox["<b>Notification Inbox & Outbox</b><br/>role: record notification + queue push in caller's txn,<br/>no network I/O<br/>owns: Notification, PushDelivery (queued), mute prefs"]
+        pushi["<b>Push Delivery Integration</b><br/>role: send queued pushes, retry/backoff, drop gone subscriptions<br/>owns: delivery attempts, vendor SDK + VAPID"]
+    end
+    db[("<b>PostgreSQL 16</b><br/>owns: BR-02 exclusion constraint, row locks")]
+    wp["<b>Web Push services</b> (external)"]
+
+    api -->|"authenticate(token)"| idn
+    api -->|"transition(target) — request"| life
+    api -->|"submit_for_approval()"| appr
+    appr -->|"transition(PENDING_APPROVAL) — request"| life
+    api -->|"notify()"| inbox
+    appr -->|"notify()"| inbox
+    sched -->|"transition(EXPIRED) — request"| life
+    sched -->|"dispatch_due()"| pushi
+    api -->|"SELECT … FOR UPDATE, COMMIT"| db
+    life -->|"UPDATE status, INSERT event"| db
+    inbox -->|"INSERT Notification + PushDelivery"| db
+    pushi -->|"SELECT due … SKIP LOCKED, UPDATE"| db
+    pushi -->|"HTTPS POST (VAPID)"| wp
+```
+
+The ADR-005 decision is visible in the diagram: there is **no** dependency
+from the Inbox/Outbox (called inside business transactions) to Web Push.
+The only path to the external service is Scheduler → Push Delivery
+Integration → Web Push.
+
+Each C2 responsibility has exactly one owner:
+
+| Responsibility | Owner |
+|---|---|
+| R1 | Identity, which authenticates. The owner-or-manager check is the Reservation API's request-level authorisation. |
+| R2 | Reservation Lifecycle |
+| R3 | PostgreSQL (exclusion constraint, ADR-001) |
+| R4 | Reservation API, which takes the lock and bounds the critical section to the transaction |
+| R5 | Approval Workflow |
+| R6 | Scheduler |
+| R7 | Notification Inbox & Outbox |
+| R8 | Push Delivery Integration |
+
+Code mapping:
+
+| Element | Code |
+|---|---|
+| Reservation API | `api/reservations.py` |
+| Identity | `deps.py`, `security.py` |
+| Reservation Lifecycle | `lifecycle.py` |
+| Approval Workflow | `approval_service.py` |
+| Scheduler | `worker.py` |
+| Notification Inbox & Outbox | `notifications.py`, `models/notification.py`, `models/push_delivery.py` |
+| Push Delivery Integration | `push_delivery.py`, `models/push_subscription.py` |
+
+### G3. Transition ownership (v0.2 statechart §5.2)
+
+v0.2 has no `DRAFT` state, so the course's example rows map to `PENDING`.
+
+| Transition | Decision owner (G2) | May only request it |
+|---|---|---|
+| `PENDING → CONFIRMED` | Reservation Lifecycle (`transition()` edge table + `_check_guards`: hold, court active, **court does not require approval**) | Reservation API (Confirm on a normal court) |
+| `PENDING → PENDING_APPROVAL` | Reservation Lifecycle (edge table + hold/court guards) | Approval Workflow (`submit_for_approval`, on behalf of the API's Confirm) |
+| `PENDING_APPROVAL → CONFIRMED` | Reservation Lifecycle (guard: `approval_decision`, deadline, court active) | Reservation API's Approve, manager-only via Identity |
+| `PENDING_APPROVAL → REJECTED` | Reservation Lifecycle (guard: `approval_decision`, deadline) | Reservation API's Reject, manager-only |
+| `PENDING → EXPIRED`, `PENDING_APPROVAL → EXPIRED` | Reservation Lifecycle (edge table) | Scheduler (`_expire_stale_holds`, `_expire_stale_approvals`) |
+| `PENDING / PENDING_APPROVAL / CONFIRMED → CANCELLED` | Reservation Lifecycle (`check_cancellable` + edge table) | Reservation API's Cancel |
+
+The API *chooses* which transition to request (normal vs. approval
+court), but it never decides alone. If it requested `CONFIRMED` on an
+approval court, the Lifecycle guard rejects it with 409 (VE-03.9/03.10,
+`lifecycle.py:112-120`). The Lifecycle is therefore the single decision
+owner for DR-3.
+
+### G4. Runtime / deployment mapping
+
+```mermaid
+flowchart LR
+    subgraph proc["Process: uvicorn / fastapi (one process, one worker)"]
+        subgraph pool["Request threads (FastAPI threadpool)"]
+            p1["Reservation API · Identity ·<br/>Reservation Lifecycle · Approval Workflow ·<br/>Notification Inbox & Outbox"]
+        end
+        subgraph loop["asyncio event loop (lifespan tasks)"]
+            t1["Scheduler: tick loop, every 30 s<br/>→ asyncio.to_thread(tick)"]
+            t2["Scheduler: push dispatch loop, every 5 s<br/>→ asyncio.to_thread(dispatch_once)<br/>runs Push Delivery Integration"]
+        end
+    end
+    spa["Browser SPA (React, served by Vite / static host)"]
+    db[("PostgreSQL 16<br/>docker compose service 'db'")]
+    wp["Web Push services (external)"]
+
+    spa -->|"HTTPS JSON + JWT"| p1
+    p1 -->|"SQL (psycopg)"| db
+    t1 -->|"SQL"| db
+    t2 -->|"SQL"| db
+    t2 -->|"HTTPS POST (VAPID)"| wp
+    wp -.->|"push event"| spa
+```
+
+All logical elements run in one deployable, the backend process (ADR-000,
+ADR-004). The Push Delivery Integration only runs in the dispatch loop's
+thread, never in a request thread. That is ADR-005 seen at runtime.
+
+### H1. Design sequence: Confirm Reservation (TO-BE)
+
+```mermaid
+sequenceDiagram
+    actor P as Player
+    participant API as Reservation API
+    participant ID as Identity
+    participant AW as Approval Workflow
+    participant LC as Reservation Lifecycle
+    participant NO as Notification Inbox & Outbox
+    participant DB as PostgreSQL
+    participant SC as Scheduler (dispatch loop)
+    participant PD as Push Delivery Integration
+    participant WP as Web Push services
+
+    P->>API: POST /reservations/{id}/confirm
+    API->>ID: authenticate(token)
+    ID-->>API: User (role)
+    API->>DB: SELECT reservation FOR UPDATE
+    API->>API: owner or manager? (else 403)
+    alt court.requires_approval
+        API->>AW: submit_for_approval(reservation)
+        AW->>LC: transition(PENDING_APPROVAL)
+        LC->>LC: edge + guards (hold valid, court active)
+        LC->>DB: UPDATE status, INSERT event SUBMITTED
+        AW->>NO: notify(owner), notify(each manager)
+        NO->>DB: INSERT Notification + PushDelivery (per recipient)
+    else normal court
+        API->>LC: transition(CONFIRMED)
+        LC->>LC: edge + guards (hold valid, court active, no approval needed)
+        LC->>DB: UPDATE status, INSERT event CONFIRMED
+        API->>NO: notify(owner)
+        NO->>DB: INSERT Notification + PushDelivery
+    end
+    Note over LC,API: guard fails (e.g. hold expired) → 409, rollback: no state change, no outbox rows
+    API->>DB: COMMIT (row lock released)
+    API-->>P: 200 {status}
+
+    loop every 5 s, outside any request
+        SC->>PD: dispatch_due(now)
+        PD->>DB: SELECT due PushDelivery FOR UPDATE SKIP LOCKED
+        PD->>WP: HTTPS POST (VAPID) per subscription
+        alt delivered, or subscription gone (404/410 → delete it)
+            PD->>DB: status = SENT
+        else transient failure (timeout, 5xx, network)
+            PD->>DB: attempts+1, next_attempt_at = now + 30 s·2^(n-1), FAILED after 5
+        end
+    end
+```
+
+Every participant is a G2 element (or the actor, the database, or the
+external system), and every call follows a G2 arrow.
+
+### H2. Focused design class diagram
+
+```mermaid
+classDiagram
+    direction LR
+    class ReservationAPI {
+        <<application · api/reservations.py>>
+        +confirm_reservation(id, caller) Reservation
+        -_get_owned_reservation(id, caller, lock) Reservation
+    }
+    class ReservationLifecycle {
+        <<policy · lifecycle.py>>
+        +ALLOWED_TRANSITIONS
+        +transition(reservation, new_status, actor, approval_decision)
+        -_check_guards(reservation, new_status, approval_decision)
+    }
+    class ApprovalWorkflow {
+        <<service · approval_service.py>>
+        +submit_for_approval(reservation, actor)
+        +approval_deadline(start, now) datetime
+        +notify_approval_requested(reservation)
+    }
+    class NotificationOutbox {
+        <<service · notifications.py>>
+        +notify(user_id, type, title, message) Notification
+    }
+    class PushDispatcher {
+        <<integration · push_delivery.py>>
+        +dispatch_due(now) int
+        -_send_to_subscriptions(delivery) error
+    }
+    class Reservation {
+        <<entity>>
+        status
+        start_time, end_time
+        hold_expires_at
+        approval_expires_at
+    }
+    class Court {
+        <<entity>>
+        active
+        requires_approval
+    }
+    class ReservationEvent {
+        <<entity>>
+        event_type
+        actor_id
+    }
+    class Notification {
+        <<entity>>
+        type, title, message
+    }
+    class PushDelivery {
+        <<entity · outbox>>
+        status : PENDING | SENT | FAILED
+        attempts
+        next_attempt_at
+        last_error
+    }
+
+    ReservationAPI ..> ReservationLifecycle : requests transition
+    ReservationAPI ..> ApprovalWorkflow : approval court
+    ReservationAPI ..> NotificationOutbox : notify
+    ApprovalWorkflow ..> ReservationLifecycle : requests transition
+    ApprovalWorkflow ..> NotificationOutbox : notify
+    ReservationLifecycle ..> Reservation : changes status
+    ReservationLifecycle ..> ReservationEvent : creates
+    NotificationOutbox ..> Notification : creates
+    NotificationOutbox ..> PushDelivery : enqueues
+    PushDispatcher ..> PushDelivery : sends, retries
+    Reservation "0..*" --> "1" Court
+    Reservation "1" *-- "1..*" ReservationEvent
+```
+
+Operation owners for H1 messages:
+
+| H1 message | Owner |
+|---|---|
+| `confirm` | `ReservationAPI` |
+| `submit_for_approval` | `ApprovalWorkflow` |
+| `transition` | `ReservationLifecycle` |
+| `notify` | `NotificationOutbox` |
+| `dispatch_due` | `PushDispatcher`. The 5 s loop that calls it is `worker.run_push_dispatcher` (Scheduler, G4). |
+
+There is no repository interface: the design deliberately keeps
+SQLAlchemy sessions (ADR-000). The `PushSubscription` lookup is internal
+to `PushDispatcher`.
+
+### I. Cross-view check (done before the code change)
+
+| Check | Result | Issue found → resolution |
+|---|---|---|
+| C02 ↔ G2 | OK | OP-03's "owner / every manager notified" maps to the in-app `Notification`, which is still written in the business transaction, so the postcondition holds at commit. Push is an extra channel that v0.2 does not specify. The Part A mute/`ADMIN` gaps are spec questions, not architecture, and are left for the spec owners. |
+| C2 ↔ G2 | **fixed** | AS-IS, R7 (record) and R8 (deliver) had one shared owner, `notify()`. Split into Notification Inbox & Outbox and Push Delivery Integration. R2: both the API branch and the Lifecycle guard looked like deciders (Part A A5). Resolved by defining the Lifecycle as decision owner and the API as requester (G3). No code change was needed, because the guard already rejects a wrong request. |
+| G2 ↔ H1 | **fixed** | The first draft drew the dispatch loop inside Push Delivery Integration. `backend/CLAUDE.md` makes `worker.py` the only place for time-driven work, so the loop belongs to the Scheduler: a Scheduler → Push Delivery arrow was added in G2, and H1 uses it. |
+| H1 ↔ H2 | OK | Each H1 message has an owning class (table above). |
+| statechart ↔ G3/H1 | **found, not in this slice** | `api/waitlist.py:115-122` constructs a reservation directly in `CONFIRMED`/`PENDING_APPROVAL` without going through the Lifecycle. This contradicts G3 and `backend/CLAUDE.md`'s rule. Waitlist is outside baseline v0.2 (§9) and outside OP-03, so it is recorded as a remaining risk (AD-4) rather than changed here. Confirm itself conforms. |
+| G2 ↔ G4 | **fixed** | AS-IS `worker.run_forever` called the synchronous `tick()` directly on the event loop, so a long tick (or its pushes) stalled every API request. With push work moving to the scheduler, both loops now run their work via `asyncio.to_thread` (G4). |
+| ADR ↔ G2/G4 | OK | No Inbox → Web Push arrow (G2). The dispatcher is a separate loop thread (G4). The rule is enforced by L2. |
+
+### J. AS-IS → TO-BE delta
+
+| Area | AS-IS (Part A) | TO-BE (G/H) | Action |
+|---|---|---|---|
+| Where Web Push is sent | `notify()` → `_send_web_push()` inside the business txn, under the row lock, before commit | Outbox row in the txn; sent after commit by the dispatcher | **CHANGE** |
+| Vendor SDK (`pywebpush`) | imported by `notifications.py`, called on every `notify()` path | only `push_delivery.py` | **CHANGE** + rule (L2) |
+| Push failure handling | log and drop; 404/410 deletes the subscription | retry with backoff, `FAILED` after 5; 404/410 deletes the subscription | **CHANGE** |
+| Background loop execution | `tick()` run synchronously on the event loop; no dispatch loop | tick + 5 s dispatch loop, both via `asyncio.to_thread` | **CHANGE** |
+| Confirm transition decision | API picks the target; Lifecycle guard is authoritative | same (Lifecycle owns, API requests, G3) | KEEP |
+| Row lock for Confirm/Cancel/Approve/Reject | `_get_owned_reservation(lock=True)` | same; lock scope = business txn only | VERIFY: VE-03.6 race test + the new boundary test |
+| BR-02 enforcement | PostgreSQL exclusion constraint (ADR-001) | same | KEEP |
+| In-app `Notification` row in the business txn | yes | yes | KEEP |
+| Only Lifecycle changes reservation status | Confirm/Approve/Reject/Cancel/worker conform; waitlist accept bypasses it | all paths through the Lifecycle | VERIFY: failed for waitlist accept (out of slice, see I and remaining risk) |
+
+### K. Implementation (commit `65aad78`)
+
+- `models/push_delivery.py` (new table `push_deliveries`, enum `push_delivery_status`): the outbox. It is a new table only, so `create_all` creates it with no manual DB cycle (`backend/CLAUDE.md`).
+- `notifications.py`: `notify()` writes the `Notification` and, if the user has a push subscription, a `PushDelivery`. The `pywebpush` import and the HTTP code were removed.
+- `push_delivery.py` (new): `dispatch_due()`, `dispatch_once()`, retry/backoff/give-up, gone-subscription clean-up.
+- `worker.py`: `run_push_dispatcher()` added; `run_forever()` now uses `asyncio.to_thread(tick, …)`. `main.py` starts both loops in `lifespan`.
+- `tests/test_push_api.py`: the push tests now go through the dispatcher. New tests cover the commit-before-push boundary, rollback, mute, retry/give-up and gone subscriptions. `tests/test_architecture.py` is the L2 rule.
+- Build/run: `uv run uvicorn reservations.main:app` started cleanly. Confirm returned `200 CONFIRMED` in 12 ms. Within ~5 s the dispatcher had attempted both queued pushes (the fake subscription failed on its keys), recorded the error and scheduled a retry. No errors appeared in the app log.
+
+### L1. Behaviour verification (after the change, 2026-10-05, PostgreSQL 16)
+
+| Verification | Result | Evidence |
+|---|---|---|
+| Success path (VE-03.1, 03.8, 03.8b, 03.9) | pass | `pytest tests/test_spec_baseline.py -k ve_03` → 9 passed; `tests/test_approval_api.py` → 38 passed |
+| Chosen alternative/failure: expired hold → 409, state unchanged, then swept (VE-03.3, 03.7) | pass | included in the 9 above |
+| Failure at the new boundary: push service down → Confirm still `200 CONFIRMED`; delivery retried, then `FAILED`; subscription kept | pass | `test_a_transient_push_failure_is_retried_with_backoff_then_given_up` |
+| Boundary: no push before commit or under the row lock | pass | `test_confirm_commits_before_any_push_is_attempted`: the request makes 0 push calls; the dispatcher's pushes see `CONFIRMED` and take the row lock with `NOWAIT` |
+| Concurrency: Confirm‖Cancel ×20 (VE-03.6), concurrent creates (VE-01.9) | pass | `-k "ve_03_6 or ve_01_9"` → 2 passed; `test_persistence_spike.py` + `test_worker.py` → 9 passed |
+| Whole suite | pass | `uv run pytest` → **305 passed** |
+
+### L2. Architecture rule
+
+- **Architectural rule:** only the Push Delivery Integration (`push_delivery.py`) may use the Web Push vendor SDK (`pywebpush`). Business code reaches Web Push only through the outbox (ADR-005, G2).
+- **Check:** `backend/tests/test_architecture.py` parses every module under `src/reservations/` with `ast` and fails if any module other than `push_delivery.py` imports `pywebpush`. A second test makes sure the scan really sees the allowed import, so a wrong path cannot make it pass vacuously. It runs with the normal `uv run pytest`.
+- **Result:** passes (2 passed). A mutation check that temporarily added `from pywebpush import webpush` to `notifications.py` made it fail: `AssertionError: pywebpush imported outside push_delivery.py: ['notifications.py']`. The change was reverted.

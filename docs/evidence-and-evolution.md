@@ -197,3 +197,67 @@ uv run pytest -v                                    # wipes the database it poin
 uv run python -m reservations.seed                  # after the drop/create cycle for the new columns
 uv run fastapi dev src/reservations/main.py         # Swagger at /docs; demo logins are printed by the seed
 ```
+
+## C03 — Architecture Evidence
+
+**Date:** 2026-10-05 · **Assignment:** `docs/course/C03.md` · **Full write-up:** `docs/architecture-and-decisions.md` § "C03 Part A" and § "C03 — Architecture"
+
+Baseline: v0.2 (`docs/specification.md`). Scenario: OP-03 Confirm Reservation.
+
+Part A: § "C03 Part A — AS-IS trace" (merged in PR #70). Runtime probe: while `notify()` was sending a Web Push during Confirm, a second DB session got `LockNotAvailable` on the reservation row and still saw `PENDING`, yet the API returned `200 CONFIRMED`. So the push was sent under the row lock, before commit.
+
+Drivers: DR-1 lock scope / REQ-07 (AD-3); DR-2 notification after a business change, failure and retry (AD-5); DR-3 a single lifecycle decision owner (BR-09/11, AD-4); DR-4 long-lived approval state and time-driven transitions (BR-06/12, AD-1).
+
+Decision question: where should the Web Push integration be isolated, and when (relative to the business transaction and its row lock) should a notification be delivered — what does a slow or failing push service mean for Confirm?
+
+Alternatives: A — send after commit, synchronously, inside the request (no new state, no retry). B — transactional outbox (`push_deliveries`) + background dispatcher with retry.
+
+Scenario walkthrough: Confirm on an approval-required court with a hanging push service and a concurrent Cancel (E3). Both alternatives keep state, BR-02/BR-11 and the in-app notification correct. A makes the Confirm response wait N managers × devices × 5 s and loses pushes on a crash or outage. B returns immediately and delivers at least once.
+
+ADR: ADR-005 — chose B (`docs/architecture-and-decisions.md`).
+
+Views (all Mermaid, all rendered with `@mermaid-js/mermaid-cli` without errors):
+- domain class: C1
+- context: G1
+- static architecture: G2
+- state ownership: G3 (table over the v0.2 statechart)
+- runtime/deployment: G4
+- design sequence: H1
+- focused design class: H2
+
+Cross-view issues found/resolved (I):
+- R7/R8 (record vs. deliver a notification) had one owner → split into Inbox & Outbox and Push Delivery Integration.
+- The dispatch loop had first been placed in the integration element → moved to the Scheduler (`worker.py` owns time-driven work).
+- AS-IS `tick()` blocked the event loop → both loops now use `asyncio.to_thread`.
+- R2: the API was defined as a requester and the Lifecycle as the decision owner (no code change; the guard is already authoritative).
+- **Open:** waitlist accept creates `CONFIRMED`/`PENDING_APPROVAL` rows without going through the Lifecycle (`api/waitlist.py:115-122`). It is outside OP-03 and outside baseline §9, so it was not changed.
+
+AS-IS → TO-BE delta (J): CHANGE for the push call site, the vendor SDK location, push failure handling and background loop execution. KEEP for the Confirm decision ownership, BR-02 (ADR-001) and the in-app row in the transaction. VERIFY for row-lock usage (passed) and "only Lifecycle changes status" (failed for waitlist accept, out of slice).
+
+Implementation changes (`65aad78`):
+- `models/push_delivery.py`: new outbox table.
+- `notifications.py`: `notify()` only queues.
+- `push_delivery.py`: dispatcher with retry/backoff; the only `pywebpush` import.
+- `worker.py` / `main.py`: 5 s dispatch loop; both loops run via `asyncio.to_thread`.
+- Tests: rewritten push tests plus `tests/test_architecture.py`.
+
+Behaviour verification (PostgreSQL 16):
+- `pytest tests/test_spec_baseline.py -k ve_03` → 9 passed (VE-03.1–03.7)
+- `tests/test_approval_api.py` → 38 passed (VE-03.8–03.10, VE-05…)
+- `-k "ve_03_6 or ve_01_9"` → 2 passed (concurrency)
+- `tests/test_push_api.py` → 10 passed, including the commit-before-push boundary test and the retry → `FAILED` test
+- full suite `uv run pytest` → **305 passed**
+- Running app: Confirm `200 CONFIRMED` in 12 ms; within ~5 s the dispatcher attempted both queued pushes, recorded the (fake-key) error and scheduled a retry.
+
+Architecture conformance rule + result: "only `push_delivery.py` may import `pywebpush`" — `backend/tests/test_architecture.py` (AST scan) → 2 passed. A mutation check (adding the import to `notifications.py`) made it fail as expected, and the change was reverted.
+
+Remaining uncertainty / risk:
+- Waitlist accept bypasses the Lifecycle (AD-4).
+- Delivery is at least once (duplicate pushes are possible).
+- `FAILED` deliveries are only visible in the database, and the outbox has no retention.
+- Push latency is up to ~5 s.
+- Single-process assumption for both loops (AD-1, ADR-004).
+- The Part A spec gaps (mute, `ADMIN` as manager) are still open for the spec owners.
+- C02 team sign-off of v0.2 is still open.
+
+Commit/tag: implementation `65aad78` on branch `feat/c03-notification-outbox`; the docs commit follows it on the same branch. Tag `c03-architecture` to be placed on the commit that lands in `main`.

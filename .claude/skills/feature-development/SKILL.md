@@ -61,8 +61,9 @@ codebase genuinely doesn't answer the question. Two worked examples:
 
 - *"Add notifications"* is **not** ambiguous here: a `Notification` model,
   `NotificationType` enum, and in-app delivery already exist
-  (`notifications.py`). There's no email/SMS/push boundary anywhere in this
-  codebase, and project history has explicitly deferred those. The
+  (`notifications.py`); browser Web Push already rides on the same
+  `notify()` call via an outbox (ADR-005). There's no email/SMS boundary,
+  and project history has explicitly deferred those. The
   C01-native interpretation is: extend the existing in-app system with a
   new `NotificationType` and delivery point. Implement it; don't ask "email
   or in-app?"

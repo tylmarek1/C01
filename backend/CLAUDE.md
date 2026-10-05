@@ -34,7 +34,7 @@ reformatted beyond the lines you touched; that's expected, not a bug.
 ## Module layout
 
 See `docs/codebase-map.md` for the full `models/`/`schemas/`/`api/`/
-service-module map. Two rules that aren't just "where" but genuinely
+service-module map. Three rules that aren't just "where" but genuinely
 change behavior if missed, so they stay here rather than in the map:
 
 - `lifecycle.py` is the *only* place a reservation's status should change.
@@ -42,8 +42,13 @@ change behavior if missed, so they stay here rather than in the map:
   `transition()`: the waitlist-accept path did, and it would have
   bypassed the approval rule.
 - `worker.py` is the *only* place a time-based side effect belongs
-  (hold-expiry, reminders, auto-complete, waitlist cascade), following its
-  existing tick pattern — not an ad hoc call from a route handler.
+  (hold-expiry, reminders, auto-complete, waitlist cascade, push dispatch),
+  following its existing tick pattern — not an ad hoc call from a route handler.
+- Never call an external service inside a business transaction (it would
+  run under the reservation's row lock and could announce a change that
+  rolls back). Notifications go through `notify()`, which only queues; Web
+  Push is sent by `push_delivery.py` alone — `tests/test_architecture.py`
+  fails if anything else imports `pywebpush` (ADR-005).
 
 ## Business rule values — read the code, don't trust a restated number
 
