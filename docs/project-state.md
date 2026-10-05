@@ -17,14 +17,15 @@ update this file, the next session will start from a wrong premise.
 
 **C01: DONE.** **C02: engineering complete, formal team sign-off
 outstanding** (the one gate this repository's tooling cannot close
-itself — see "Pending / open gates"). C03 has not started.
+itself — see "Pending / open gates"). **C03: in progress** — Part A
+(AS-IS trace of Confirm Reservation) done; later parts not handed out yet.
 
 | | |
 |---|---|
 | C01 | **DONE** — all 15 `docs/course/C01.md` §10 items evidence-backed complete |
 | C02 | Baseline v0.1 and the "approval process" change (v0.2) are both engineering-complete and evidenced; **team approval of both specification baselines is the one item still open** |
 | Specification baseline | v0.2 — `docs/specification.md` (v0.1 frozen in `docs/specification-v0.1.md`) |
-| Next phase | C03 (architecture) — not started; no `docs/course/C03.md` yet. This repository is otherwise ready for it to be added (see "How to add C03" below) |
+| C03 | **In progress.** Assignment so far (Part A only) in `docs/course/C03.md`. Part A — AS-IS trace of OP-03 Confirm Reservation, A1–A8 — is in `docs/architecture-and-decisions.md` § "C03 Part A"; its A8 question (notifications / Web Push sent inside the row-locked transaction) extends drivers AD-3/AD-5 below. Remaining parts: append to `docs/course/C03.md` when handed out |
 
 ## Completed gates
 
@@ -129,8 +130,8 @@ PR [#9](https://github.com/tylmarek1/C01/pull/9) (merge commit `ede421d`).
 
 ## How to add C03
 
-Nothing here invents C03's content — the course hasn't handed it out yet.
-When it does: paste it verbatim into `docs/course/C03.md`, the same way
+Part A has been added (`docs/course/C03.md`). For each later part:
+paste it verbatim into `docs/course/C03.md`, the same way
 `docs/course/C01.md`/`C02.md` were added (root `CLAUDE.md` §0's rule
 against copying course text applies to every other file, not this one).
 Root `CLAUDE.md`'s routing table's "připrav mě na C03" row already checks
@@ -142,8 +143,8 @@ re-derive it). A `.claude/workflows/c03.md` can be added then, following
 the same shape as `c01.md`/`c02-baseline.md`; if you add it, also add it
 to the routing table's "dokonči C02" row's workflow list (currently
 `c01.md` / `c02-baseline.md` / `c02-change.md`) so picking up course work
-still resolves to the right file once C03 is the active phase. There's
-nothing to add speculatively before the actual assignment exists.
+still resolves to the right file once C03 is the active phase. Don't add
+content for a part the course hasn't handed out yet.
 
 ---
 
