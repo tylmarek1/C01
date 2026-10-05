@@ -17,15 +17,16 @@ update this file, the next session will start from a wrong premise.
 
 **C01: DONE.** **C02: engineering complete, formal team sign-off
 outstanding** (the one gate this repository's tooling cannot close
-itself — see "Pending / open gates"). **C03: in progress** — Part A
-(AS-IS trace of Confirm Reservation) done; later parts not handed out yet.
+itself — see "Pending / open gates"). **C03: engineering complete** — Part A
+(AS-IS trace) and B–M (drivers → ADR-005 → TO-BE views → outbox implementation
+→ verification) for Confirm Reservation, evidence in `docs/evidence-and-evolution.md`.
 
 | | |
 |---|---|
 | C01 | **DONE** — all 15 `docs/course/C01.md` §10 items evidence-backed complete |
 | C02 | Baseline v0.1 and the "approval process" change (v0.2) are both engineering-complete and evidenced; **team approval of both specification baselines is the one item still open** |
 | Specification baseline | v0.2 — `docs/specification.md` (v0.1 frozen in `docs/specification-v0.1.md`) |
-| C03 | **In progress.** Assignment so far (Part A only) in `docs/course/C03.md`. Part A — AS-IS trace of OP-03 Confirm Reservation, A1–A8 — is in `docs/architecture-and-decisions.md` § "C03 Part A"; its A8 question (notifications / Web Push sent inside the row-locked transaction) extends drivers AD-3/AD-5 below. Remaining parts: append to `docs/course/C03.md` when handed out |
+| C03 | **Engineering complete** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Open: waitlist accept bypasses the Lifecycle (outside the OP-03 slice); tag `c03-architecture` to be placed on the commit that lands in `main` |
 
 ## Completed gates
 
@@ -83,7 +84,10 @@ to close a spec↔test gap);
 ## Architectural drivers carried into C03
 
 From `docs/change-c02-impact.md` §3 (full detail and code evidence there —
-don't restate it here, it will drift):
+don't restate it here, it will drift). C03 refined them into DR-1…DR-4
+(`docs/architecture-and-decisions.md` § "C03 — Architecture" B); ADR-005
+addresses AD-5 for Web Push and narrows AD-3's lock scope; AD-4 stays open
+for the waitlist-accept path.
 
 AD-1 (long-lived persisted time-bounded process), AD-2 (blocking-state set
 defined in four places), AD-3 (row-level serialisation is load-bearing),
@@ -130,7 +134,7 @@ PR [#9](https://github.com/tylmarek1/C01/pull/9) (merge commit `ede421d`).
 
 ## How to add C03
 
-Part A has been added (`docs/course/C03.md`). For each later part:
+The full C03 assignment is in `docs/course/C03.md`. For any further part:
 paste it verbatim into `docs/course/C03.md`, the same way
 `docs/course/C01.md`/`C02.md` were added (root `CLAUDE.md` §0's rule
 against copying course text applies to every other file, not this one).

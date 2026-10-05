@@ -96,7 +96,9 @@ src/reservations/
   achievements.py, approval_service.py, calendar_export.py,
   waitlist_service.py, notifications.py, images.py   feature-specific
                   service modules — the real logic; routers stay thin
-  worker.py       in-process background tasks (hold-expiry, reminders, ...)
+  push_delivery.py  Web Push outbox dispatcher — the only pywebpush user (ADR-005)
+  worker.py       in-process background tasks (hold-expiry, reminders, ...,
+                  push dispatch loop)
   models/         one SQLAlchemy model per file
   schemas/        Pydantic request/response models, mirroring models/
   api/            one APIRouter per resource
