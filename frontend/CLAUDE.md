@@ -28,31 +28,32 @@ New page-specific composition goes under `pages/<area>/`; new
 genuinely-reusable app-specific UI goes in `components/shared/`, not
 duplicated inline in a page.
 
-## Design system — extend it, don't redesign it
+## Design system — follow DESIGN.md
 
-The "navy ink on cool marble" palette in `src/index.css`
-(`--ink-navy`, `--signal-blue`, `--slate-gray`, `--mist-gray`, `--cloud`,
-etc., mapped onto the shadcn semantic tokens like `--primary`/`--background`)
-is a deliberate, already-finished design decision. **Never hardcode a hex or
-rgb color in a component** — use the existing CSS variables / the Tailwind
-classes derived from them. If a new token is genuinely needed, add it to
-`index.css` alongside the others and derive a semantic token from it; don't
-invent an inline one-off color.
+The design system ("court-side precision": chalk canvas, ink type, one
+optic-lime brand accent, Geist + Geist Mono) is documented in the
+repo-root **`DESIGN.md`** — read it before styling anything. The rules that
+silently break things if ignored:
 
-**This app has dark mode** (`lib/theme.tsx`'s `ThemeProvider`, toggled via
-`components/shared/theme-toggle.tsx`, class-scoped `dark:` variant defined in
-`index.css`). Because every named token above is a CSS custom property
-redefined wholesale under `index.css`'s `.dark { }` block, a component using
-only those tokens re-themes automatically — no per-component work needed.
-The exception is a raw Tailwind palette color (`bg-amber-50`, `text-red-500`,
-etc.), which does *not* respond to `.dark` on its own: if you add one for a
-status chip, warning banner, or similar, pair it with an explicit `dark:`
-variant (see the existing `dark:bg-amber-500/15 dark:text-amber-400`-style
-pairs in `badge.tsx`/`error-state.tsx` for the pattern) — don't assume light
-mode is the only mode a new raw color needs to work in. A purely decorative,
-already mid-toned icon color (a star rating, a favorite heart) usually reads
-fine unchanged in both modes and doesn't need one; a light chip background
-(`*-50`) almost always does.
+- **Never hardcode a hex/rgb colour or a raw Tailwind palette colour**
+  (`bg-amber-50`, `text-red-600`) in a component. Use the semantic classes
+  (`bg-card`, `text-muted-foreground`, `bg-success-soft text-success`,
+  `bg-brand`, …). Only the base `--c-*` palette is redefined under `.dark`
+  in `src/index.css`, so semantic tokens re-theme automatically — a raw
+  colour does not. A genuinely new colour = a new `--c-*` token in both
+  `:root` and `.dark` plus a semantic mapping in `@theme inline`.
+- **One `variant="brand"` action per view** (the sidebar's "Book a court"
+  counts on `lg+`). Everything else is `default`/`outline`/`ghost`.
+- **Reuse before you write**: `PageContainer`/`PageHeader` for every app
+  page, `EmptyState`/`ErrorState`/`Skeleton` for every query state,
+  `UserAvatar` for every avatar, `StatusBadge` for reservation status,
+  `ConfirmDialog` for every destructive action.
+- **Dates, times and numbers go through `useFormatters()`**
+  (`lib/format.ts`) so they follow the UI language; "now" in render comes
+  from `useNow()` (`lib/use-now.ts`). No `toLocaleString()`, no hardcoded
+  `"en-GB"` formatters, no `Date.now()` during render.
+- **Check light and dark mode** for any visual change (theme toggle in the
+  sidebar footer / Settings → Appearance).
 
 ## Data fetching
 
@@ -106,10 +107,8 @@ it done (per the root `CLAUDE.md` "definition of done").
 - Check both languages (the language switcher toggles EN/CS) and the
   relevant role (player vs. venue manager) where the change touches
   role-gated UI.
-- Check both light and dark mode (the theme toggle next to the language
-  switcher) for any new or changed color — see the design-system note above
-  on why a raw Tailwind color needs an explicit `dark:` pair and a
-  semantic token doesn't.
+- Check both light and dark mode for any new or changed color — see the
+  design-system section above on why only semantic tokens re-theme.
 - Check the browser console for errors/warnings the change introduced.
 
 ## Build/lint gate

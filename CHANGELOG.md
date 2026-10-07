@@ -55,6 +55,45 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Changed
 
+- **Complete UI/UX remaster of the frontend ("court-side precision").** A new
+  design system documented in the new root `DESIGN.md` (synthesised from
+  Refero's Linear/Ramp/Wise/Vercel styles): chalk canvas, ink type, a single
+  optic-lime brand accent, Geist + Geist Mono, hairline elevation, semantic
+  status tokens that re-theme in dark mode, motion tokens with reduced-motion
+  support, and a new tennis-ball logo/favicon. Every page and shared
+  component was rebuilt on it:
+  - **App shell**: signed-in pages now live in a sidebar layout (grouped
+    navigation with live unread/approval badges, a persistent "Book a court"
+    action, a ⌘K command menu for pages/courts/actions) with a mobile drawer;
+    court browsing adapts to the shell when signed in.
+  - **Dashboard**: a "Needs your attention" strip (holds with live countdown
+    + confirm, waitlist offers, games to rate), a "Next up" hero for the next
+    confirmed game, reservations split into Upcoming / History / Calendar
+    grouped by day (previously one unsorted list mixing cancelled and
+    expired bookings), and a side column with season stats, open games,
+    shared bookings, waitlist, teammates and community activity.
+  - **Booking**: a guided court → day → slot flow with a day strip, slots
+    generated from the court's real opening hours (was a hardcoded 07–22
+    dropdown), morning/afternoon/evening groups, a sticky price summary, a
+    "slot held" dialog with a live countdown and one-click confirm, waitlist
+    straight from a taken slot, and today skipped automatically once it's
+    over. Court detail pages deep-link a chosen slot into it.
+  - **New pages**: Open games (`/app/games`) and Settings (`/app/settings`,
+    account, public profile, notifications, calendar sync, appearance) split
+    out of the old profile tabs; Community (`/app/players`) gains Feed /
+    Players / Leaderboards tabs.
+  - **Admin**: split into one file per tab; an approval queue with inline
+    approve/reject on the overview, single-series charts with tooltips,
+    a searchable reservations table with status counts, pagination and
+    row actions, searchable/sortable users with a no-show flag, court
+    utilisation heatmap, upcoming/past facility blocks with reason presets.
+  - **Everything else** (courts, court detail with gallery lightbox and
+    rating distribution, profile, player profile, teams, chat with date
+    separators, grouping and an auto-growing composer, landing, help with a
+    sticky table of contents, about, contact, auth with inline validation and
+    password strength, 404) redesigned with designed loading/empty/error
+    states and mobile layouts.
+
 - **Browser push notifications are now sent after the change is saved, with
   retries (C03, ADR-005).** `notify()` used to call the push service
   synchronously inside the request's transaction — while holding the
@@ -83,6 +122,16 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   follow when adding a new primitive.
 
 ### Fixed
+
+- **Dates, times and relative times now follow the selected language.**
+  Formatters were hardcoded to `en-GB`/`en`, so Czech users saw English
+  weekday/month names and "2 hours ago"; everything now goes through a
+  locale-aware `useFormatters()`.
+- **Reschedule dialog prefilled the wrong day near midnight** (it mixed a UTC
+  date with a local time).
+- **Review avatars, last-message times in chat, actor names in reservation
+  history and the cost-split per-person figure** were returned by the API but
+  never shown.
 
 - **`PlayerSearch`'s result dropdown was broken inside every `Dialog` that
   used it** ("New message" in Chat, "Invite a player" on a reservation

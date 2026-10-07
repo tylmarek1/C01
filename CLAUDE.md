@@ -126,6 +126,7 @@ docs/change-c02-impact.md           impact analysis of the C02 change + architec
 .claude/scripts/check-project-state.sh   structural check for this system — see "Mechanical checks" below
 backend/                            FastAPI app — see backend/CLAUDE.md
 frontend/                           React app — see frontend/CLAUDE.md
+DESIGN.md                           the UI design system (tokens, components, patterns) — read before any UI change
 docker-compose.yml                  single `db` service (Postgres 16) shared by both apps
 ```
 

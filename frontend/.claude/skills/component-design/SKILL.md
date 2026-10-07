@@ -1,6 +1,6 @@
 ---
 name: component-design
-description: Where new UI belongs on Courtly's frontend (shared vs page-local), how to follow the existing shadcn-style component pattern, and the design-token discipline for the "navy ink on cool marble" palette. Use before creating any new component or styling a new piece of UI.
+description: Where new UI belongs on Courtly's frontend (shared vs page-local), how to follow the existing shadcn-style component pattern, and the design-token discipline from the repo-root DESIGN.md ("court-side precision"). Use before creating any new component or styling a new piece of UI.
 ---
 
 # Component design (frontend)
@@ -20,8 +20,8 @@ description: Where new UI belongs on Courtly's frontend (shared vs page-local), 
   re-apply this app's variant/token deltas the same way the existing files
   in `components/ui/` do (see "Follow the existing pattern" below) —
   the raw CLI output uses shadcn's generic neutral-gray theme, not this
-  app's navy palette or its custom variants (e.g. `Button`'s `dark`
-  variant), so it always needs that adaptation pass, never a raw drop-in.
+  app's tokens or its custom variants (e.g. `Button`'s `brand`/`subtle`/
+  `destructive-ghost` variants), so it always needs that adaptation pass, never a raw drop-in.
 - **Genuinely reusable, app-specific** UI (usable by more than one page, not
   a shadcn/ui catalog primitive, or a natural composite like the existing
   `star-rating.tsx`/`stat-tile.tsx`) goes in `components/shared/`, added to
@@ -42,7 +42,7 @@ For a `components/ui/` primitive: run `npx shadcn add <name>` (from
 `components/ui/` (e.g. `button.tsx`, `select.tsx`) and port forward the same
 kind of deltas they already carry — this app's Tailwind classes/tokens in
 place of the registry's default neutral-gray ones, any app-specific variant
-the old design added (e.g. `Button`'s `dark` variant), and any
+the design added (e.g. `Button`'s `brand` variant, its `isLoading` prop), and any
 previously-fixed bug that lives in a comment (e.g. `tabs.tsx`'s
 `overflow-x-auto` fix) — while keeping the registry version's structure,
 new sub-components, and accessibility improvements. Never commit the raw
@@ -56,24 +56,23 @@ kind of thing you're building and match its shape — built from
 `components/ui/` primitives, `class-variance-authority` (`cva`) for
 variants, `clsx`/`tailwind-merge` for combining classes.
 
-## Design tokens — extend, don't redesign
+## Design tokens — DESIGN.md is the source
 
-`frontend/src/index.css` defines the "navy ink on cool marble" palette
-(`--ink-navy`, `--signal-blue`, `--slate-gray`, `--mist-gray`, `--cloud`,
-...) mapped onto shadcn semantic tokens (`--primary`, `--background`, etc.).
-This is a finished, deliberate design decision:
+`DESIGN.md` (repo root) defines the system and `frontend/src/index.css` the
+tokens: a base `--c-*` palette (redefined under `.dark`) mapped onto
+semantic tokens (`--background`, `--card`, `--primary`, `--brand`,
+`--success`/`--success-soft`, …) exposed as Tailwind classes via
+`@theme inline`.
 
-- **Never hardcode a hex/rgb color** in a component — use the Tailwind
-  classes derived from the existing tokens (`bg-primary`,
-  `text-muted-foreground`, etc.), or the CSS variables directly if no
-  Tailwind class covers it.
-- If a genuinely new token is needed, add it to `index.css` next to the
-  existing ones and derive a semantic variable from it — don't invent an
-  inline one-off color, even a "close enough" existing brand color typed by
-  hand.
-- Check a rendered page (or at least the token file) before assuming a
-  color doesn't already exist as a token — this palette is more complete
-  than a first guess might assume.
+- **Never hardcode a hex/rgb colour or a raw Tailwind palette colour** in a
+  component — use the semantic classes. Raw colours don't follow dark mode.
+- A genuinely new token goes in `index.css` as a `--c-*` base value in both
+  `:root` and `.dark`, mapped to a semantic name — then documented in
+  `DESIGN.md` §3. Don't invent a one-off "close enough" colour.
+- Respect the system's rules while composing: one `brand` action per view,
+  borders separate / shadows lift, mono + `tabular` for times and numbers,
+  every query state (loading/empty/error) designed with the shared
+  `Skeleton`/`EmptyState`/`ErrorState`.
 
 ## One primitive that exists, one that doesn't — decide deliberately, don't assume
 
@@ -87,13 +86,12 @@ This is a finished, deliberate design decision:
   Give the confirm button a label distinct from the dismiss button's
   "Cancel" (e.g. "Yes, cancel it", not a second "Cancel") so the two aren't
   visually identical.
-- **No shared table primitive.** Tabular/grid data (e.g. `AdminPage.tsx`'s
-  listings) is laid out with ad hoc CSS grid, not a reusable component. A
-  new feature with list/table data can follow that same ad hoc grid
-  approach for consistency, or — if this is the second or third time it's
-  needed — that's the signal to extract a real `components/shared/` table
-  primitive instead of a fourth ad hoc grid (see `architecture-review`'s
-  "evidence before abstraction" rule).
+- **No shared table primitive yet.** The admin Reservations tab
+  (`pages/app/admin/ReservationsTab.tsx`) uses a semantic `<table>` on
+  `md+` with stacked cards on mobile; the Users tab uses a CSS-grid list
+  with the same look. Follow that shape (DESIGN.md §5 "Tables"); if a third
+  table appears, that's the signal to extract a `components/shared/` table
+  primitive (see `architecture-review`'s "evidence before abstraction").
 - **`components/shared/player-search.tsx` is the pattern for "type a query,
   pick a person from a list."** It renders results in normal document flow
   directly under the input — never a floating `position: absolute`/
