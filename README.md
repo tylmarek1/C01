@@ -6,7 +6,7 @@ both sides always see the same, accurate schedule.
 
 <p align="center">
   <img src="docs/screenshots/landing.png" alt="Courtly landing page" width="49%" />
-  <img src="docs/screenshots/dashboard.png" alt="Courtly dashboard with a draft reservation" width="49%" />
+  <img src="docs/screenshots/dashboard.png" alt="Courtly dashboard with the next confirmed game" width="49%" />
 </p>
 
 - **Repository:** https://github.com/tylmarek1/C01
@@ -133,7 +133,7 @@ npm run dev                      # app at http://localhost:5173
 Stop the database with `docker compose down` (add `-v` to wipe its data). See
 [`backend/README.md`](backend/README.md) and [`frontend/README.md`](frontend/README.md)
 for configuration details, the full API reference and the frontend's design
-system.
+system (documented in [`DESIGN.md`](DESIGN.md)).
 
 ## Repository layout
 
@@ -145,6 +145,7 @@ docs/                                specification, architecture decisions, doma
                                      frame, project status, and the course-work
                                      history this project grew out of (see below)
 docs/screenshots/                   README preview images
+DESIGN.md                           the UI design system — tokens, components, patterns
 ```
 
 ## Learn more

@@ -4,22 +4,28 @@ import { Tabs as TabsPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
-  return <TabsPrimitive.Root data-slot="tabs" className={cn("flex flex-col gap-4", className)} {...props} />
+  return <TabsPrimitive.Root data-slot="tabs" className={cn("flex flex-col gap-5", className)} {...props} />
 }
 
-function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.List>) {
+/** `segmented` — a pill track for switching views of the same data (filters,
+ * list/calendar). `line` — an underlined bar for page-level sections. */
+function TabsList({
+  className,
+  variant = "segmented",
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.List> & { variant?: "segmented" | "line" }) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
+      data-variant={variant}
       className={cn(
         // max-w-full + overflow-x-auto so a tab bar wider than its container
         // scrolls internally instead of pushing the whole page wider — on a
-        // narrow screen, a page with enough tabs (Profile's 7, Admin's 6)
-        // otherwise grows past the viewport, and activating an off-screen
-        // trigger auto-scrolls the page itself, shifting every panel with it.
-        // The native scrollbar is left visible (not hidden) so it doubles as
-        // the only hint that there's more to scroll to.
-        "inline-flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg bg-pebble p-1",
+        // narrow screen a page with many tabs otherwise grows past the
+        // viewport, and activating an off-screen trigger scrolls the page.
+        "group/tabs-list inline-flex max-w-full items-center overflow-x-auto scrollbar-none",
+        variant === "segmented" && "w-fit gap-0.5 rounded-md border border-border bg-muted p-0.5",
+        variant === "line" && "w-full gap-5 border-b border-border",
         className,
       )}
       {...props}
@@ -32,7 +38,11 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium whitespace-nowrap text-slate-gray transition-colors data-[state=active]:bg-paper data-[state=active]:text-ink-navy data-[state=active]:shadow-sm disabled:pointer-events-none disabled:opacity-50",
+        "relative inline-flex shrink-0 items-center justify-center gap-1.5 text-[13px] font-medium whitespace-nowrap text-muted-foreground transition-[color,background-color,box-shadow] duration-150 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-3.5 [&_svg]:shrink-0",
+        // segmented
+        "group-data-[variant=segmented]/tabs-list:h-7 group-data-[variant=segmented]/tabs-list:rounded-sm group-data-[variant=segmented]/tabs-list:px-3 group-data-[variant=segmented]/tabs-list:data-[state=active]:bg-card group-data-[variant=segmented]/tabs-list:data-[state=active]:text-foreground group-data-[variant=segmented]/tabs-list:data-[state=active]:shadow-sm",
+        // line
+        "group-data-[variant=line]/tabs-list:h-10 group-data-[variant=line]/tabs-list:px-0.5 group-data-[variant=line]/tabs-list:after:absolute group-data-[variant=line]/tabs-list:after:inset-x-0 group-data-[variant=line]/tabs-list:after:-bottom-px group-data-[variant=line]/tabs-list:after:h-0.5 group-data-[variant=line]/tabs-list:after:rounded-full group-data-[variant=line]/tabs-list:after:bg-foreground group-data-[variant=line]/tabs-list:after:opacity-0 group-data-[variant=line]/tabs-list:after:transition-opacity group-data-[variant=line]/tabs-list:data-[state=active]:text-foreground group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
         className,
       )}
       {...props}
@@ -41,7 +51,13 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
 }
 
 function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Content>) {
-  return <TabsPrimitive.Content data-slot="tabs-content" className={cn("outline-none", className)} {...props} />
+  return (
+    <TabsPrimitive.Content
+      data-slot="tabs-content"
+      className={cn("outline-none data-[state=active]:animate-fade-in", className)}
+      {...props}
+    />
+  )
 }
 
 export { Tabs, TabsContent, TabsList, TabsTrigger }

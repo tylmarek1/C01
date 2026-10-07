@@ -1,3 +1,6 @@
+import type { LucideIcon } from "lucide-react"
+import { Accessibility, Armchair, CircleParking, Coffee, Lightbulb, Lock, Package, ShowerHead } from "lucide-react"
+
 import { useTranslation } from "@/lib/i18n"
 import type { Amenity } from "@/types"
 
@@ -11,6 +14,17 @@ export const ALL_AMENITIES: Amenity[] = [
   "WHEELCHAIR_ACCESSIBLE",
   "CAFE",
 ]
+
+export const AMENITY_ICON: Record<Amenity, LucideIcon> = {
+  LIGHTING: Lightbulb,
+  PARKING: CircleParking,
+  SHOWERS: ShowerHead,
+  LOCKERS: Lock,
+  EQUIPMENT_RENTAL: Package,
+  SEATING: Armchair,
+  WHEELCHAIR_ACCESSIBLE: Accessibility,
+  CAFE: Coffee,
+}
 
 /** Localized amenity display names — read live from the current language. */
 export function useAmenityLabels(): Record<Amenity, string> {

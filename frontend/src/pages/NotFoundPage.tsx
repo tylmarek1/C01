@@ -1,22 +1,30 @@
+import { ArrowLeft, Search } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
+import { LogoMark } from "@/components/shared/logo"
 import { useTranslation } from "@/lib/i18n"
 
 function NotFoundPage() {
   const { t } = useTranslation()
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
-      <span className="text-sm font-semibold text-signal-blue">404</span>
-      <h1 className="text-3xl font-bold text-ink-navy">{t("notFound.title")}</h1>
-      <p className="text-slate-gray">{t("notFound.description")}</p>
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+    <div className="relative isolate mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-lg flex-col items-center justify-center gap-5 px-4 py-16 text-center">
+      <div aria-hidden className="absolute inset-0 -z-10 bg-court-grid opacity-60 [mask-image:radial-gradient(50%_50%_at_50%_45%,black,transparent)]" />
+      <LogoMark className="size-12 animate-fade-up" />
+      <span className="font-mono text-[13px] tracking-widest text-muted-foreground">404 · {t("notFound.outOfBounds")}</span>
+      <h1 className="text-[32px] leading-tight font-semibold tracking-[-0.035em] text-balance">{t("notFound.title")}</h1>
+      <p className="max-w-sm text-[15px] text-muted-foreground">{t("notFound.description")}</p>
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
         <Button asChild>
-          <Link to="/">{t("notFound.cta")}</Link>
+          <Link to="/">
+            <ArrowLeft /> {t("notFound.cta")}
+          </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link to="/courts">{t("courtDetail.notFound.browse")}</Link>
+          <Link to="/courts">
+            <Search /> {t("courtDetail.notFound.browse")}
+          </Link>
         </Button>
       </div>
     </div>

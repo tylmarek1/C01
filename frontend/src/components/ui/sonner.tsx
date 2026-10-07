@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from "lucide-react"
+import { CircleCheck, Info, Loader2, OctagonX, TriangleAlert } from "lucide-react"
 
 import { useTheme } from "@/lib/theme"
 
@@ -11,24 +11,29 @@ function Toaster(props: ToasterProps) {
     <Sonner
       theme={theme}
       className="toaster group"
-      offset={{ top: "80px", right: "24px" }}
+      offset={16}
+      mobileOffset={{ bottom: "84px" }}
+      gap={8}
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        success: <CircleCheck className="size-4 text-success" />,
+        info: <Info className="size-4 text-info" />,
+        warning: <TriangleAlert className="size-4 text-warning" />,
+        error: <OctagonX className="size-4 text-danger" />,
+        loading: <Loader2 className="size-4 animate-spin text-muted-foreground" />,
       }}
       style={
         {
-          "--normal-bg": "var(--card)",
-          "--normal-text": "var(--card-foreground)",
+          "--normal-bg": "var(--popover)",
+          "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
+          "--border-radius": "12px",
         } as CSSProperties
       }
       toastOptions={{
         classNames: {
-          toast: "rounded-2xl! shadow-card! border! border-hairline! font-sans!",
+          toast: "shadow-lg! font-sans! text-[13px]! gap-2.5!",
+          description: "text-muted-foreground!",
+          actionButton: "bg-primary! text-primary-foreground! rounded-sm! font-medium!",
         },
       }}
       {...props}

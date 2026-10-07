@@ -2,22 +2,14 @@ import { useEffect, type ReactNode } from "react"
 import { Navigate, useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
-import { Skeleton } from "@/components/ui/skeleton"
+import { RouteLoadingFallback } from "@/components/shared/app-layout"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 import type { UserRole } from "@/types"
 
 /** Shown while the initial auth check is in flight — avoids a blank-page
  * flash on every hard refresh of an authenticated route. */
-function AuthCheckFallback() {
-  return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4 px-6 py-16">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-32 w-full" />
-      <Skeleton className="h-32 w-full" />
-    </div>
-  )
-}
+const AuthCheckFallback = RouteLoadingFallback
 
 function ProtectedRoute({
   children,

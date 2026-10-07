@@ -3,23 +3,29 @@ import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 interface SubsectionHeadingProps {
-  title: string
-  description?: string
+  title: ReactNode
+  description?: ReactNode
   action?: ReactNode
+  count?: number
   className?: string
 }
 
-/** A smaller, left-aligned sibling of SectionHeader — for a subsection
- * inside an already-titled page (a Dashboard block, an Admin tab group),
- * not a full page header. */
-function SubsectionHeading({ title, description, action, className }: SubsectionHeadingProps) {
+/** Heading for a block inside a page (a dashboard column, an admin panel). */
+function SubsectionHeading({ title, description, action, count, className }: SubsectionHeadingProps) {
   return (
-    <div className={cn("flex items-center justify-between gap-3", className)}>
-      <div className="flex flex-col gap-0.5">
-        <h3 className="text-base font-semibold text-ink-navy">{title}</h3>
-        {description && <p className="text-sm text-slate-gray">{description}</p>}
+    <div className={cn("flex items-end justify-between gap-3", className)}>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h2 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em] text-foreground">
+          {title}
+          {count !== undefined && (
+            <span className="rounded-xs bg-muted px-1.5 py-px font-mono text-[11px] font-medium text-muted-foreground tabular">
+              {count}
+            </span>
+          )}
+        </h2>
+        {description && <p className="text-[13px] text-muted-foreground">{description}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   )
 }

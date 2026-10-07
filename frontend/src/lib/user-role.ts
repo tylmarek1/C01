@@ -5,8 +5,8 @@ import type { UserRole } from "@/types"
 /** Badge color per role — purely visual, no localization needed. */
 export const ROLE_VARIANT: Record<UserRole, BadgeProps["variant"]> = {
   PLAYER: "secondary",
-  VENUE_MANAGER: "success",
-  ADMIN: "default",
+  VENUE_MANAGER: "brand",
+  ADMIN: "solid",
 }
 
 /** Localized role display names — read live from the current language. */

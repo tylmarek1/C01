@@ -1,3 +1,5 @@
+import { AlertTriangle } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useTranslation } from "@/lib/i18n"
@@ -31,8 +33,13 @@ function ConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+        <DialogHeader className="pr-0">
+          {destructive && (
+            <span className="mb-2 flex size-9 items-center justify-center rounded-lg bg-danger-soft text-danger">
+              <AlertTriangle className="size-4" />
+            </span>
+          )}
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
@@ -40,7 +47,7 @@ function ConfirmDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             {t("common.cancel")}
           </Button>
-          <Button variant={destructive ? "destructive" : "default"} onClick={onConfirm} disabled={isLoading}>
+          <Button variant={destructive ? "destructive" : "default"} onClick={onConfirm} isLoading={isLoading}>
             {confirmLabel}
           </Button>
         </DialogFooter>

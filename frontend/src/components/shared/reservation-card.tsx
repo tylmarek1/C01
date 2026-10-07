@@ -1,42 +1,55 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CalendarClock, CalendarPlus, Clock3, Coins, MoreHorizontal, Plus, Repeat, Star, Trophy, UserPlus, Users, X } from "lucide-react"
+import {
+  CalendarClock,
+  CalendarPlus,
+  Clock3,
+  Coins,
+  ImagePlus,
+  LogIn,
+  MoreHorizontal,
+  Repeat,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Trophy,
+  UserPlus,
+  PanelRightOpen,
+  X,
+  XCircle,
+} from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlayerSearch } from "@/components/shared/player-search"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SportIcon } from "@/components/shared/sport-icon"
-import { StarRatingInput } from "@/components/shared/star-rating"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { Countdown } from "@/components/shared/countdown"
+import { PlayerSearch } from "@/components/shared/player-search"
+import { SportIcon } from "@/components/shared/sport-icon"
+import { StarRatingInput } from "@/components/shared/star-rating"
+import { StatusBadge } from "@/components/shared/status-badge"
+import { UserAvatar } from "@/components/shared/user-avatar"
 import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { formatCurrency, formatDateRange } from "@/lib/format"
+import { formatCurrency, toDateString, todayDateString, useFormatters } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
-import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
+import { useNow } from "@/lib/use-now"
+import { cn } from "@/lib/utils"
 import type { PlayerSearchResult, Reservation } from "@/types"
 
-const timeFormatter = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" })
 // Mirrors the backend's MAX_REVIEW_IMAGES (backend/src/reservations/api/reviews.py) — kept
 // in sync by hand since there's no generated client (frontend/CLAUDE.md's "Types are
 // hand-maintained" gap); the server rejects a 5th image regardless of this UI cap.
@@ -72,23 +85,33 @@ function SplitCostDialog({
           )}
         </DialogHeader>
         {isLoading && <Skeleton className="h-32 w-full" />}
-        {data && data.total_cost === null && <p className="text-sm text-slate-gray">{t("split.noPrice")}</p>}
+        {data && data.total_cost === null && (
+          <p className="rounded-lg bg-muted p-3 text-[13px] text-muted-foreground">{t("split.noPrice")}</p>
+        )}
         {data && data.total_cost !== null && (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between rounded-lg border border-hairline p-3">
-              <span className="text-sm font-medium text-ink-navy">{t("split.total")}</span>
-              <span className="text-sm font-semibold text-ink-navy">{formatCurrency(data.total_cost)}</span>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-end justify-between rounded-lg border border-border p-4">
+              <div className="flex flex-col gap-1">
+                <span className="eyebrow">{t("split.perPersonLabel")}</span>
+                <span className="text-2xl font-semibold tracking-tight tabular">
+                  {data.per_person !== null ? formatCurrency(data.per_person) : "—"}
+                </span>
+              </div>
+              <div className="flex flex-col items-end gap-1 text-right">
+                <span className="eyebrow">{t("split.total")}</span>
+                <span className="text-[15px] font-medium tabular">{formatCurrency(data.total_cost)}</span>
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
+            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
               {data.participants.map((participant) => (
-                <div key={participant.user.id} className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2">
-                  <span className="text-sm text-ink-navy">{participant.user.name}</span>
-                  <span className="text-sm text-slate-gray">
-                    {formatCurrency(participant.share)} <span className="text-xs">{t("split.perPerson")}</span>
-                  </span>
-                </div>
+                <li key={participant.user.id} className="flex items-center gap-3 px-3 py-2.5">
+                  <UserAvatar name={participant.user.name} avatarUrl={participant.user.avatar_url} size="sm" />
+                  <span className="flex-1 truncate text-[13px] font-medium">{participant.user.name}</span>
+                  <span className="font-mono text-[13px] tabular">{formatCurrency(participant.share)}</span>
+                </li>
               ))}
-            </div>
+            </ul>
+            <p className="text-xs text-muted-foreground">{data.currency_note}</p>
           </div>
         )}
       </DialogContent>
@@ -125,33 +148,46 @@ function ReportResultDialog({
     onSuccess: () => {
       onOpenChange(false)
       toast.success(t("reservationCard.result.toast.reported"))
-      queryClient.invalidateQueries({ queryKey: ["ratings-me"] })
+      queryClient.invalidateQueries({ queryKey: ["ratings-mine"] })
       queryClient.invalidateQueries({ queryKey: ["ratings-leaderboard"] })
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationCard.result.error")),
   })
+
+  const options = opponent
+    ? ([
+        { value: "me", label: t("reservationCard.result.iWon") },
+        { value: "opponent", label: t("reservationCard.result.theyWon", { name: opponent.user.name }) },
+        { value: "draw", label: t("reservationCard.result.draw") },
+      ] as const)
+    : []
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("reservationCard.result.title")}</DialogTitle>
+          <DialogDescription>{t("reservationCard.result.description")}</DialogDescription>
         </DialogHeader>
-        {isLoading && <Skeleton className="h-24 w-full" />}
-        {!isLoading && !opponent && <p className="text-sm text-slate-gray">{t("reservationCard.result.notEligible")}</p>}
+        {isLoading && <Skeleton className="h-28 w-full" />}
+        {!isLoading && !opponent && (
+          <p className="rounded-lg bg-muted p-3 text-[13px] text-muted-foreground">{t("reservationCard.result.notEligible")}</p>
+        )}
         {!isLoading && opponent && (
-          <div className="flex flex-col gap-2">
-            {(["me", "opponent", "draw"] as const).map((option) => (
+          <div role="radiogroup" className="grid gap-2">
+            {options.map((option) => (
               <label
-                key={option}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-hairline px-3 py-2 has-[:checked]:border-signal-blue"
+                key={option.value}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-border px-3.5 py-3 text-[14px] transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/40"
               >
-                <input type="radio" name="winner" checked={winner === option} onChange={() => setWinner(option)} />
-                <span className="text-sm text-ink-navy">
-                  {option === "me" && t("reservationCard.result.iWon")}
-                  {option === "opponent" && t("reservationCard.result.theyWon", { name: opponent.user.name })}
-                  {option === "draw" && t("reservationCard.result.draw")}
-                </span>
+                <input
+                  type="radio"
+                  name={`winner-${reservation.id}`}
+                  checked={winner === option.value}
+                  onChange={() => setWinner(option.value)}
+                  className="size-4 accent-[var(--primary)]"
+                />
+                {option.label}
               </label>
             ))}
           </div>
@@ -161,7 +197,7 @@ function ReportResultDialog({
             {t("common.cancel")}
           </Button>
           {opponent && (
-            <Button disabled={reportMutation.isPending} onClick={() => reportMutation.mutate()}>
+            <Button isLoading={reportMutation.isPending} onClick={() => reportMutation.mutate()}>
               {t("reservationCard.result.submit")}
             </Button>
           )}
@@ -189,41 +225,37 @@ function OpenToJoinDialog({
   const [note, setNote] = useState(reservation.open_note ?? "")
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next)
-        if (next) {
-          setEnabled(reservation.open_to_join)
-          setNote(reservation.open_note ?? "")
-        }
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("reservationCard.openToJoin.title")}</DialogTitle>
+          <DialogDescription>{t("reservationCard.openToJoin.description")}</DialogDescription>
         </DialogHeader>
-        <div className="flex items-center justify-between rounded-lg border border-hairline p-3">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-ink-navy">{t("reservationCard.openToJoin.label")}</span>
-            <span className="text-xs text-slate-gray">{t("reservationCard.openToJoin.description")}</span>
-          </div>
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-border p-3.5">
+          <span className="flex flex-col gap-0.5">
+            <span className="text-[14px] font-medium">{t("reservationCard.openToJoin.label")}</span>
+            <span className="text-xs text-muted-foreground">{t("reservationCard.openToJoin.hint")}</span>
+          </span>
           <Switch checked={enabled} onCheckedChange={setEnabled} aria-label={t("reservationCard.openToJoin.label")} />
-        </div>
+        </label>
         {enabled && (
-          <Input
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder={t("reservationCard.openToJoin.notePlaceholder")}
-            maxLength={200}
-          />
+          <div className="flex animate-fade-in flex-col gap-2">
+            <Label htmlFor={`open-note-${reservation.id}`}>{t("reservationCard.openToJoin.noteLabel")}</Label>
+            <Input
+              id={`open-note-${reservation.id}`}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder={t("reservationCard.openToJoin.notePlaceholder")}
+              maxLength={200}
+            />
+          </div>
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </Button>
           <Button
-            disabled={isSaving}
+            isLoading={isSaving}
             onClick={() => {
               onSave(enabled, note.trim())
               onOpenChange(false)
@@ -237,6 +269,201 @@ function OpenToJoinDialog({
   )
 }
 
+function ReviewDialog({
+  reservation,
+  open,
+  onOpenChange,
+  onSubmit,
+}: {
+  reservation: Reservation
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSubmit: (rating: number, comment: string, photos: File[]) => void
+}) {
+  const { t } = useTranslation()
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState("")
+  const [photos, setPhotos] = useState<File[]>([])
+  const inputRef = useRef<HTMLInputElement>(null)
+  const previews = useMemo(() => photos.map((file) => URL.createObjectURL(file)), [photos])
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews])
+
+  function close() {
+    onOpenChange(false)
+    setPhotos([])
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("reservationCard.review.title", { court: reservation.court.name })}</DialogTitle>
+          <DialogDescription>{t("reservationCard.review.description")}</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <StarRatingInput value={rating} onChange={setRating} className="-ml-1.5" />
+          <Textarea
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            placeholder={t("reservationCard.review.commentPlaceholder")}
+            maxLength={1000}
+            rows={4}
+          />
+          <div className="flex flex-col gap-2">
+            <Label>{t("reservationCard.review.photos")}</Label>
+            <div className="flex flex-wrap gap-2">
+              {photos.map((file, index) => (
+                <div key={`${file.name}-${index}`} className="group relative size-16 shrink-0 overflow-hidden rounded-md border border-border">
+                  <img src={previews[index]} alt="" className="size-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setPhotos((files) => files.filter((_, i) => i !== index))}
+                    aria-label={t("profile.reviews.removePhoto")}
+                    className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-primary/80 text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+              {photos.length < MAX_REVIEW_IMAGES && (
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  aria-label={t("profile.reviews.addPhoto")}
+                  className="flex size-16 shrink-0 items-center justify-center rounded-md border border-dashed border-border-strong text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                >
+                  <ImagePlus className="size-4" />
+                </button>
+              )}
+            </div>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.target.value = ""
+                if (file) setPhotos((files) => [...files, file])
+              }}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={close}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            onClick={() => {
+              onSubmit(rating, comment.trim(), photos)
+              close()
+              setComment("")
+              setRating(5)
+            }}
+          >
+            {t("reservationCard.review.submit")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function RescheduleDialog({
+  reservation,
+  open,
+  onOpenChange,
+  onSubmit,
+}: {
+  reservation: Reservation
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSubmit: (startTime: string, endTime: string) => void
+}) {
+  const { t } = useTranslation()
+  const fmt = useFormatters()
+  const start = new Date(reservation.start_time)
+  const durationMs = new Date(reservation.end_time).getTime() - start.getTime()
+  const [date, setDate] = useState(() => toDateString(start))
+  const [time, setTime] = useState(() => `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`)
+
+  const now = useNow(30_000)
+  const newStart = new Date(`${date}T${time}:00`)
+  const newEnd = new Date(newStart.getTime() + durationMs)
+  const valid = !Number.isNaN(newStart.getTime()) && newStart.getTime() > now
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("reservationCard.reschedule.title")}</DialogTitle>
+          <DialogDescription>{t("reservationCard.reschedule.description", { court: reservation.court.name })}</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`reschedule-date-${reservation.id}`}>{t("reservationCard.reschedule.date")}</Label>
+            <Input
+              id={`reschedule-date-${reservation.id}`}
+              type="date"
+              min={todayDateString()}
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`reschedule-time-${reservation.id}`}>{t("reservationCard.reschedule.startTime")}</Label>
+            <Input
+              id={`reschedule-time-${reservation.id}`}
+              type="time"
+              step={1800}
+              value={time}
+              onChange={(event) => setTime(event.target.value)}
+            />
+          </div>
+        </div>
+        {valid && (
+          <p className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2.5 text-[13px]">
+            <CalendarClock className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">{t("reservationCard.reschedule.preview")}</span>
+            <span className="font-medium tabular">{fmt.dateRange(newStart.toISOString(), newEnd.toISOString())}</span>
+          </p>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            disabled={!valid}
+            onClick={() => {
+              onSubmit(newStart.toISOString(), newEnd.toISOString())
+              onOpenChange(false)
+            }}
+          >
+            {t("reservationCard.reschedule.save")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Date block — the scannable anchor on the left of every reservation row. */
+function DateBlock({ iso, muted = false }: { iso: string; muted?: boolean }) {
+  const fmt = useFormatters()
+  const date = new Date(iso)
+  return (
+    <span
+      className={cn(
+        "flex size-12 shrink-0 flex-col items-center justify-center rounded-md border leading-none",
+        muted ? "border-border bg-muted text-muted-foreground" : "border-border bg-card text-foreground shadow-xs",
+      )}
+    >
+      <span className="font-mono text-[9.5px] font-medium tracking-wider uppercase opacity-70">{fmt.weekday(date)}</span>
+      <span className="mt-1 text-[17px] font-semibold tracking-tight tabular">{date.getDate()}</span>
+    </span>
+  )
+}
+
 interface ReservationCardProps {
   reservation: Reservation
   onConfirm?: (reservation: Reservation) => void
@@ -246,6 +473,7 @@ interface ReservationCardProps {
   onOpenDetail?: (reservation: Reservation) => void
   onInviteGuest?: (reservation: Reservation, player: PlayerSearchResult) => void
   onSetOpen?: (reservation: Reservation, openToJoin: boolean, note: string) => void
+  onHoldExpired?: () => void
   isSettingOpen?: boolean
   hasReview?: boolean
   onSubmitReview?: (reservation: Reservation, rating: number, comment: string, photos: File[]) => void
@@ -261,6 +489,7 @@ function ReservationCard({
   onOpenDetail,
   onInviteGuest,
   onSetOpen,
+  onHoldExpired,
   isSettingOpen = false,
   hasReview = false,
   onSubmitReview,
@@ -268,27 +497,13 @@ function ReservationCard({
 }: ReservationCardProps) {
   const { token } = useAuth()
   const { t } = useTranslation()
-  const statusLabels = useStatusLabels()
+  const fmt = useFormatters()
   const { court, status } = reservation
-  const [rescheduleOpen, setRescheduleOpen] = useState(false)
-  const [guestOpen, setGuestOpen] = useState(false)
-  const [reviewOpen, setReviewOpen] = useState(false)
-  const [splitOpen, setSplitOpen] = useState(false)
-  const [resultOpen, setResultOpen] = useState(false)
-  const [openToJoinOpen, setOpenToJoinOpen] = useState(false)
-  const [rating, setRating] = useState(5)
-  const [comment, setComment] = useState("")
-  const [reviewPhotos, setReviewPhotos] = useState<File[]>([])
-  const reviewPhotoInputRef = useRef<HTMLInputElement>(null)
-  const reviewPhotoPreviews = useMemo(() => reviewPhotos.map((file) => URL.createObjectURL(file)), [reviewPhotos])
-  useEffect(() => {
-    return () => reviewPhotoPreviews.forEach((url) => URL.revokeObjectURL(url))
-  }, [reviewPhotoPreviews])
+  const [dialog, setDialog] = useState<null | "reschedule" | "guest" | "review" | "split" | "result" | "open">(null)
   const start = new Date(reservation.start_time)
-  const end = new Date(reservation.end_time)
-  const durationMs = end.getTime() - start.getTime()
-  const [date, setDate] = useState(() => start.toISOString().slice(0, 10))
-  const [time, setTime] = useState(() => start.toTimeString().slice(0, 5))
+  const now = useNow(30_000)
+  const isPast = new Date(reservation.end_time).getTime() < now
+  const ended = ["COMPLETED", "CANCELLED", "EXPIRED", "REJECTED", "NO_SHOW"].includes(status)
 
   const icsMutation = useMutation({
     mutationFn: () => api.downloadReservationIcs(token!, reservation.id, `${court.name}.ics`),
@@ -297,323 +512,230 @@ function ReservationCard({
   })
 
   // BR-11: an approved booking on an approval-required court can't be moved without a new request.
-  const canReschedule =
-    (status === "PENDING" || (status === "CONFIRMED" && !court.requires_approval)) && Boolean(onReschedule)
+  const canReschedule = (status === "PENDING" || (status === "CONFIRMED" && !court.requires_approval)) && Boolean(onReschedule)
   // Mirrors BR-03: only a pending/confirmed reservation that has not started yet can be cancelled.
   const canCancel =
-    (status === "PENDING" || status === "PENDING_APPROVAL" || status === "CONFIRMED") &&
-    start.getTime() > new Date().getTime() &&
-    Boolean(onCancel)
-  const canInviteGuest =
-    (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onInviteGuest)
+    (status === "PENDING" || status === "PENDING_APPROVAL" || status === "CONFIRMED") && start.getTime() > now && Boolean(onCancel)
+  const canInviteGuest = (status === "PENDING" || status === "CONFIRMED" || status === "CHECKED_IN") && Boolean(onInviteGuest)
   const canReview = status === "COMPLETED" && !hasReview && Boolean(onSubmitReview)
-  const canBookAgain =
-    (status === "COMPLETED" || status === "CANCELLED" || status === "EXPIRED" || status === "REJECTED" || status === "NO_SHOW") &&
-    court.active
+  const canBookAgain = ended && court.active
   const canOpenToJoin = status === "CONFIRMED" && Boolean(onSetOpen)
   const canSplit = status !== "CANCELLED" && status !== "EXPIRED" && status !== "REJECTED"
   const canReportResult = status === "COMPLETED"
   const canExportCalendar = status === "CONFIRMED" || status === "CHECKED_IN" || status === "COMPLETED"
-  // Lower-frequency utility actions live behind the "more" menu so the primary
-  // action (confirm/check-in/review) and cancel stay the clear focal points.
-  const hasMoreActions =
-    canExportCalendar || canSplit || canOpenToJoin || canInviteGuest || canReschedule || canReportResult
+  const isToday = new Date().toDateString() === start.toDateString()
 
-  function submitReschedule() {
-    const newStart = new Date(`${date}T${time}:00`)
-    const newEnd = new Date(newStart.getTime() + durationMs)
-    onReschedule?.(reservation, newStart.toISOString(), newEnd.toISOString())
-    setRescheduleOpen(false)
-  }
+  const primary = (() => {
+    if (status === "PENDING" && onConfirm)
+      return (
+        <Button size="sm" variant="brand" disabled={isBusy} onClick={() => onConfirm(reservation)}>
+          {court.requires_approval ? t("reservationCard.requestApproval") : t("reservationCard.confirm")}
+        </Button>
+      )
+    if (status === "CONFIRMED" && onCheckIn && isToday)
+      return (
+        <Button size="sm" disabled={isBusy} onClick={() => onCheckIn(reservation)}>
+          <LogIn /> {t("reservationCard.checkIn")}
+        </Button>
+      )
+    if (canReview)
+      return (
+        <Button size="sm" variant="outline" disabled={isBusy} onClick={() => setDialog("review")}>
+          <Star /> {t("reservationCard.rateIt")}
+        </Button>
+      )
+    if (canBookAgain)
+      return (
+        <Button size="sm" variant="ghost" asChild>
+          <Link to={`/app/book?court=${court.id}`}>
+            <Repeat /> {t("reservationCard.bookAgain")}
+          </Link>
+        </Button>
+      )
+    return null
+  })()
 
-  function submitReview() {
-    onSubmitReview?.(reservation, rating, comment.trim(), reviewPhotos)
-    setReviewOpen(false)
-    setReviewPhotos([])
-  }
+  const hasMenu =
+    canExportCalendar || canSplit || canOpenToJoin || canInviteGuest || canReschedule || canReportResult || canCancel || Boolean(onOpenDetail)
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-hairline bg-card p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
+    <article
+      className={cn(
+        "group/res relative flex flex-col gap-3 rounded-xl border bg-card p-3.5 shadow-xs transition-[border-color,box-shadow] duration-150 sm:flex-row sm:items-center sm:gap-4",
+        status === "PENDING" ? "border-warning/40 ring-1 ring-warning/20" : "border-border hover:border-border-strong",
+      )}
+    >
       <button
         type="button"
         disabled={!onOpenDetail}
         onClick={() => onOpenDetail?.(reservation)}
-        className={onOpenDetail ? "flex items-center gap-4 text-left" : "flex cursor-default items-center gap-4 text-left"}
+        className="flex min-w-0 flex-1 items-center gap-3.5 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-default"
+        aria-label={onOpenDetail ? t("reservationCard.openDetail", { court: court.name }) : undefined}
       >
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-pebble text-ink-navy">
-          <SportIcon sport={court.sport_type} className="size-5" />
-        </span>
-        <div className="flex flex-col gap-1">
-          <span className={onOpenDetail ? "font-semibold text-ink-navy hover:underline" : "font-semibold text-ink-navy"}>
-            {court.name}
+        <DateBlock iso={reservation.start_time} muted={ended || isPast} />
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className={cn("truncate text-[14px] font-semibold tracking-[-0.01em]", ended ? "text-muted-foreground" : "text-foreground")}>
+              {court.name}
+            </span>
+            <StatusBadge status={status} />
+            {reservation.series_id && (
+              <Badge variant="outline">
+                <Repeat /> {t("reservationCard.recurring")}
+              </Badge>
+            )}
+            {reservation.open_to_join && (
+              <Badge variant="brand">
+                <Sparkles /> {t("reservationCard.openBadge")}
+              </Badge>
+            )}
           </span>
-          <span className="flex items-center gap-1.5 text-sm text-slate-gray">
-            <CalendarClock className="size-3.5" />
-            {formatDateRange(reservation.start_time, reservation.end_time)}
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <SportIcon sport={court.sport_type} className="size-3.5" />
+              <span className="font-mono text-[12.5px] text-foreground/85 tabular">{fmt.timeRange(reservation.start_time, reservation.end_time)}</span>
+            </span>
+            <span>{fmt.dayLabel(reservation.start_time)}</span>
+            <span className="hidden sm:inline">{fmt.durationBetween(reservation.start_time, reservation.end_time)}</span>
+            {court.requires_approval && status !== "COMPLETED" && (
+              <span className="inline-flex items-center gap-1">
+                <ShieldCheck className="size-3.5" /> {t("courts.requiresApproval")}
+              </span>
+            )}
           </span>
           {status === "PENDING" && reservation.hold_expires_at && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warning">
               <Clock3 className="size-3.5" />
-              {t("reservationCard.holdExpires", { time: timeFormatter.format(new Date(reservation.hold_expires_at)) })}
+              {t("reservationCard.holdCountdown")} <Countdown to={reservation.hold_expires_at} onExpire={onHoldExpired} />
             </span>
           )}
           {status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+            <span className="inline-flex items-center gap-1.5 text-xs text-info">
               <Clock3 className="size-3.5" />
-              {t("reservationCard.approvalExpires", {
-                time: new Date(reservation.approval_expires_at).toLocaleString([], {
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              })}
+              {t("reservationCard.approvalExpires", { time: fmt.dateTime(reservation.approval_expires_at) })}
             </span>
           )}
-        </div>
+        </span>
       </button>
 
-      <div className="flex flex-wrap items-center gap-2.5">
-        <Badge variant={STATUS_VARIANT[status]}>{statusLabels[status]}</Badge>
-        {reservation.series_id && (
-          <Badge variant="secondary">
-            <Repeat className="size-3" /> {t("reservationCard.recurring")}
-          </Badge>
-        )}
-
-        {status === "PENDING" && onConfirm && (
-          <Button size="sm" disabled={isBusy} onClick={() => onConfirm(reservation)}>
-            {court.requires_approval ? t("reservationCard.requestApproval") : t("reservationCard.confirm")}
-          </Button>
-        )}
-
-        {status === "CONFIRMED" && onCheckIn && (
-          <Button size="sm" variant="dark" disabled={isBusy} onClick={() => onCheckIn(reservation)}>
-            {t("reservationCard.checkIn")}
-          </Button>
-        )}
-
-        {hasMoreActions && (
+      <div className="flex shrink-0 items-center justify-end gap-1.5 border-t border-border pt-3 sm:border-0 sm:pt-0">
+        {primary}
+        {hasMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="px-2.5" disabled={isBusy}>
-                <MoreHorizontal className="size-3.5" />
-                <span className="sr-only">{t("reservationCard.moreActions")}</span>
+              <Button size="icon-sm" variant="ghost" disabled={isBusy} aria-label={t("reservationCard.moreActions")}>
+                <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-56">
+              {onOpenDetail && (
+                <DropdownMenuItem onSelect={() => onOpenDetail(reservation)}>
+                  <PanelRightOpen /> {t("reservationCard.viewDetails")}
+                </DropdownMenuItem>
+              )}
+              {status === "CONFIRMED" && onCheckIn && !isToday && (
+                <DropdownMenuItem onSelect={() => onCheckIn(reservation)}>
+                  <LogIn /> {t("reservationCard.checkIn")}
+                </DropdownMenuItem>
+              )}
+              {canInviteGuest && (
+                <DropdownMenuItem onSelect={() => setDialog("guest")}>
+                  <UserPlus /> {t("reservationCard.invite")}
+                </DropdownMenuItem>
+              )}
+              {canOpenToJoin && (
+                <DropdownMenuItem onSelect={() => setDialog("open")}>
+                  <Sparkles /> {t("reservationCard.openToJoin.button")}
+                </DropdownMenuItem>
+              )}
+              {canReschedule && (
+                <DropdownMenuItem onSelect={() => setDialog("reschedule")}>
+                  <CalendarClock /> {t("reservationCard.reschedule")}
+                </DropdownMenuItem>
+              )}
               {canExportCalendar && (
                 <DropdownMenuItem disabled={icsMutation.isPending} onSelect={() => icsMutation.mutate()}>
                   <CalendarPlus /> {t("reservationCard.calendar.button")}
                 </DropdownMenuItem>
               )}
               {canSplit && (
-                <DropdownMenuItem onSelect={() => setSplitOpen(true)}>
+                <DropdownMenuItem onSelect={() => setDialog("split")}>
                   <Coins /> {t("reservationCard.split.button")}
                 </DropdownMenuItem>
               )}
               {canReportResult && (
-                <DropdownMenuItem onSelect={() => setResultOpen(true)}>
+                <DropdownMenuItem onSelect={() => setDialog("result")}>
                   <Trophy /> {t("reservationCard.result.button")}
                 </DropdownMenuItem>
               )}
-              {canOpenToJoin && (
-                <DropdownMenuItem onSelect={() => setOpenToJoinOpen(true)}>
-                  <Users /> {t("reservationCard.openToJoin.button")}
+              {canBookAgain && primary === null && (
+                <DropdownMenuItem asChild>
+                  <Link to={`/app/book?court=${court.id}`}>
+                    <Repeat /> {t("reservationCard.bookAgain")}
+                  </Link>
                 </DropdownMenuItem>
               )}
-              {canInviteGuest && (
-                <DropdownMenuItem onSelect={() => setGuestOpen(true)}>
-                  <UserPlus /> {t("reservationCard.invite")}
-                </DropdownMenuItem>
-              )}
-              {canReschedule && (
-                <DropdownMenuItem onSelect={() => setRescheduleOpen(true)}>
-                  <CalendarClock /> {t("reservationCard.reschedule")}
-                </DropdownMenuItem>
+              {canCancel && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onSelect={() => onCancel?.(reservation)}>
+                    <XCircle /> {t("reservationCard.cancel")}
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-
-        {canSplit && <SplitCostDialog reservation={reservation} open={splitOpen} onOpenChange={setSplitOpen} />}
-
-        {canReportResult && (
-          <ReportResultDialog reservation={reservation} open={resultOpen} onOpenChange={setResultOpen} />
-        )}
-
-        {canOpenToJoin && (
-          <OpenToJoinDialog
-            reservation={reservation}
-            isSaving={isSettingOpen}
-            onSave={(openToJoin, note) => onSetOpen?.(reservation, openToJoin, note)}
-            open={openToJoinOpen}
-            onOpenChange={setOpenToJoinOpen}
-          />
-        )}
-
-        {canInviteGuest && (
-          <Dialog open={guestOpen} onOpenChange={setGuestOpen}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{t("reservationCard.guest.title")}</DialogTitle>
-                <DialogDescription>{t("reservationCard.guest.description", { court: court.name })}</DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col gap-2">
-                <Label>{t("reservationCard.guest.email")}</Label>
-                <PlayerSearch
-                  autoFocus
-                  onSelect={(player) => {
-                    onInviteGuest?.(reservation, player)
-                    setGuestOpen(false)
-                  }}
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setGuestOpen(false)}>
-                  {t("common.cancel")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {canBookAgain && (
-          <Button size="sm" variant="outline" asChild>
-            <Link to={`/app/book?court=${court.id}`}>
-              <Repeat className="size-3.5" /> {t("reservationCard.bookAgain")}
-            </Link>
-          </Button>
-        )}
-
-        {canReview && (
-          <Dialog
-            open={reviewOpen}
-            onOpenChange={(open) => {
-              setReviewOpen(open)
-              if (!open) setReviewPhotos([])
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" disabled={isBusy}>
-                <Star className="size-3.5" /> {t("reservationCard.rateIt")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t("reservationCard.review.title", { court: court.name })}</DialogTitle>
-                <DialogDescription>{t("reservationCard.review.description")}</DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col gap-4">
-                <StarRatingInput value={rating} onChange={setRating} />
-                <Textarea
-                  value={comment}
-                  onChange={(event) => setComment(event.target.value)}
-                  placeholder={t("reservationCard.review.commentPlaceholder")}
-                  maxLength={1000}
-                />
-                <div className="flex flex-col gap-2">
-                  <Label>{t("reservationCard.review.photos")}</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {reviewPhotos.map((file, index) => (
-                      <div key={`${file.name}-${index}`} className="group relative size-14 shrink-0 overflow-hidden rounded-lg border border-hairline">
-                        <img src={reviewPhotoPreviews[index]} alt="" className="size-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => setReviewPhotos((files) => files.filter((_, i) => i !== index))}
-                          aria-label={t("profile.reviews.removePhoto")}
-                          className="absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-ink-navy/70 text-paper opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {reviewPhotos.length < MAX_REVIEW_IMAGES && (
-                      <button
-                        type="button"
-                        onClick={() => reviewPhotoInputRef.current?.click()}
-                        aria-label={t("profile.reviews.addPhoto")}
-                        className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-hairline text-slate-gray transition-colors hover:border-signal-blue hover:text-signal-blue"
-                      >
-                        <Plus className="size-4" />
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    ref={reviewPhotoInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0]
-                      event.target.value = ""
-                      if (file) setReviewPhotos((files) => [...files, file])
-                    }}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setReviewOpen(false)
-                    setReviewPhotos([])
-                  }}
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button onClick={submitReview}>{t("reservationCard.review.submit")}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {canReschedule && (
-          <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t("reservationCard.reschedule.title")}</DialogTitle>
-                <DialogDescription>{t("reservationCard.reschedule.description", { court: court.name })}</DialogDescription>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`reschedule-date-${reservation.id}`}>{t("reservationCard.reschedule.date")}</Label>
-                  <Input
-                    id={`reschedule-date-${reservation.id}`}
-                    type="date"
-                    value={date}
-                    onChange={(event) => setDate(event.target.value)}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`reschedule-time-${reservation.id}`}>{t("reservationCard.reschedule.startTime")}</Label>
-                  <Input
-                    id={`reschedule-time-${reservation.id}`}
-                    type="time"
-                    step={1800}
-                    value={time}
-                    onChange={(event) => setTime(event.target.value)}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setRescheduleOpen(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button onClick={submitReschedule}>{t("reservationCard.reschedule.save")}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {canCancel && (
-          <Button size="sm" variant="outline" disabled={isBusy} onClick={() => onCancel?.(reservation)}>
-            {t("reservationCard.cancel")}
-          </Button>
-        )}
       </div>
-    </div>
+
+      {canSplit && <SplitCostDialog reservation={reservation} open={dialog === "split"} onOpenChange={(o) => setDialog(o ? "split" : null)} />}
+      {canReportResult && (
+        <ReportResultDialog reservation={reservation} open={dialog === "result"} onOpenChange={(o) => setDialog(o ? "result" : null)} />
+      )}
+      {canOpenToJoin && dialog === "open" && (
+        <OpenToJoinDialog
+          reservation={reservation}
+          isSaving={isSettingOpen}
+          onSave={(openToJoin, note) => onSetOpen?.(reservation, openToJoin, note)}
+          open={dialog === "open"}
+          onOpenChange={(o) => setDialog(o ? "open" : null)}
+        />
+      )}
+      {canInviteGuest && (
+        <Dialog open={dialog === "guest"} onOpenChange={(o) => setDialog(o ? "guest" : null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{t("reservationCard.guest.title")}</DialogTitle>
+              <DialogDescription>{t("reservationCard.guest.description", { court: court.name })}</DialogDescription>
+            </DialogHeader>
+            <PlayerSearch
+              autoFocus
+              onSelect={(player) => {
+                onInviteGuest?.(reservation, player)
+                setDialog(null)
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+      {canReview && (
+        <ReviewDialog
+          reservation={reservation}
+          open={dialog === "review"}
+          onOpenChange={(o) => setDialog(o ? "review" : null)}
+          onSubmit={(rating, comment, photos) => onSubmitReview?.(reservation, rating, comment, photos)}
+        />
+      )}
+      {canReschedule && dialog === "reschedule" && (
+        <RescheduleDialog
+          reservation={reservation}
+          open={dialog === "reschedule"}
+          onOpenChange={(o) => setDialog(o ? "reschedule" : null)}
+          onSubmit={(startTime, endTime) => onReschedule?.(reservation, startTime, endTime)}
+        />
+      )}
+    </article>
   )
 }
 
-export { ReservationCard }
+export { DateBlock, ReservationCard }

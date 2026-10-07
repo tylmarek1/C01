@@ -63,20 +63,23 @@ PostgreSQL exclusion constraint, not in application code (ADR-001) — see
 | Path | Responsible for |
 |---|---|
 | `components/ui/` | shadcn/ui registry primitives (button, card, dialog, select, tabs, ...), pulled via the `shadcn` CLI and hand-adapted onto the app's design tokens/variants. Add a new primitive with `npx shadcn add <name>` from `frontend/`, then reapply this app's variant/token deltas the same way the existing files do — don't hand-roll one from scratch. |
-| `components/shared/` | Composite, app-specific components built from `components/ui/` primitives (navbar, footer, court-card, reservation-card, week-calendar, confirm-dialog, error-state, ...). Pages are built *from* `ui/` + `shared/`, not with one-off markup. |
-| `pages/{landing,auth,app,courts}/` | Page-level composition per area; `app/` is behind `ProtectedRoute` |
+| `components/shared/` | Composite, app-specific components built from `components/ui/` primitives — the app shell (`app-layout`, `app-sidebar`, `command-menu`, `user-menu`, `notifications-bell`), page anatomy (`page-header`, `empty-state`, `error-state`, `marketing`), and domain pieces (`court-card`, `reservation-card`, `reservation-detail-dialog`, `slot-picker`, `week-calendar`, `charts`, ...). Pages are built *from* `ui/` + `shared/`, not with one-off markup. |
+| `pages/{landing,auth,app,courts}/` | Page-level composition per area; `app/` is behind `ProtectedRoute` and renders in the sidebar shell; `app/admin/` holds one file per admin tab; `courts/` uses `AdaptiveLayout` (shell when signed in, marketing chrome otherwise) |
 | `pages/` (top level) | `AboutPage`, `ContactPage`, `HelpPage`, `NotFoundPage` — standalone pages that don't belong to one of the areas above |
 | `lib/api.ts` | The only fetch wrapper — throws `ApiError`; never call raw `fetch()` from a component |
 | `lib/chat-socket.ts` | The one WebSocket client — a module-level singleton connection, opened/closed by `auth-context.tsx` alongside the JWT session; not per-component |
 | `lib/auth-context.tsx` | `AuthProvider`/`useAuth` — JWT held client-side |
 | `lib/i18n.tsx` | `t()` + the EN/CS language switcher |
+| `lib/format.ts`, `lib/use-now.ts` | `useFormatters()` — every date/time/number on screen, following the UI language; `useNow()` — the render-safe "current time" |
+| `lib/queries.ts` | Shared TanStack Query hooks for resources read from more than one place (conversations, admin stats, my reservations, courts) |
 | `lib/theme.tsx` | `ThemeProvider`/`useTheme` — light/dark, persisted to `localStorage`, toggled via `components/shared/theme-toggle.tsx` |
 | `locales/en.ts` / `cs.ts` | `en.ts` defines `TranslationKey`; `cs.ts` is typed against it, so a *missing* translation is a compile error — a hardcoded string that never became a key is not (see `i18n-check`) |
 | `types/` | Hand-maintained TypeScript mirror of the backend's Pydantic schemas — **no codegen**, so a backend shape change doesn't automatically surface here (see `schema-change-sweep`) |
 
-The "navy ink on cool marble" design system (`index.css`'s CSS variables,
-consumed via Tailwind's `@theme inline`) is a single, deliberate source of
-tokens — never a hardcoded color in a component (see `component-design`).
+The design system is documented in the repo-root `DESIGN.md`; its tokens are
+`index.css`'s CSS variables (consumed via Tailwind's `@theme inline`) — a
+single source of tokens, never a hardcoded color in a component (see
+`component-design`).
 
 ## Conventions easy to miss
 

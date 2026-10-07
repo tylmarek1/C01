@@ -4,25 +4,26 @@ import { cn } from "@/lib/utils"
 
 interface SectionHeaderProps {
   eyebrow?: string
-  title: string
-  description?: string
+  title: ReactNode
+  description?: ReactNode
   align?: "center" | "left"
   action?: ReactNode
   className?: string
 }
 
+/** Marketing-page section heading (landing, about, help). App pages use PageHeader. */
 function SectionHeader({ eyebrow, title, description, align = "center", action, className }: SectionHeaderProps) {
   const isCentered = align === "center"
   return (
     <div className={cn("flex flex-col gap-4", isCentered && "items-center text-center", className)}>
-      {eyebrow && (
-        <span className="inline-flex w-fit items-center rounded-full bg-tint-blue px-2.5 py-1 text-xs font-medium text-deep-cobalt">
-          {eyebrow}
-        </span>
-      )}
-      <h2 className="text-4xl leading-[1.2] font-bold text-balance text-ink-navy sm:text-5xl">{title}</h2>
+      {eyebrow && <span className="eyebrow">{eyebrow}</span>}
+      <h2 className="text-3xl leading-[1.08] font-semibold tracking-[-0.035em] text-balance text-foreground sm:text-[44px]">
+        {title}
+      </h2>
       {description && (
-        <p className={cn("max-w-xl text-base text-slate-gray sm:text-lg", isCentered && "mx-auto")}>{description}</p>
+        <p className={cn("max-w-xl text-base text-pretty text-muted-foreground sm:text-[17px]", isCentered && "mx-auto")}>
+          {description}
+        </p>
       )}
       {action}
     </div>

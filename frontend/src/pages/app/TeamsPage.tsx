@@ -1,46 +1,37 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Plus, Search, Users } from "lucide-react"
+import { Compass, Crown, Globe, Lock, Plus, Shield, Users, UsersRound } from "lucide-react"
 import { useEffect, useState, type FormEvent } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { EmptyState } from "@/components/shared/empty-state"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { SectionHeader } from "@/components/shared/section-header"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { useSportLabels } from "@/components/shared/sport-icon"
-import { ApiError, api, assetUrl } from "@/lib/api"
+import { EmptyState } from "@/components/shared/empty-state"
+import { ErrorState } from "@/components/shared/error-state"
+import { PageContainer, PageHeader } from "@/components/shared/page-header"
+import { SearchInput } from "@/components/shared/search-input"
+import { SportPicker } from "@/components/shared/sport-picker"
+import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
+import { UserAvatar } from "@/components/shared/user-avatar"
+import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 import type { SportType } from "@/types"
 
-const SPORT_TYPES: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
 const DISCOVER_PAGE_SIZE = 12
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
-}
-
-function CreateTeamDialog() {
+function CreateTeamDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { token } = useAuth()
   const { t } = useTranslation()
-  const sportLabels = useSportLabels()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [sport, setSport] = useState<SportType | "ANY">("ANY")
   const [description, setDescription] = useState("")
@@ -52,13 +43,14 @@ function CreateTeamDialog() {
         sport_type: sport === "ANY" ? undefined : sport,
         description: description.trim() || undefined,
       }),
-    onSuccess: () => {
-      setOpen(false)
+    onSuccess: (team) => {
+      onOpenChange(false)
       setName("")
       setSport("ANY")
       setDescription("")
       queryClient.invalidateQueries({ queryKey: ["teams-mine"] })
       toast.success(t("teams.toast.created"))
+      navigate(`/app/teams/${team.id}`)
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.error.createFailed")),
   })
@@ -70,106 +62,125 @@ function CreateTeamDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="mt-2 w-fit">
-          <Plus className="size-4" /> {t("teams.create")}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("teams.create.title")}</DialogTitle>
+          <DialogDescription>{t("teams.create.description")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="team-name">{t("teams.field.name")}</Label>
-            <Input id="team-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required />
+            <Input id="team-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required autoFocus />
           </div>
           <div className="flex flex-col gap-2">
             <Label>{t("teams.field.sport")}</Label>
-            <Select value={sport} onValueChange={(value) => setSport(value as SportType | "ANY")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ANY">{t("teams.field.sport.any")}</SelectItem>
-                {SPORT_TYPES.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {sportLabels[option]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SportPicker value={sport} onChange={setSport} />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="team-description">{t("teams.field.description")}</Label>
-            <Textarea
-              id="team-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              maxLength={500}
-              rows={3}
-            />
+            <Textarea id="team-description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} rows={3} />
           </div>
-          <Button type="submit" disabled={createMutation.isPending || name.trim().length === 0} className="mt-1 w-fit">
-            {createMutation.isPending ? t("teams.creating") : t("teams.create.submit")}
-          </Button>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={name.trim().length === 0} isLoading={createMutation.isPending}>
+              {createMutation.isPending ? t("teams.creating") : t("teams.create.submit")}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   )
 }
 
-function MyTeamsList() {
+function MyTeamsList({ onCreate }: { onCreate: () => void }) {
   const { token } = useAuth()
   const { t } = useTranslation()
   const sportLabels = useSportLabels()
-
-  const { data: teams, isLoading } = useQuery({
+  const { data: teams, isLoading, isError, refetch } = useQuery({
     queryKey: ["teams-mine"],
     queryFn: () => api.listMyTeams(token!),
     enabled: Boolean(token),
   })
 
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="grid gap-4 sm:grid-cols-2">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <Skeleton key={i} className="h-28 w-full" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-44 rounded-xl" />
         ))}
       </div>
     )
-  }
-
-  if (teams?.length === 0) {
-    return <EmptyState title={t("teams.empty.title")} description={t("teams.empty.description")} />
-  }
+  if (isError) return <ErrorState onRetry={() => refetch()} />
+  if (teams?.length === 0)
+    return (
+      <EmptyState
+        icon={UsersRound}
+        title={t("teams.empty.title")}
+        description={t("teams.empty.description")}
+        action={
+          <>
+            <Button size="sm" onClick={onCreate}>
+              <Plus /> {t("teams.create")}
+            </Button>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/app/teams?tab=discover">{t("teams.tabs.discover")}</Link>
+            </Button>
+          </>
+        }
+      />
+    )
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {teams?.map((team) => (
-        <Link key={team.id} to={`/app/teams/${team.id}`}>
-          <Card className="h-full transition-colors hover:bg-pebble">
-            <CardContent className="flex flex-col gap-2 p-5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Avatar className="size-8">
-                    <AvatarImage src={assetUrl(team.avatar_url)} alt={team.name} loading="lazy" className="object-cover" />
-                    <AvatarFallback>{initials(team.name)}</AvatarFallback>
-                  </Avatar>
-                  <span className="font-semibold text-ink-navy">{team.name}</span>
-                </div>
-                {(team.my_role === "OWNER" || team.my_role === "CAPTAIN") && (
-                  <Badge variant="secondary">{t(team.my_role === "OWNER" ? "teams.role.owner" : "teams.role.captain")}</Badge>
+    <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {teams?.map((team, index) => (
+        <Link
+          key={team.id}
+          to={`/app/teams/${team.id}`}
+          style={{ "--i": index } as React.CSSProperties}
+          className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-xs outline-none surface-interactive focus-visible:ring-2 focus-visible:ring-ring/40"
+        >
+          <div className="flex items-start gap-3">
+            <UserAvatar name={team.name} avatarUrl={team.avatar_url} size="lg" className="rounded-lg [&_*]:rounded-lg" />
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">{team.name}</span>
+              <span className="flex flex-wrap items-center gap-1.5">
+                {team.sport_type && (
+                  <Badge variant="secondary">
+                    <SportIcon sport={team.sport_type} /> {sportLabels[team.sport_type]}
+                  </Badge>
                 )}
-              </div>
-              {team.sport_type && <Badge className="w-fit">{sportLabels[team.sport_type]}</Badge>}
-              {team.description && <p className="text-sm text-slate-gray">{team.description}</p>}
-              <span className="mt-1 flex items-center gap-1.5 text-xs text-slate-gray">
-                <Users className="size-3.5" /> {t("teams.memberCount", { count: team.members.length })}
+                {team.my_role === "OWNER" && (
+                  <Badge variant="brand">
+                    <Crown /> {t("teams.role.owner")}
+                  </Badge>
+                )}
+                {team.my_role === "CAPTAIN" && (
+                  <Badge variant="info">
+                    <Shield /> {t("teams.role.captain")}
+                  </Badge>
+                )}
+                {!team.is_public && (
+                  <Badge variant="outline">
+                    <Lock /> {t("teams.private")}
+                  </Badge>
+                )}
               </span>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+          {team.description && <p className="line-clamp-2 text-[13px] text-muted-foreground">{team.description}</p>}
+          <div className="mt-auto flex items-center justify-between border-t border-border pt-3">
+            <div className="flex -space-x-2">
+              {team.members.slice(0, 5).map((member) => (
+                <UserAvatar key={member.user.id} name={member.user.name} avatarUrl={member.user.avatar_url} size="xs" className="ring-2 ring-card" />
+              ))}
+            </div>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Users className="size-3.5" /> {t("teams.memberCount", { count: team.members.length })}
+            </span>
+          </div>
         </Link>
       ))}
     </div>
@@ -187,26 +198,25 @@ function DiscoverTeams() {
   const [limit, setLimit] = useState(DISCOVER_PAGE_SIZE)
 
   useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(query.trim()), 300)
+    const timeout = setTimeout(() => {
+      setDebounced(query.trim())
+      setLimit(DISCOVER_PAGE_SIZE)
+    }, 300)
     return () => clearTimeout(timeout)
   }, [query])
 
-  useEffect(() => {
-    setLimit(DISCOVER_PAGE_SIZE)
-  }, [debounced, sport])
-
-  const { data: teams, isLoading } = useQuery({
+  const { data: teams, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["teams-discover", debounced, sport, limit],
     queryFn: () => api.discoverTeams(token!, { q: debounced, sport: sport === "ANY" ? undefined : sport, limit }),
     enabled: Boolean(token),
+    placeholderData: (previous) => previous,
   })
-
   const { data: myRequests } = useQuery({
     queryKey: ["team-join-requests-mine"],
     queryFn: () => api.listMyTeamJoinRequests(token!),
     enabled: Boolean(token),
   })
-  const requestIdByTeamId = new Map((myRequests ?? []).map((request) => [request.team_id, request.id]))
+  const requestIdByTeamId = new Map((myRequests ?? []).filter((r) => r.status === "PENDING").map((request) => [request.team_id, request.id]))
 
   const requestMutation = useMutation({
     mutationFn: (teamId: string) => api.requestToJoinTeam(token!, teamId),
@@ -216,10 +226,8 @@ function DiscoverTeams() {
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.discover.error.requestFailed")),
   })
-
   const cancelRequestMutation = useMutation({
-    mutationFn: ({ teamId, requestId }: { teamId: string; requestId: string }) =>
-      api.cancelTeamJoinRequest(token!, teamId, requestId),
+    mutationFn: ({ teamId, requestId }: { teamId: string; requestId: string }) => api.cancelTeamJoinRequest(token!, teamId, requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-join-requests-mine"] })
       toast.success(t("teams.discover.toast.requestCancelled"))
@@ -229,80 +237,69 @@ function DiscoverTeams() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-3">
-        <div className="relative max-w-xs flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-gray" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("teams.discover.searchPlaceholder")} className="pl-9" />
-        </div>
-        <Select value={sport} onValueChange={(value) => setSport(value as SportType | "ANY")}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ANY">{t("teams.field.sport.any")}</SelectItem>
-            {SPORT_TYPES.map((option) => (
-              <SelectItem key={option} value={option}>
-                {sportLabels[option]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <SearchInput value={query} onValueChange={setQuery} placeholder={t("teams.discover.searchPlaceholder")} className="sm:w-72" />
+        <SportPicker
+          value={sport}
+          onChange={(next) => {
+            setSport(next)
+            setLimit(DISCOVER_PAGE_SIZE)
+          }}
+        />
       </div>
-
       {isLoading && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 w-full" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-40 rounded-xl" />
           ))}
         </div>
       )}
-
-      {!isLoading && teams?.length === 0 && <EmptyState title={t("teams.discover.empty")} />}
-
+      {isError && <ErrorState onRetry={() => refetch()} />}
+      {!isLoading && teams?.length === 0 && <EmptyState icon={Compass} title={t("teams.discover.empty")} description={t("teams.discover.emptyHint")} />}
       {teams && teams.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {teams.map((team) => {
+        <div className={cn("stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3", isFetching && "opacity-70 transition-opacity")}>
+          {teams.map((team, index) => {
             const requestId = requestIdByTeamId.get(team.id)
             return (
-              <Card key={team.id}>
-                <CardContent className="flex flex-col gap-2 p-5">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="size-8">
-                      <AvatarImage src={assetUrl(team.avatar_url)} alt={team.name} loading="lazy" className="object-cover" />
-                      <AvatarFallback>{initials(team.name)}</AvatarFallback>
-                    </Avatar>
-                    <span className="font-semibold text-ink-navy">{team.name}</span>
-                  </div>
-                  {team.sport_type && <Badge className="w-fit">{sportLabels[team.sport_type]}</Badge>}
-                  {team.description && <p className="text-sm text-slate-gray">{team.description}</p>}
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs text-slate-gray">
-                      <Users className="size-3.5" /> {t("teams.memberCount", { count: team.member_count })}
+              <article key={team.id} style={{ "--i": index } as React.CSSProperties} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-xs">
+                <div className="flex items-start gap-3">
+                  <UserAvatar name={team.name} avatarUrl={team.avatar_url} size="lg" className="rounded-lg [&_*]:rounded-lg" />
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="truncate text-[15px] font-semibold">{team.name}</span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {team.sport_type && (
+                        <Badge variant="secondary">
+                          <SportIcon sport={team.sport_type} /> {sportLabels[team.sport_type]}
+                        </Badge>
+                      )}
+                      <Badge variant="outline">
+                        <Globe /> {t("teams.public")}
+                      </Badge>
                     </span>
-                    {requestId ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={cancelRequestMutation.isPending}
-                        onClick={() => cancelRequestMutation.mutate({ teamId: team.id, requestId })}
-                      >
-                        {t("teams.discover.cancelRequest")}
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" disabled={requestMutation.isPending} onClick={() => requestMutation.mutate(team.id)}>
-                        {t("teams.discover.requestToJoin")}
-                      </Button>
-                    )}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                {team.description && <p className="line-clamp-2 text-[13px] text-muted-foreground">{team.description}</p>}
+                <div className="mt-auto flex items-center justify-between border-t border-border pt-3">
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Users className="size-3.5" /> {t("teams.memberCount", { count: team.member_count })}
+                  </span>
+                  {requestId ? (
+                    <Button size="sm" variant="ghost" isLoading={cancelRequestMutation.isPending} onClick={() => cancelRequestMutation.mutate({ teamId: team.id, requestId })}>
+                      {t("teams.discover.cancelRequest")}
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled={requestMutation.isPending} onClick={() => requestMutation.mutate(team.id)}>
+                      {t("teams.discover.requestToJoin")}
+                    </Button>
+                  )}
+                </div>
+              </article>
             )
           })}
         </div>
       )}
-
       {teams && teams.length > 0 && teams.length >= limit && (
-        <Button variant="outline" className="w-fit" onClick={() => setLimit((current) => current + DISCOVER_PAGE_SIZE)}>
+        <Button variant="outline" size="sm" className="w-fit self-center" isLoading={isFetching} onClick={() => setLimit((current) => current + DISCOVER_PAGE_SIZE)}>
           {t("common.loadMore")}
         </Button>
       )}
@@ -312,30 +309,40 @@ function DiscoverTeams() {
 
 function TeamsPage() {
   const { t } = useTranslation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get("tab") === "discover" ? "discover" : "mine"
+  const [createOpen, setCreateOpen] = useState(false)
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
-      <SectionHeader
-        align="left"
-        eyebrow={t("nav.teams")}
+    <PageContainer size="wide">
+      <PageHeader
+        eyebrow={t("nav.group.community")}
         title={t("teams.title")}
         description={t("teams.hint")}
-        action={<CreateTeamDialog />}
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus /> {t("teams.create")}
+          </Button>
+        }
       />
-
-      <Tabs defaultValue="mine" className="mt-10">
-        <TabsList>
-          <TabsTrigger value="mine">{t("teams.tabs.mine")}</TabsTrigger>
-          <TabsTrigger value="discover">{t("teams.tabs.discover")}</TabsTrigger>
+      <Tabs value={tab} onValueChange={(value) => setSearchParams(value === "mine" ? {} : { tab: value }, { replace: true })}>
+        <TabsList variant="line">
+          <TabsTrigger value="mine">
+            <UsersRound /> {t("teams.tabs.mine")}
+          </TabsTrigger>
+          <TabsTrigger value="discover">
+            <Compass /> {t("teams.tabs.discover")}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="mine">
-          <MyTeamsList />
+          <MyTeamsList onCreate={() => setCreateOpen(true)} />
         </TabsContent>
         <TabsContent value="discover">
           <DiscoverTeams />
         </TabsContent>
       </Tabs>
-    </div>
+      <CreateTeamDialog open={createOpen} onOpenChange={setCreateOpen} />
+    </PageContainer>
   )
 }
 

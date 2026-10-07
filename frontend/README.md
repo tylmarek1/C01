@@ -29,13 +29,18 @@ npm run preview   # serve the production build locally
 
 ## Design system
 
-The visual language (navy ink on a cool marble canvas, a single signal-blue
-accent, blue-tinted shadows instead of neutral black, 24px card / 8px button
-radii, decorative magenta/cyan blobs behind product cards) is implemented as
-CSS custom properties in `src/index.css` and consumed through Tailwind's
-`@theme inline` mechanism — see the tokens there (`--ink-navy`,
-`--signal-blue`, `--shadow-card`, etc.) before adding new colors or shadows,
-rather than hardcoding new values in a component.
+"Court-side precision": a chalk canvas, ink type, a single optic-lime
+(tennis-ball) accent reserved for the primary booking action and live/active
+state, Geist for UI and Geist Mono for times and numbers, hairline borders
+instead of heavy shadows, and a full light/dark theme. The rules, component
+inventory and patterns live in the repo-root [`DESIGN.md`](../DESIGN.md);
+the tokens themselves are CSS custom properties in `src/index.css`, consumed
+through Tailwind's `@theme inline`. Read both before adding a colour, a
+shadow, or a new component.
+
+The signed-in app runs in a sidebar shell (`components/shared/app-layout.tsx`)
+with a ⌘K command menu; public pages (landing, help, about, contact) use the
+marketing navbar and footer, and court browsing adapts to whichever applies.
 
 ## Layout
 
@@ -45,15 +50,17 @@ src/
                         select, dialog, ...), pulled via the shadcn CLI and
                         adapted onto this app's design tokens/variants.
   components/shared/   composite, app-specific pieces built from ui/
-                        (navbar, footer, court-card, reservation-card,
-                        auth-layout, ...). Barrel-exported from index.ts
-                        alongside ui/, for existing call sites that import
-                        from there.
+                        (app shell + sidebar, command menu, page header,
+                        empty/error states, court-card, reservation-card,
+                        slot picker, charts, ...). Barrel-exported from
+                        index.ts alongside ui/.
   pages/
     landing/             marketing home page
     auth/                login, register
-    app/                 dashboard, booking flow, profile, the admin panel
-                          (venue manager or admin, behind ProtectedRoute)
+    app/                 dashboard, booking flow, open games, chat, teams,
+                          community, profile, settings, and the admin panel
+                          (app/admin/, one file per tab; venue manager or
+                          admin, behind ProtectedRoute)
     courts/               court listing + detail
   lib/
     api.ts               fetch wrapper for the backend, throws ApiError
@@ -61,7 +68,9 @@ src/
     i18n.tsx              t() + the EN/CS language switcher
     theme.tsx              ThemeProvider / useTheme (light/dark, persisted)
     query-client.ts       TanStack Query client
-    format.ts             date/time formatting helpers
+    format.ts             locale-aware date/time/number formatting (useFormatters)
+    queries.ts            shared query hooks (conversations, admin stats, ...)
+    slots.ts              booking slot generation (mirrors backend rules, UI hint only)
   locales/                en.ts (source of truth for TranslationKey), cs.ts
   types/                  TypeScript types mirroring the backend's Pydantic schemas
 ```

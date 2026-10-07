@@ -8,106 +8,154 @@
    system preference instead of always following it. */
 @custom-variant dark (&:is(.dark *));
 
+/* ==========================================================================
+   Courtly design tokens — "court-side precision".
+   See DESIGN.md (repo root) for the rationale and the rules for using them.
+
+   Only the *base* palette is redefined under `.dark`; every semantic token
+   below resolves through var() at use time, so it re-themes automatically.
+   Components must use the semantic Tailwind classes (bg-card, text-muted-
+   foreground, bg-success-soft, ...) — never a hex, and never a raw Tailwind
+   palette colour (bg-amber-50 etc.), which would not follow dark mode.
+   ========================================================================== */
 :root {
   /* Tells the browser which palette to use for chrome it renders itself —
      the date-input calendar glyph, native scrollbars, select arrows — none
-     of which `dark:` utility classes can reach. Without this, that glyph
-     stays browser-default dark and nearly disappears against a dark input. */
+     of which `dark:` utility classes can reach. */
   color-scheme: light;
-  --radius: 0.5rem;
+  --radius: 0.625rem; /* 10px — buttons & inputs; cards use radius-xl */
 
-  /* Calendly-inspired palette — navy ink on cool marble */
-  --ink-navy: #0b3558;
-  --signal-blue: #006bff;
-  --slate-gray: #476788;
-  --mist-gray: #a6bbd1;
-  --cloud: #f8f9fb;
-  --paper: #ffffff;
-  --pebble: #f0f3f8;
-  --hairline: #d4e0ed;
-  --coral-magenta: #e55cff;
-  --sky-cyan: #0099ff;
-  --deep-cobalt: #004eba;
-  /* A lighter, "tinted" background for a badge/pill/icon-tile on the
-     signal-blue hue — was repeated as a literal bg-[#e6f0ff] in ~6 files. */
-  --tint-blue: #e6f0ff;
-  /* A step lighter than --tint-blue, for a selected/active/highlighted row
-     or card (a chosen court, a selected chat conversation, "today" on the
-     calendar) — was repeated as a literal bg-[#eaf3ff] in ~14 files. */
-  --highlight-blue: #eaf3ff;
-  --signal-blue-hover: #0059d6;
-  --ink-navy-hover: #082943;
+  /* Base palette — chalk canvas, ink type, optic (tennis-ball) accent */
+  --c-canvas: #f5f6f3;
+  --c-surface: #ffffff;
+  --c-wash: #eef0ec;
+  --c-wash-strong: #e4e7e1;
+  --c-line: #e2e5de;
+  --c-line-strong: #cdd2c7;
+  --c-ink: #12150f;
+  --c-ink-hover: #2a2f26;
+  --c-ink-muted: #5b6257;
+  --c-ink-subtle: #8a9185;
+  --c-optic: #d4f34a;
+  --c-optic-hover: #c5e536;
+  --c-optic-soft: #f0f9cc;
+  --c-optic-ink: #4d6b00; /* text-safe brand green on light surfaces */
 
-  /* shadcn semantic tokens, mapped onto the palette above */
-  --background: var(--cloud);
-  --foreground: var(--ink-navy);
-  --card: var(--paper);
-  --card-foreground: var(--ink-navy);
-  --popover: var(--paper);
-  --popover-foreground: var(--ink-navy);
-  --primary: var(--signal-blue);
-  --primary-foreground: var(--paper);
-  --secondary: var(--pebble);
-  --secondary-foreground: var(--ink-navy);
-  --muted: var(--pebble);
-  --muted-foreground: var(--slate-gray);
-  --accent: var(--pebble);
-  --accent-foreground: var(--ink-navy);
-  --destructive: #dc2626;
+  --c-success: #15803d;
+  --c-success-soft: #e6f4ea;
+  --c-warning: #b45309;
+  --c-warning-soft: #fcf1df;
+  --c-danger: #d92d20;
+  --c-danger-soft: #fdebe9;
+  --c-info: #2563eb;
+  --c-info-soft: #e8eefc;
+
+  /* shadcn semantic tokens */
+  --background: var(--c-canvas);
+  --foreground: var(--c-ink);
+  --card: var(--c-surface);
+  --card-foreground: var(--c-ink);
+  --popover: var(--c-surface);
+  --popover-foreground: var(--c-ink);
+  --primary: var(--c-ink);
+  --primary-foreground: var(--c-surface);
+  --primary-hover: var(--c-ink-hover);
+  --secondary: var(--c-wash);
+  --secondary-foreground: var(--c-ink);
+  --muted: var(--c-wash);
+  --muted-foreground: var(--c-ink-muted);
+  --subtle-foreground: var(--c-ink-subtle);
+  --accent: var(--c-wash);
+  --accent-foreground: var(--c-ink);
+  --destructive: var(--c-danger);
   --destructive-foreground: #ffffff;
-  --border: var(--hairline);
-  --input: var(--hairline);
-  --ring: var(--signal-blue);
+  --border: var(--c-line);
+  --border-strong: var(--c-line-strong);
+  --input: var(--c-line-strong);
+  --ring: var(--c-ink);
 
-  /* three-layer, blue-tinted elevation (never neutral black) */
-  --shadow-card: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px,
-    rgba(71, 103, 136, 0.08) 0px 30px 50px 0px;
-  --shadow-link: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 4px 10px 0px,
-    rgba(71, 103, 136, 0.05) 0px 10px 20px 0px;
-  --shadow-button: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px,
-    rgba(71, 103, 136, 0.06) 0px 15px 30px 0px;
+  /* Brand accent — one per view, for the primary booking action and active state */
+  --brand: var(--c-optic);
+  --brand-hover: var(--c-optic-hover);
+  --brand-foreground: #12150f;
+  --brand-soft: var(--c-optic-soft);
+  --brand-ink: var(--c-optic-ink);
+
+  /* Inverted "ink panel" — stays dark in both themes (auth art, landing CTA band). */
+  --panel: #12150f;
+  --panel-foreground: #f5f6f3;
+
+  /* Status — text/icon colour + a soft background, always used as a pair */
+  --success: var(--c-success);
+  --success-soft: var(--c-success-soft);
+  --warning: var(--c-warning);
+  --warning-soft: var(--c-warning-soft);
+  --danger: var(--c-danger);
+  --danger-soft: var(--c-danger-soft);
+  --info: var(--c-info);
+  --info-soft: var(--c-info-soft);
+
+  /* Data viz — sequential ramp is the ink/optic hue, categorical is muted */
+  --chart-1: var(--c-ink);
+  --chart-2: #7c8a3a;
+  --chart-3: #a7b47a;
+  --chart-track: var(--c-wash);
+  --heat: #4d6b00;
+  --star: #f2b01e;
+
+  /* Elevation — borders do the separating; shadows only lift what floats */
+  --shadow-xs: 0 1px 2px rgba(18, 21, 15, 0.05);
+  --shadow-sm: 0 1px 2px rgba(18, 21, 15, 0.04), 0 2px 6px -2px rgba(18, 21, 15, 0.06);
+  --shadow-md: 0 1px 2px rgba(18, 21, 15, 0.04), 0 8px 20px -8px rgba(18, 21, 15, 0.14);
+  --shadow-lg: 0 2px 6px rgba(18, 21, 15, 0.05), 0 24px 48px -16px rgba(18, 21, 15, 0.22);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
 }
 
-/* Dark mode redefines only the base palette — every shadcn semantic token
-   below (--background, --card, --primary, --ring, ...) is declared in :root
-   as `var(--some-base-token)`, and CSS custom properties resolve those var()
-   references live, per element, at use time — not once at declaration time.
-   So a semantic token never needs to be repeated here: as long as the base
-   token it points to is overridden, the semantic token follows automatically
-   for any element under `.dark`. Placed after :root so it wins the tie on
-   equal specificity (both are effectively one-class selectors). */
 .dark {
   color-scheme: dark;
-  --ink-navy: #e9f1fb;
-  --signal-blue: #3d8bff;
-  --slate-gray: #93a8c4;
-  --mist-gray: #5b7291;
-  --cloud: #0a1420;
-  --paper: #101d2e;
-  --pebble: #17253a;
-  --hairline: #26394f;
-  --coral-magenta: #ee7dff;
-  --sky-cyan: #1aa8ff;
-  --deep-cobalt: #8ec2ff;
-  --tint-blue: #163357;
-  --highlight-blue: #1b3d66;
-  --signal-blue-hover: #2f7ae6;
-  --ink-navy-hover: #cddaea;
-  /* Destructive is used both as a solid button fill (bg-destructive +
-     text-destructive-foreground) and as standalone text/border on a dark
-     card (text-destructive, aria-invalid:border-destructive) — one red has
-     to serve both roles, so it's brightened for standalone-text legibility
-     on a dark surface, and paired with a dark-red foreground (not white) so
-     the button fill still reads as clearly "danger" rather than washing out. */
-  --destructive: #f87171;
-  --destructive-foreground: #450a0a;
+  --c-canvas: #0b0d0a;
+  --c-surface: #131611;
+  --c-wash: #1a1e17;
+  --c-wash-strong: #23281f;
+  --c-line: #252a21;
+  --c-line-strong: #343a2f;
+  --c-ink: #eef1ea;
+  --c-ink-hover: #ffffff;
+  --c-ink-muted: #a1a89b;
+  --c-ink-subtle: #737a6d;
+  --c-optic: #d4f34a;
+  --c-optic-hover: #e0fa66;
+  --c-optic-soft: #242c10;
+  --c-optic-ink: #d4f34a;
 
-  --shadow-card: rgba(0, 0, 0, 0.35) 0px 4px 5px 0px, rgba(0, 0, 0, 0.3) 0px 8px 15px 0px,
-    rgba(0, 0, 0, 0.45) 0px 30px 50px 0px;
-  --shadow-link: rgba(0, 0, 0, 0.3) 0px 4px 5px 0px, rgba(0, 0, 0, 0.25) 0px 4px 10px 0px,
-    rgba(0, 0, 0, 0.35) 0px 10px 20px 0px;
-  --shadow-button: rgba(0, 0, 0, 0.3) 0px 4px 5px 0px, rgba(0, 0, 0, 0.28) 0px 8px 15px 0px,
-    rgba(0, 0, 0, 0.4) 0px 15px 30px 0px;
+  --c-success: #4ade80;
+  --c-success-soft: #11251a;
+  --c-warning: #fbbf24;
+  --c-warning-soft: #2a2110;
+  --c-danger: #f87171;
+  --c-danger-soft: #2c1513;
+  --c-info: #7aa7ff;
+  --c-info-soft: #131f36;
+
+  --primary-foreground: #0b0d0a;
+  --destructive-foreground: #1b0605;
+  --ring: var(--c-optic);
+  --chart-2: #9fb34a;
+  --chart-3: #5f6d33;
+  --heat: #d4f34a;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px -8px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 24px 48px -16px rgba(0, 0, 0, 0.7);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 @theme inline {
@@ -119,40 +167,133 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-ink-navy: var(--ink-navy);
-  --color-signal-blue: var(--signal-blue);
-  --color-slate-gray: var(--slate-gray);
-  --color-mist-gray: var(--mist-gray);
-  --color-cloud: var(--cloud);
-  --color-paper: var(--paper);
-  --color-pebble: var(--pebble);
-  --color-hairline: var(--hairline);
-  --color-coral-magenta: var(--coral-magenta);
-  --color-sky-cyan: var(--sky-cyan);
-  --color-deep-cobalt: var(--deep-cobalt);
-  --color-tint-blue: var(--tint-blue);
-  --color-highlight-blue: var(--highlight-blue);
-  --color-signal-blue-hover: var(--signal-blue-hover);
-  --color-ink-navy-hover: var(--ink-navy-hover);
+  --color-wash-strong: var(--c-wash-strong);
 
-  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+  --color-panel: var(--panel);
+  --color-panel-foreground: var(--panel-foreground);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-track: var(--chart-track);
+  --color-heat: var(--heat);
+  --color-star: var(--star);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: var(--radius);
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
+  --radius-3xl: 28px;
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+
+  --animate-fade-up: fade-up var(--duration-slow) var(--ease-out) both;
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-out) both;
+  --animate-scale-in: scale-in var(--duration-base) var(--ease-out) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pulse-ring: pulse-ring 2s var(--ease-out) infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes grow-y {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes grow-x {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand) 70%, transparent);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 8px transparent;
+    }
+  }
 }
 
 @layer base {
@@ -162,27 +303,110 @@
 
   html {
     background: var(--background);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-feature-settings: "cv11", "ss01";
-    transition: background-color 0.15s ease, color 0.15s ease;
+    font-size: 15px;
+    line-height: 1.5;
+    font-feature-settings: "ss01", "cv11";
+    transition:
+      background-color var(--duration-base) ease,
+      color var(--duration-base) ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--brand) 55%, transparent);
+    color: var(--foreground);
+  }
+
+  :focus-visible {
+    outline: none;
+  }
+
+  /* Thin, theme-aware scrollbars for inner scroll areas (chat, menus). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
 @layer utilities {
-  .shadow-card {
-    box-shadow: var(--shadow-card);
+  /* Times, prices, counters — tabular, so digits don't jitter as they change. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 
-  .shadow-link {
-    box-shadow: var(--shadow-link);
+  /* 11px uppercase micro-label (eyebrows, table heads, section kickers). */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
   }
 
-  .shadow-button {
-    box-shadow: var(--shadow-button);
+  .surface {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+  }
+
+  /* A surface that responds to hover — lifts subtly; for clickable cards. */
+  .surface-interactive {
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out);
+  }
+  .surface-interactive:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Staggered entrance for lists: set --i on each child. */
+  .stagger > * {
+    animation: fade-up var(--duration-slow) var(--ease-out) both;
+    animation-delay: calc(min(var(--i, 0), 12) * 35ms);
+  }
+
+  /* Dotted "court" grid used behind hero/auth art. */
+  .bg-court-grid {
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
