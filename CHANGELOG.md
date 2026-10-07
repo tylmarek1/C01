@@ -8,6 +8,8 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-07
+
 ### Added
 
 - **Venue managers and admins now get a "Your venue at a glance" snapshot
