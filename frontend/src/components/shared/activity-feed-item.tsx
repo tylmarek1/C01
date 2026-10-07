@@ -2,19 +2,11 @@ import { Award, Sparkles, Trophy, UserPlus, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { AchievementIcon } from "@/components/shared/achievement-icon"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { assetUrl } from "@/lib/api"
+import { UserAvatar } from "@/components/shared/user-avatar"
+import { useFormatters } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 import type { ActivityEvent } from "@/types"
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
-}
 
 const ICON_BY_TYPE: Record<ActivityEvent["type"], typeof Trophy> = {
   FOLLOWED_PLAYER: UserPlus,
@@ -25,8 +17,10 @@ const ICON_BY_TYPE: Record<ActivityEvent["type"], typeof Trophy> = {
   OPENED_GAME: Sparkles,
 }
 
-function ActivityFeedItem({ event }: { event: ActivityEvent }) {
+/** One line of the community feed. `dense` drops the card chrome (sidebar previews). */
+function ActivityFeedItem({ event, dense = false }: { event: ActivityEvent; dense?: boolean }) {
   const { t } = useTranslation()
+  const fmt = useFormatters()
   const Icon = ICON_BY_TYPE[event.type]
 
   function describe(): string {
@@ -52,29 +46,28 @@ function ActivityFeedItem({ event }: { event: ActivityEvent }) {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-card p-4 shadow-card">
-      <Link to={`/app/players/${event.user.id}`}>
-        <Avatar className="size-10 shrink-0">
-          <AvatarImage src={assetUrl(event.user.avatar_url)} alt={event.user.name} loading="lazy" className="object-cover" />
-          <AvatarFallback>{initials(event.user.name)}</AvatarFallback>
-        </Avatar>
+    <div className={cn("flex items-start gap-3", !dense && "rounded-lg border border-border bg-card p-3.5 shadow-xs")}>
+      <Link to={`/app/players/${event.user.id}`} className="relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
+        <UserAvatar name={event.user.name} avatarUrl={event.user.avatar_url} size={dense ? "sm" : "md"} />
+        <span className="absolute -right-1 -bottom-1 flex size-[18px] items-center justify-center rounded-full bg-card text-foreground shadow-xs ring-1 ring-border">
+          {event.type === "ACHIEVEMENT_UNLOCKED" && event.payload.achievement_key ? (
+            <AchievementIcon achievementKey={event.payload.achievement_key} className="size-2.5" />
+          ) : (
+            <Icon className="size-2.5" />
+          )}
+        </span>
       </Link>
-      <div className="flex flex-1 flex-col gap-0.5">
-        <span className="text-sm text-ink-navy">
-          <Link to={`/app/players/${event.user.id}`} className="font-semibold hover:underline">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="text-[13px] leading-snug text-muted-foreground">
+          <Link to={`/app/players/${event.user.id}`} className="font-semibold text-foreground hover:underline">
             {event.user.name}
           </Link>{" "}
           {describe()}
-        </span>
-        <span className="text-xs text-mist-gray">{new Date(event.created_at).toLocaleString()}</span>
+        </p>
+        <time dateTime={event.created_at} className="font-mono text-[11px] text-subtle-foreground">
+          {fmt.relativeTime(event.created_at)}
+        </time>
       </div>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-pebble text-signal-blue">
-        {event.type === "ACHIEVEMENT_UNLOCKED" && event.payload.achievement_key ? (
-          <AchievementIcon achievementKey={event.payload.achievement_key} className="size-4" />
-        ) : (
-          <Icon className="size-4" />
-        )}
-      </span>
     </div>
   )
 }

@@ -1,79 +1,74 @@
-import { ExternalLink, LifeBuoy, MessageCircle } from "lucide-react"
+import { ArrowUpRight, Bug, FolderGit2, LifeBuoy } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { Link } from "react-router-dom"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MarketingSection } from "@/components/shared/marketing"
 import { SectionHeader } from "@/components/shared/section-header"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
 
 function ContactPage() {
   const { t } = useTranslation()
 
-  const channels: {
-    icon: typeof ExternalLink
-    titleKey: TranslationKey
-    descriptionKey: TranslationKey
-    href: string
-    labelKey: TranslationKey
-  }[] = [
+  const channels: { icon: LucideIcon; titleKey: TranslationKey; descriptionKey: TranslationKey; href: string; labelKey: TranslationKey; external: boolean }[] = [
     {
-      icon: ExternalLink,
+      icon: LifeBuoy,
+      titleKey: "contact.help.title",
+      descriptionKey: "contact.help.description",
+      href: "/help",
+      labelKey: "contact.help.link",
+      external: false,
+    },
+    {
+      icon: Bug,
       titleKey: "contact.channels.bug.title",
       descriptionKey: "contact.channels.bug.description",
       href: "https://github.com/tylmarek1/C01/issues",
       labelKey: "contact.channels.bug.label",
+      external: true,
     },
     {
-      icon: MessageCircle,
+      icon: FolderGit2,
       titleKey: "contact.channels.team.title",
       descriptionKey: "contact.channels.team.description",
       href: "https://github.com/tylmarek1/C01",
       labelKey: "contact.channels.team.label",
+      external: true,
     },
   ]
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
+    <MarketingSection size="narrow">
       <SectionHeader eyebrow={t("contact.eyebrow")} title={t("contact.title")} description={t("contact.description")} />
-
-      <div className="mt-12 flex flex-col gap-4">
-        {channels.map((channel) => (
-          <Card key={channel.titleKey}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2.5">
-                <channel.icon className="size-5 text-signal-blue" />
-                {t(channel.titleKey)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="text-slate-gray">{t(channel.descriptionKey)}</p>
-              <a
-                href={channel.href}
-                target="_blank"
-                rel="noreferrer"
-                className="w-fit text-sm font-semibold text-ink-navy hover:underline"
-              >
-                {t(channel.labelKey)} →
-              </a>
-            </CardContent>
-          </Card>
-        ))}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2.5">
-              <LifeBuoy className="size-5 text-signal-blue" />
-              {t("contact.help.title")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p className="text-slate-gray">{t("contact.help.description")}</p>
-            <Link to="/help" className="w-fit text-sm font-semibold text-ink-navy hover:underline">
-              {t("contact.help.link")} →
+      <div className="mt-12 grid gap-3">
+        {channels.map((channel) => {
+          const body = (
+            <>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background">
+                <channel.icon className="size-[18px]" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="text-[15px] font-semibold">{t(channel.titleKey)}</span>
+                <span className="text-[13px] leading-relaxed text-muted-foreground">{t(channel.descriptionKey)}</span>
+                <span className="mt-1 text-[13px] font-medium underline decoration-border-strong underline-offset-4 group-hover:decoration-foreground">
+                  {t(channel.labelKey)}
+                </span>
+              </span>
+              <ArrowUpRight className="size-4 shrink-0 text-subtle-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+            </>
+          )
+          const classes = "group flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-xs surface-interactive"
+          return channel.external ? (
+            <a key={channel.titleKey} href={channel.href} target="_blank" rel="noreferrer" className={classes}>
+              {body}
+            </a>
+          ) : (
+            <Link key={channel.titleKey} to={channel.href} className={classes}>
+              {body}
             </Link>
-          </CardContent>
-        </Card>
+          )
+        })}
       </div>
-    </div>
+    </MarketingSection>
   )
 }
 

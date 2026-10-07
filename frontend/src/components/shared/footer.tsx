@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 
 import { Logo } from "@/components/shared/logo"
+import { useSportLabels } from "@/components/shared/sport-icon"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 
@@ -9,29 +10,10 @@ interface FooterLink {
   to: string
 }
 
-function Footer({ variant = "full" }: { variant?: "full" | "minimal" }) {
+function Footer() {
   const { user } = useAuth()
   const { t } = useTranslation()
-
-  if (variant === "minimal") {
-    return (
-      <footer className="border-t border-hairline">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-6 text-sm text-slate-gray sm:flex-row sm:items-center sm:justify-between">
-          <span>
-            &copy; {new Date().getFullYear()} Courtly. {t("footer.copyright")}
-          </span>
-          <div className="flex items-center gap-5">
-            <Link to="/help" className="font-medium text-ink-navy transition-colors hover:text-signal-blue">
-              {t("footer.help")}
-            </Link>
-            <Link to="/contact" className="font-medium text-ink-navy transition-colors hover:text-signal-blue">
-              {t("footer.contact")}
-            </Link>
-          </div>
-        </div>
-      </footer>
-    )
-  }
+  const sportLabels = useSportLabels()
 
   const columns: { heading: string; links: FooterLink[] }[] = [
     {
@@ -45,9 +27,9 @@ function Footer({ variant = "full" }: { variant?: "full" | "minimal" }) {
     {
       heading: t("footer.sports"),
       links: [
-        { label: "Tennis", to: "/courts?sport=TENNIS" },
-        { label: "Volleyball", to: "/courts?sport=VOLLEYBALL" },
-        { label: "Badminton", to: "/courts?sport=BADMINTON" },
+        { label: sportLabels.TENNIS, to: "/courts?sport=TENNIS" },
+        { label: sportLabels.VOLLEYBALL, to: "/courts?sport=VOLLEYBALL" },
+        { label: sportLabels.BADMINTON, to: "/courts?sport=BADMINTON" },
       ],
     },
     {
@@ -61,49 +43,42 @@ function Footer({ variant = "full" }: { variant?: "full" | "minimal" }) {
     },
   ]
 
+  const linkClass = "text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+
   return (
-    <footer className="border-t border-hairline bg-cloud">
-      <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid gap-12 sm:grid-cols-2 md:grid-cols-4">
+    <footer className="border-t border-border">
+      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="flex flex-col gap-3">
             <Logo />
-            <p className="max-w-56 text-sm text-slate-gray">{t("footer.tagline")}</p>
+            <p className="max-w-60 text-[13px] text-muted-foreground">{t("footer.tagline")}</p>
           </div>
           {columns.map((column) => (
             <div key={column.heading} className="flex flex-col gap-3">
-              <h3 className="text-xs font-semibold tracking-wide text-slate-gray uppercase">{column.heading}</h3>
-              <ul className="flex flex-col gap-2.5">
-                {column.links.map((link) =>
-                  link.to.startsWith("http") ? (
-                    <li key={link.label}>
-                      <a
-                        href={link.to}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm font-medium text-ink-navy transition-colors hover:text-signal-blue"
-                      >
+              <h3 className="eyebrow">{column.heading}</h3>
+              <ul className="flex flex-col gap-2">
+                {column.links.map((link) => (
+                  <li key={link.label}>
+                    {link.to.startsWith("http") ? (
+                      <a href={link.to} target="_blank" rel="noreferrer" className={linkClass}>
                         {link.label}
                       </a>
-                    </li>
-                  ) : (
-                    <li key={link.label}>
-                      <Link
-                        to={link.to}
-                        className="text-sm font-medium text-ink-navy transition-colors hover:text-signal-blue"
-                      >
+                    ) : (
+                      <Link to={link.to} className={linkClass}>
                         {link.label}
                       </Link>
-                    </li>
-                  ),
-                )}
+                    )}
+                  </li>
+                ))}
               </ul>
             </div>
           ))}
         </div>
-        <div className="mt-12 flex flex-col gap-2 border-t border-hairline pt-6 text-sm text-slate-gray sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>
             &copy; {new Date().getFullYear()} Courtly. {t("footer.copyright")}
           </span>
+          <span className="font-mono">{t("footer.venueHours")}</span>
         </div>
       </div>
     </footer>

@@ -1,420 +1,194 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+  ArrowUpRight,
   Award,
-  Camera,
   CalendarClock,
-  CalendarDays,
   CheckCircle2,
-  Copy,
+  Flag,
   Flame,
-  Globe,
+  Heart,
+  ImagePlus,
+  Lock,
   MapPinned,
-  Plus,
-  ShieldCheck,
+  MessageSquare,
+  Settings,
   Star,
+  Swords,
   Trash2,
   Trophy,
-  Volleyball,
   X,
 } from "lucide-react"
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
-import { Link } from "react-router-dom"
+import { useRef, useState } from "react"
+import { Link, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
-import { AchievementIcon } from "@/components/shared/achievement-icon"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AchievementIcon } from "@/components/shared/achievement-icon"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { CourtCard } from "@/components/shared/court-card"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ErrorState } from "@/components/shared/error-state"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { SectionHeader } from "@/components/shared/section-header"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useSportLabels } from "@/components/shared/sport-icon"
+import { PageContainer } from "@/components/shared/page-header"
+import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"
 import { StatTile } from "@/components/shared/stat-tile"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
+import { SubsectionHeading } from "@/components/shared/subsection-heading"
+import { UserAvatar } from "@/components/shared/user-avatar"
 import { ApiError, api, assetUrl } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { useTranslation } from "@/lib/i18n"
+import { useFormatters } from "@/lib/format"
+import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { compressImageFile } from "@/lib/image"
-import { NOTIFICATION_CATEGORIES, useNotificationCategoryLabels } from "@/lib/notification-categories"
-import { getExistingPushSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "@/lib/push"
+import { useCourts } from "@/lib/queries"
 import { ROLE_VARIANT, useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
-import type { Court, NotificationType, PlayerProfile, Review, SportType } from "@/types"
+import { useNow } from "@/lib/use-now"
+import type { Court, Review } from "@/types"
 
-const RATING_SPORTS: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
-
-function ProfileVisibilityCard({ profile }: { profile: PlayerProfile }) {
-  const { token } = useAuth()
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const [bio, setBio] = useState(profile.bio ?? "")
-
-  const updateMutation = useMutation({
-    mutationFn: (payload: { bio?: string; profile_public?: boolean }) => api.updateMyProfile(token!, payload),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["player-profile", profile.user.id], updated)
-      toast.success(t("profile.toast.updated"))
-    },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.updateFailed")),
-  })
-
-  function handleBioSubmit(event: FormEvent) {
-    event.preventDefault()
-    updateMutation.mutate({ bio })
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Globe className="size-5 text-signal-blue" /> {t("playerProfile.visibility.title")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <div className="flex items-center justify-between gap-4 border-b border-hairline pb-4">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-ink-navy">{t("playerProfile.visibility.publicToggle")}</span>
-            <span className="text-xs text-slate-gray">{t("playerProfile.visibility.publicToggleHint")}</span>
-          </div>
-          <Switch
-            checked={profile.profile_public}
-            disabled={updateMutation.isPending}
-            onCheckedChange={(next) => updateMutation.mutate({ profile_public: next })}
-            aria-label={t("playerProfile.visibility.publicToggle")}
-          />
-        </div>
-
-        <form onSubmit={handleBioSubmit} className="flex flex-col gap-3">
-          <Label htmlFor="bio">{t("playerProfile.visibility.bioLabel")}</Label>
-          <Textarea
-            id="bio"
-            value={bio}
-            onChange={(event) => setBio(event.target.value)}
-            maxLength={300}
-            placeholder={t("playerProfile.visibility.bioPlaceholder")}
-            rows={3}
-          />
-          <div className="flex items-center justify-between gap-3">
-            <Link to={`/app/players/${profile.user.id}`} className="text-sm text-signal-blue hover:underline">
-              {t("playerProfile.visibility.viewPublic")}
-            </Link>
-            <Button type="submit" size="sm" disabled={updateMutation.isPending || bio === (profile.bio ?? "")}>
-              {updateMutation.isPending ? t("profile.saving") : t("profile.save")}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
-}
-
-function formatKb(bytes: number) {
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`
-}
+// Mirrors the backend's MAX_REVIEW_IMAGES — server is the real enforcement.
+const MAX_REVIEW_IMAGES = 4
+type Tab = "overview" | "achievements" | "challenges" | "favorites" | "reviews"
+const TABS: Tab[] = ["overview", "achievements", "challenges", "favorites", "reviews"]
 
 function OverviewTab() {
-  const { user, token, updateUser } = useAuth()
+  const { user, token } = useAuth()
   const { t } = useTranslation()
-  const roleLabels = useRoleLabels()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [name, setName] = useState(user?.name ?? "")
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const fmt = useFormatters()
+  const sportLabels = useSportLabels()
 
-  const { data: stats } = useQuery({
-    queryKey: ["stats-me"],
-    queryFn: () => api.getMyStats(token!),
-    enabled: Boolean(token),
-  })
-
-  const { data: myProfile } = useQuery({
+  const { data: stats } = useQuery({ queryKey: ["stats-me"], queryFn: () => api.getMyStats(token!), enabled: Boolean(token) })
+  const { data: profile, isLoading } = useQuery({
     queryKey: ["player-profile", user?.id],
     queryFn: () => api.getPlayerProfile(token!, user!.id),
     enabled: Boolean(token && user),
   })
-
-  const calendarTokenMutation = useMutation({
-    mutationFn: () => api.issueCalendarToken(token!),
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.calendar.error")),
-  })
-
-  const notificationCategoryLabels = useNotificationCategoryLabels()
-  const queryClient = useQueryClient()
-  const { data: notificationPrefs } = useQuery({
-    queryKey: ["notification-preferences"],
-    queryFn: () => api.getNotificationPreferences(token!),
+  const { data: challenges } = useQuery({
+    queryKey: ["challenges-mine"],
+    queryFn: () => api.listMyChallengeProgress(token!),
     enabled: Boolean(token),
   })
-  const mutedTypes = notificationPrefs?.muted_types ?? []
-
-  const notificationPrefsMutation = useMutation({
-    mutationFn: (nextMuted: NotificationType[]) => api.updateNotificationPreferences(token!, nextMuted),
-    onSuccess: (result) => queryClient.setQueryData(["notification-preferences"], result),
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("notificationPrefs.error")),
-  })
-
-  const pushSupported = isPushSupported()
-  const { data: isPushSubscribed } = useQuery({
-    queryKey: ["push-subscription-status"],
-    queryFn: async () => Boolean(await getExistingPushSubscription()),
-    enabled: pushSupported,
-  })
-
-  const pushMutation = useMutation({
-    mutationFn: async (enable: boolean) => {
-      if (enable) await subscribeToPush(token!)
-      else await unsubscribeFromPush(token!)
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["push-subscription-status"] }),
-    onError: (error) => toast.error(error instanceof Error ? error.message : t("notificationPrefs.push.error")),
-  })
-
-  function toggleCategory(types: NotificationType[], enabled: boolean) {
-    const next = enabled
-      ? mutedTypes.filter((type) => !types.includes(type))
-      : [...new Set([...mutedTypes, ...types])]
-    notificationPrefsMutation.mutate(next)
-  }
-
-  const feedUrl = calendarTokenMutation.data ? api.getCalendarFeedUrl(calendarTokenMutation.data.calendar_token) : null
-
-  function copyFeedUrl() {
-    if (!feedUrl) return
-    navigator.clipboard.writeText(feedUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  const saveNameMutation = useMutation({
-    mutationFn: (nextName: string) => api.updateProfile(token!, nextName),
-    onSuccess: (updated) => {
-      updateUser(updated)
-      toast.success(t("profile.toast.updated"))
-    },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.updateFailed")),
-  })
-
-  const avatarMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const originalKb = formatKb(file.size)
-      const compressed = await compressImageFile(file)
-      const updated = await api.uploadAvatar(token!, compressed)
-      return { updated, originalKb, compressedKb: formatKb(compressed.size) }
-    },
-    onSuccess: ({ updated, originalKb, compressedKb }) => {
-      updateUser(updated)
-      toast.success(t("profile.toast.avatarUpdated", { from: originalKb, to: compressedKb }))
-    },
-    onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : t("profile.error.avatarFailed"))
-      setAvatarPreview(null)
-    },
-  })
-
-  function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ""
-    if (!file) return
-
-    setAvatarPreview(URL.createObjectURL(file))
-    avatarMutation.mutate(file)
-  }
-
-  function handleNameSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (name.trim().length === 0) return
-    saveNameMutation.mutate(name.trim())
-  }
-
-  if (!user) return null
-  const avatarSrc = avatarPreview ?? assetUrl(user.avatar_url)
+  const now = useNow(60_000)
+  const activeChallenges = (challenges ?? []).filter((c) => !c.completed && new Date(c.ends_at).getTime() > now).slice(0, 3)
+  const ratings = profile?.stats?.ratings ?? []
+  const matches = profile?.stats?.recent_matches ?? []
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile icon={CheckCircle2} label={t("profile.stat.completed")} value={stats?.completed_reservations ?? 0} />
-        <StatTile icon={CalendarClock} label={t("profile.stat.hoursPlayed")} value={stats?.hours_played ?? 0} />
-        <StatTile icon={MapPinned} label={t("profile.stat.courtsPlayed")} value={stats?.distinct_courts_played ?? 0} />
-        <StatTile icon={Volleyball} label={t("profile.stat.sportsPlayed")} value={stats?.sports_played ?? 0} />
-        <StatTile icon={Flame} label={t("profile.stat.streak")} value={stats?.current_streak_weeks ?? 0} />
+    <div className="flex flex-col gap-8">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <StatTile icon={CheckCircle2} label={t("profile.stat.completed")} value={stats?.completed_reservations ?? "–"} />
+        <StatTile icon={CalendarClock} label={t("profile.stat.hoursPlayed")} value={stats ? fmt.number(stats.hours_played) : "–"} />
+        <StatTile icon={MapPinned} label={t("profile.stat.courtsPlayed")} value={stats?.distinct_courts_played ?? "–"} />
+        <StatTile icon={Trophy} label={t("profile.stat.sportsPlayed")} value={stats?.sports_played ?? "–"} />
+        <StatTile icon={Flame} label={t("profile.stat.streak")} value={stats?.current_streak_weeks ?? "–"} hint={t("profile.stat.streakHint")} />
         <StatTile
           icon={Award}
           label={t("profile.stat.achievements")}
           value={stats ? `${stats.achievements_unlocked}/${stats.achievements_total}` : "–"}
+          to="/app/profile?tab=achievements"
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="size-5 text-signal-blue" /> {t("profile.calendar.title")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <p className="text-sm text-slate-gray">{t("profile.calendar.description")}</p>
-          {feedUrl ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 rounded-lg border border-hairline bg-pebble px-3 py-2">
-                <span className="flex-1 truncate text-xs text-slate-gray">{feedUrl}</span>
-                <Button size="sm" variant="ghost" onClick={copyFeedUrl}>
-                  <Copy className="size-3.5" /> {copied ? t("profile.calendar.copied") : t("profile.calendar.copy")}
-                </Button>
-              </div>
-              <p className="text-xs text-slate-gray">{t("profile.calendar.hint")}</p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-fit"
-                disabled={calendarTokenMutation.isPending}
-                onClick={() => calendarTokenMutation.mutate()}
-              >
-                {t("profile.calendar.regenerate")}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="flex flex-col gap-3">
+          <SubsectionHeading
+            title={t("playerProfile.ratings.title")}
+            action={
+              <Button size="xs" variant="ghost" asChild>
+                <Link to="/app/players?tab=leaderboards">
+                  {t("profile.leaderboardsLink")} <ArrowUpRight />
+                </Link>
               </Button>
-            </div>
+            }
+          />
+          {isLoading ? (
+            <Skeleton className="h-28" />
+          ) : ratings.length === 0 ? (
+            <EmptyState size="compact" icon={Swords} title={t("profile.ratings.empty.title")} description={t("profile.ratings.empty.description")} />
           ) : (
-            <Button
-              size="sm"
-              className="w-fit"
-              disabled={calendarTokenMutation.isPending}
-              onClick={() => calendarTokenMutation.mutate()}
-            >
-              {t("profile.calendar.generate")}
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("notificationPrefs.title")}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1">
-          {pushSupported && (
-            <div className="flex items-center justify-between gap-4 border-b border-hairline py-3">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-ink-navy">{t("notificationPrefs.push.title")}</span>
-                <span className="text-xs text-slate-gray">{t("notificationPrefs.push.description")}</span>
-              </div>
-              <Switch
-                checked={Boolean(isPushSubscribed)}
-                disabled={pushMutation.isPending}
-                onCheckedChange={(next) => pushMutation.mutate(next)}
-                aria-label={t("notificationPrefs.push.title")}
-              />
-            </div>
-          )}
-          {NOTIFICATION_CATEGORIES.map(({ key, types }) => {
-            const enabled = !types.every((type) => mutedTypes.includes(type))
-            return (
-              <div key={key} className="flex items-center justify-between gap-4 border-b border-hairline py-3 last:border-b-0">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-ink-navy">{notificationCategoryLabels[key].title}</span>
-                  <span className="text-xs text-slate-gray">{notificationCategoryLabels[key].description}</span>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {ratings.map((entry) => (
+                <div key={entry.sport_type} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-xs">
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <SportIcon sport={entry.sport_type} className="size-3.5" /> {sportLabels[entry.sport_type]}
+                  </span>
+                  <span className="text-2xl font-semibold tracking-tight tabular">{Math.round(entry.rating)}</span>
+                  <span className="text-xs text-muted-foreground">{t("playerProfile.ratings.matchesPlayed", { count: entry.matches_played })}</span>
                 </div>
-                <Switch
-                  checked={enabled}
-                  disabled={notificationPrefsMutation.isPending}
-                  onCheckedChange={(next) => toggleCategory(types, next)}
-                  aria-label={notificationCategoryLabels[key].title}
-                />
-              </div>
-            )
-          })}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("profile.picture.title")}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center gap-6">
-          <div className="relative">
-            <Avatar className="size-20">
-              <AvatarImage src={avatarSrc} alt={user.name} className="object-cover" />
-              <AvatarFallback className="text-lg">{initials(user.name)}</AvatarFallback>
-            </Avatar>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={avatarMutation.isPending}
-              className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full bg-signal-blue text-paper shadow-button transition-transform hover:scale-105 disabled:opacity-60"
-              aria-label={t("profile.avatar.change")}
-            >
-              <Camera className="size-4" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium text-ink-navy">
-              {avatarMutation.isPending ? t("profile.avatar.uploading") : t("profile.avatar.hint")}
-            </p>
-            <p className="text-sm text-slate-gray">{t("profile.avatar.description")}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("profile.details.title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleNameSubmit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="name">{t("auth.field.name")}</Label>
-              <Input id="name" value={name} onChange={(event) => setName(event.target.value)} required />
+              ))}
             </div>
+          )}
+        </section>
 
+        <section className="flex flex-col gap-3">
+          <SubsectionHeading
+            title={t("profile.activeChallenges")}
+            action={
+              <Button size="xs" variant="ghost" asChild>
+                <Link to="/app/profile?tab=challenges">
+                  {t("common.viewAll")} <ArrowUpRight />
+                </Link>
+              </Button>
+            }
+          />
+          {!challenges ? (
+            <Skeleton className="h-28" />
+          ) : activeChallenges.length === 0 ? (
+            <EmptyState size="compact" icon={Flag} title={t("challenges.empty.title")} description={t("challenges.empty.description")} />
+          ) : (
             <div className="flex flex-col gap-2">
-              <Label>{t("auth.field.email")}</Label>
-              <Input value={user.email} disabled />
+              {activeChallenges.map((challenge) => (
+                <div key={challenge.id} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3.5 shadow-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-[13px] font-medium">{challenge.title}</span>
+                    <span className="font-mono text-xs text-muted-foreground tabular">
+                      {challenge.progress}/{challenge.target}
+                    </span>
+                  </div>
+                  <Progress tone="brand" value={(challenge.progress / challenge.target) * 100} />
+                </div>
+              ))}
             </div>
+          )}
+        </section>
+      </div>
 
-            <div className="flex flex-col gap-2">
-              <Label>{t("profile.role.label")}</Label>
-              <Badge variant={ROLE_VARIANT[user.role]} className="w-fit gap-1.5">
-                <ShieldCheck className="size-3.5" />
-                {roleLabels[user.role]}
-              </Badge>
-            </div>
-
-            <Button
-              type="submit"
-              className="mt-2 w-fit"
-              disabled={saveNameMutation.isPending || name.trim() === user.name}
-            >
-              {saveNameMutation.isPending ? t("profile.saving") : t("profile.save")}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {myProfile && <ProfileVisibilityCard profile={myProfile} />}
+      <section className="flex flex-col gap-3">
+        <SubsectionHeading title={t("playerProfile.recentGames.title")} />
+        {isLoading ? (
+          <Skeleton className="h-32" />
+        ) : matches.length === 0 ? (
+          <EmptyState size="compact" icon={CalendarClock} title={t("profile.matches.empty.title")} description={t("profile.matches.empty.description")} />
+        ) : (
+          <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+            {matches.map((match) => (
+              <li key={match.reservation_id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <span className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <SportIcon sport={match.sport_type} className="size-4" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-[13px] font-medium">{match.court_name}</span>
+                  <span className="text-xs text-muted-foreground">{fmt.dateMedium(match.played_at)}</span>
+                </div>
+                {match.opponent && (
+                  <Link to={`/app/players/${match.opponent.id}`} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
+                    <UserAvatar name={match.opponent.name} avatarUrl={match.opponent.avatar_url} size="xs" />
+                    {t("playerProfile.recentGames.vs", { name: match.opponent.name })}
+                  </Link>
+                )}
+                {match.result && (
+                  <Badge variant={match.result === "win" ? "success" : match.result === "loss" ? "destructive" : "secondary"}>
+                    {t(`playerProfile.recentGames.result.${match.result}` as TranslationKey)}
+                  </Badge>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }
@@ -423,57 +197,48 @@ function FavoritesTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-
   const { data: favorites, isLoading, isError, refetch } = useQuery({
     queryKey: ["favorites-mine"],
     queryFn: () => api.listMyFavorites(token!),
     enabled: Boolean(token),
   })
-
   const removeMutation = useMutation({
     mutationFn: (court: Court) => api.removeFavorite(token!, court.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["favorites-mine"] }),
+    onSuccess: (_v, court) => {
+      queryClient.invalidateQueries({ queryKey: ["favorites-mine"] })
+      toast.success(t("courts.favorite.removedToast", { court: court.name }))
+    },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.favoritesFailed")),
   })
 
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="grid gap-6 sm:grid-cols-2">
-        {Array.from({ length: 2 }).map((_, index) => (
-          <Skeleton key={index} className="aspect-[16/10] w-full rounded-2xl" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Skeleton key={index} className="h-72 rounded-xl" />
         ))}
       </div>
     )
-  }
-
-  if (isError) {
-    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
-  }
-
-  if (favorites?.length === 0) {
+  if (isError) return <ErrorState onRetry={() => refetch()} />
+  if (favorites?.length === 0)
     return (
       <EmptyState
+        icon={Heart}
         title={t("profile.favorites.empty.title")}
         description={t("profile.favorites.empty.description")}
         action={
-          <Button asChild size="sm" className="mt-2">
+          <Button asChild size="sm">
             <Link to="/courts">{t("profile.favorites.browse")}</Link>
           </Button>
         }
       />
     )
-  }
-
   return (
-    <div className="grid gap-6 sm:grid-cols-2">
-      {favorites?.map((court) => (
-        <CourtCard
-          key={court.id}
-          court={court}
-          href={`/courts/${court.id}`}
-          isFavorite
-          onToggleFavorite={(c) => removeMutation.mutate(c)}
-        />
+    <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {favorites?.map((court, index) => (
+        <div key={court.id} style={{ "--i": index } as React.CSSProperties}>
+          <CourtCard court={court} href={`/courts/${court.id}`} isFavorite onToggleFavorite={(c) => removeMutation.mutate(c)} />
+        </div>
       ))}
     </div>
   )
@@ -482,16 +247,15 @@ function FavoritesTab() {
 function ReviewsTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
+  const fmt = useFormatters()
   const queryClient = useQueryClient()
-
   const { data: reviews, isLoading, isError, refetch } = useQuery({
     queryKey: ["reviews-mine"],
     queryFn: () => api.listMyReviews(token!),
     enabled: Boolean(token),
   })
-  const { data: courts } = useQuery({ queryKey: ["courts"], queryFn: () => api.listCourts() })
-  const courtNameById = new Map(courts?.map((c) => [c.id, c.name]) ?? [])
-
+  const { data: courts } = useCourts()
+  const courtById = new Map(courts?.map((c) => [c.id, c]) ?? [])
   const [deleteTarget, setDeleteTarget] = useState<Review | null>(null)
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
@@ -505,69 +269,66 @@ function ReviewsTab() {
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.reviewDeleteFailed")),
   })
-
   const addPhotoMutation = useMutation({
     mutationFn: async ({ reviewId, file }: { reviewId: string; file: File }) =>
       api.addReviewImage(token!, reviewId, await compressImageFile(file, 1200, 0.85)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reviews-mine"] }),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.reviewPhotoFailed")),
   })
-
   const removePhotoMutation = useMutation({
-    mutationFn: ({ reviewId, imageId }: { reviewId: string; imageId: string }) =>
-      api.deleteReviewImage(token!, reviewId, imageId),
+    mutationFn: ({ reviewId, imageId }: { reviewId: string; imageId: string }) => api.deleteReviewImage(token!, reviewId, imageId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reviews-mine"] }),
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("profile.error.reviewPhotoFailed")),
   })
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-3">
-        {Array.from({ length: 2 }).map((_, index) => (
-          <Skeleton key={index} className="h-20 w-full rounded-2xl" />
-        ))}
-      </div>
-    )
-  }
-
-  if (isError) {
-    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
-  }
-
-  if (reviews?.length === 0) {
-    return <EmptyState title={t("profile.reviews.empty.title")} description={t("profile.reviews.empty.description")} />
-  }
-
-  const MAX_REVIEW_IMAGES = 4
+  if (isLoading) return <Skeleton className="h-40 rounded-xl" />
+  if (isError) return <ErrorState onRetry={() => refetch()} />
+  if (reviews?.length === 0)
+    return <EmptyState icon={Star} title={t("profile.reviews.empty.title")} description={t("profile.reviews.empty.description")} />
 
   return (
     <div className="flex flex-col gap-3">
-      {reviews?.map((review) => (
-        <div
-          key={review.id}
-          className="flex flex-col gap-2 rounded-2xl border border-hairline bg-card p-4 shadow-card sm:flex-row sm:items-start sm:justify-between"
-        >
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-ink-navy">{courtNameById.get(review.court_id) ?? "Court"}</span>
-              <StarRating value={review.rating} />
+      {reviews?.map((review) => {
+        const court = courtById.get(review.court_id)
+        return (
+          <article key={review.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-xs">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-1">
+                <Link to={`/courts/${review.court_id}`} className="truncate text-[14px] font-semibold hover:underline">
+                  {court?.name ?? t("profile.reviews.unknownCourt")}
+                </Link>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <StarRating value={review.rating} />
+                  <span>{fmt.dateMedium(review.created_at)}</span>
+                  {review.helpful_count > 0 && <span>· {t("courtDetail.reviews.helpfulCount", { count: review.helpful_count })}</span>}
+                  {review.comment_count > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      · <MessageSquare className="size-3" /> {review.comment_count}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Button size="icon-sm" variant="destructive-ghost" onClick={() => setDeleteTarget(review)} aria-label={t("common.delete")}>
+                <Trash2 />
+              </Button>
             </div>
-            {review.comment && <p className="text-sm text-slate-gray">{review.comment}</p>}
-            <span className="text-xs text-mist-gray">
-              {new Date(review.created_at).toLocaleDateString()}
-              {review.helpful_count > 0 && ` · ${t("courtDetail.reviews.helpfulCount", { count: review.helpful_count })}`}
-              {review.comment_count > 0 && ` · ${t("courtDetail.reviews.commentCount", { count: review.comment_count })}`}
-            </span>
+            {review.comment && <p className="text-[13px] leading-relaxed text-foreground/90">{review.comment}</p>}
+            {review.manager_reply && (
+              <div className="rounded-lg border-l-2 border-brand bg-muted/60 px-3 py-2">
+                <span className="eyebrow text-[10px]">{t("courtDetail.reviews.venueReply")}</span>
+                <p className="mt-1 text-[13px] text-foreground/90">{review.manager_reply}</p>
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               {review.images.map((image) => (
-                <div key={image.id} className="group relative size-14 shrink-0 overflow-hidden rounded-lg border border-hairline">
+                <div key={image.id} className="group relative size-16 shrink-0 overflow-hidden rounded-md border border-border">
                   <img src={assetUrl(image.url)} alt="" loading="lazy" className="size-full object-cover" />
                   <button
                     type="button"
                     disabled={removePhotoMutation.isPending}
                     onClick={() => removePhotoMutation.mutate({ reviewId: review.id, imageId: image.id })}
                     aria-label={t("profile.reviews.removePhoto")}
-                    className="absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-ink-navy/70 text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-primary/80 text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                   >
                     <X className="size-3" />
                   </button>
@@ -582,25 +343,15 @@ function ReviewsTab() {
                     photoInputRef.current?.click()
                   }}
                   aria-label={t("profile.reviews.addPhoto")}
-                  className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-hairline text-slate-gray transition-colors hover:border-signal-blue hover:text-signal-blue"
+                  className="flex size-16 shrink-0 items-center justify-center rounded-md border border-dashed border-border-strong text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
                 >
-                  <Plus className="size-4" />
+                  <ImagePlus className="size-4" />
                 </button>
               )}
             </div>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive hover:bg-red-50 dark:hover:bg-red-500/15"
-            disabled={deleteMutation.isPending}
-            onClick={() => setDeleteTarget(review)}
-          >
-            <Trash2 className="size-3.5" /> {t("common.delete")}
-          </Button>
-        </div>
-      ))}
-
+          </article>
+        )
+      })}
       <input
         ref={photoInputRef}
         type="file"
@@ -612,7 +363,6 @@ function ReviewsTab() {
           if (file && uploadTargetId) addPhotoMutation.mutate({ reviewId: uploadTargetId, file })
         }}
       />
-
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -629,51 +379,67 @@ function ReviewsTab() {
 function AchievementsTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
-
+  const fmt = useFormatters()
   const { data: achievements, isLoading, isError, refetch } = useQuery({
     queryKey: ["achievements-mine"],
     queryFn: () => api.listMyAchievements(token!),
     enabled: Boolean(token),
   })
 
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="grid gap-4 sm:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-20 w-full rounded-2xl" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Skeleton key={index} className="h-24 rounded-xl" />
         ))}
       </div>
     )
-  }
+  if (isError) return <ErrorState onRetry={() => refetch()} />
 
-  if (isError) {
-    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
-  }
+  const unlocked = achievements?.filter((a) => a.unlocked) ?? []
+  const sorted = [...(achievements ?? [])].sort((a, b) => Number(b.unlocked) - Number(a.unlocked))
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {achievements?.map((achievement) => (
-        <div
-          key={achievement.key}
-          className={cn(
-            "flex items-center gap-4 rounded-2xl border p-4 shadow-card",
-            achievement.unlocked ? "border-hairline bg-card" : "border-dashed border-hairline bg-cloud opacity-70",
-          )}
-        >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-pebble text-signal-blue">
-            <AchievementIcon achievementKey={achievement.key} className="size-5" />
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-xs">
+        <div className="flex items-center justify-between text-[13px]">
+          <span className="font-medium">{t("achievements.progress")}</span>
+          <span className="font-mono text-muted-foreground tabular">
+            {unlocked.length}/{achievements?.length ?? 0}
           </span>
-          <div className="flex flex-col gap-0.5">
-            <span className="font-semibold text-ink-navy">{achievement.title}</span>
-            <span className="text-xs text-slate-gray">{achievement.description}</span>
-            <span className="text-[11px] text-mist-gray">
-              {achievement.unlocked && achievement.earned_at
-                ? t("achievements.earnedOn", { date: new Date(achievement.earned_at).toLocaleDateString() })
-                : t("achievements.locked")}
-            </span>
-          </div>
         </div>
-      ))}
+        <Progress tone="brand" value={achievements?.length ? (unlocked.length / achievements.length) * 100 : 0} />
+      </div>
+      <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {sorted.map((achievement, index) => (
+          <div
+            key={achievement.key}
+            style={{ "--i": index } as React.CSSProperties}
+            className={cn(
+              "flex items-start gap-3.5 rounded-xl border p-4",
+              achievement.unlocked ? "border-border bg-card shadow-xs" : "border-dashed border-border-strong bg-transparent",
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-lg",
+                achievement.unlocked ? "bg-brand text-brand-foreground" : "bg-muted text-subtle-foreground",
+              )}
+            >
+              {achievement.unlocked ? <AchievementIcon achievementKey={achievement.key} className="size-5" /> : <Lock className="size-4" />}
+            </span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className={cn("text-[14px] font-semibold", !achievement.unlocked && "text-muted-foreground")}>{achievement.title}</span>
+              <span className="text-xs leading-relaxed text-muted-foreground">{achievement.description}</span>
+              <span className="mt-1 font-mono text-[11px] text-subtle-foreground">
+                {achievement.unlocked && achievement.earned_at
+                  ? t("achievements.earnedOn", { date: fmt.dateMedium(achievement.earned_at) })
+                  : t("achievements.locked")}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -681,253 +447,143 @@ function AchievementsTab() {
 function ChallengesTab() {
   const { token } = useAuth()
   const { t } = useTranslation()
+  const fmt = useFormatters()
   const sportLabels = useSportLabels()
-
   const { data: challenges, isLoading, isError, refetch } = useQuery({
     queryKey: ["challenges-mine"],
     queryFn: () => api.listMyChallengeProgress(token!),
     enabled: Boolean(token),
   })
+  const now = useNow(60_000)
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Skeleton key={index} className="h-24 w-full rounded-2xl" />
-        ))}
-      </div>
-    )
-  }
-
-  if (isError) {
-    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
-  }
-
-  if (challenges?.length === 0) {
-    return <EmptyState title={t("challenges.empty.title")} description={t("challenges.empty.description")} />
-  }
+  if (isLoading) return <Skeleton className="h-40 rounded-xl" />
+  if (isError) return <ErrorState onRetry={() => refetch()} />
+  if (challenges?.length === 0) return <EmptyState icon={Flag} title={t("challenges.empty.title")} description={t("challenges.empty.description")} />
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="grid gap-3 md:grid-cols-2">
       {challenges?.map((challenge) => {
-        const now = Date.now()
-        const isActive = new Date(challenge.starts_at).getTime() <= now && now <= new Date(challenge.ends_at).getTime()
+        const startsAt = new Date(challenge.starts_at).getTime()
+        const endsAt = new Date(challenge.ends_at).getTime()
+        const state = challenge.completed ? "completed" : now < startsAt ? "upcoming" : now > endsAt ? "ended" : "active"
         const percent = Math.min(100, Math.round((challenge.progress / challenge.target) * 100))
         return (
-          <div key={challenge.id} className="flex flex-col gap-2 rounded-2xl border border-hairline bg-card p-4 shadow-card">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold text-ink-navy">{challenge.title}</span>
-              <div className="flex items-center gap-1.5">
+          <article key={challenge.id} className={cn("flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs", state === "completed" ? "border-success/40" : "border-border")}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[14px] font-semibold">{challenge.title}</span>
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  {fmt.dayMonth(challenge.starts_at)} – {fmt.dayMonth(challenge.ends_at)}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
                 {challenge.sport_type && <Badge variant="secondary">{sportLabels[challenge.sport_type]}</Badge>}
-                {challenge.completed ? (
-                  <Badge variant="success">{t("challenges.completed")}</Badge>
-                ) : (
-                  !isActive && <Badge variant="outline">{t("challenges.ended")}</Badge>
-                )}
+                {state === "completed" && <Badge variant="success">{t("challenges.completed")}</Badge>}
+                {state === "ended" && <Badge variant="outline">{t("challenges.ended")}</Badge>}
+                {state === "upcoming" && <Badge variant="info">{t("challenges.upcoming")}</Badge>}
+                {state === "active" && <Badge variant="brand" dot>{t("challenges.active")}</Badge>}
               </div>
             </div>
-            <p className="text-sm text-slate-gray">{challenge.description}</p>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-pebble">
-              <div
-                className={cn("h-full rounded-full", challenge.completed ? "bg-emerald-500" : "bg-signal-blue")}
-                style={{ width: `${percent}%` }}
-              />
+            <p className="text-[13px] leading-relaxed text-muted-foreground">{challenge.description}</p>
+            <div className="mt-auto flex flex-col gap-1.5">
+              <Progress tone={state === "completed" ? "success" : "brand"} value={percent} />
+              <span className="flex justify-between text-xs text-muted-foreground">
+                <span>{t("challenges.progress", { progress: challenge.progress, target: challenge.target })}</span>
+                <span className="font-mono tabular">{percent}%</span>
+              </span>
             </div>
-            <span className="text-xs text-slate-gray">
-              {t("challenges.progress", { progress: challenge.progress, target: challenge.target })}
-            </span>
-          </div>
+          </article>
         )
       })}
     </div>
   )
 }
 
-function LeaderboardTab() {
-  const { token, user } = useAuth()
-  const { t } = useTranslation()
-
-  const { data: leaderboard, isLoading, isError, refetch } = useQuery({
-    queryKey: ["leaderboard"],
-    queryFn: () => api.getLeaderboard(token!, 20),
-    enabled: Boolean(token),
-  })
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-3">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-16 w-full rounded-2xl" />
-        ))}
-      </div>
-    )
-  }
-
-  if (isError) {
-    return <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
-  }
-
-  if (leaderboard?.length === 0) {
-    return <EmptyState title={t("leaderboard.empty")} />
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      {leaderboard?.map((entry) => (
-        <Link
-          key={entry.user.id}
-          to={`/app/players/${entry.user.id}`}
-          className={cn(
-            "flex items-center gap-4 rounded-2xl border p-4 shadow-card transition-colors hover:bg-pebble",
-            entry.user.id === user?.id ? "border-signal-blue bg-highlight-blue" : "border-hairline bg-card",
-          )}
-        >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-pebble text-sm font-semibold text-ink-navy">
-            {entry.rank <= 3 ? <Trophy className="size-4 text-amber-500" /> : t("leaderboard.rank", { rank: entry.rank })}
-          </span>
-          <Avatar className="size-9">
-            <AvatarImage src={assetUrl(entry.user.avatar_url)} alt={entry.user.name} loading="lazy" className="object-cover" />
-            <AvatarFallback>{initials(entry.user.name)}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="font-medium text-ink-navy">
-              {entry.user.name}
-              {entry.user.id === user?.id && <span className="ml-1.5 text-xs text-signal-blue">({t("leaderboard.you")})</span>}
-            </span>
-            <span className="text-xs text-slate-gray">
-              {entry.completed_reservations} · {t("leaderboard.hoursPlayed", { hours: entry.hours_played })}
-            </span>
-          </div>
-          <Star className="ml-auto size-4 text-mist-gray" />
-        </Link>
-      ))}
-    </div>
-  )
-}
-
-function RatingLeaderboardTab() {
-  const { token, user } = useAuth()
-  const { t } = useTranslation()
-  const sportLabels = useSportLabels()
-  const [sport, setSport] = useState<SportType>("TENNIS")
-
-  const { data: leaderboard, isLoading, isError, refetch } = useQuery({
-    queryKey: ["ratings-leaderboard", sport],
-    queryFn: () => api.getRatingLeaderboard(token!, sport, 20),
-    enabled: Boolean(token),
-  })
-
-  // A single sport's leaderboard only highlights you if you're actually on
-  // it — with no cross-sport summary, seeing your own numbers meant
-  // clicking through every sport one at a time. GET /ratings/me exists
-  // specifically for this and had no frontend call site anywhere.
-  const { data: myRatings } = useQuery({
-    queryKey: ["ratings-mine"],
-    queryFn: () => api.getMyRatings(token!),
-    enabled: Boolean(token),
-  })
-
-  return (
-    <div className="flex flex-col gap-4">
-      {myRatings && myRatings.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-slate-gray">{t("playerProfile.ratings.mine")}</span>
-          <div className="flex flex-wrap gap-2">
-            {myRatings.map((entry) => (
-              <span
-                key={entry.sport_type}
-                className="flex items-center gap-1.5 rounded-full border border-hairline bg-card px-3 py-1.5 text-xs text-ink-navy"
-              >
-                <span className="font-medium">{sportLabels[entry.sport_type]}</span>
-                {t("ratingLeaderboard.rating", { rating: entry.rating })} ·{" "}
-                {t("playerProfile.ratings.matchesPlayed", { count: entry.matches_played })}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-      <Select value={sport} onValueChange={(value) => setSport(value as SportType)}>
-        <SelectTrigger className="w-fit">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {RATING_SPORTS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {sportLabels[option]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {isLoading && (
-        <div className="flex flex-col gap-3">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-16 w-full rounded-2xl" />
-          ))}
-        </div>
-      )}
-
-      {isError && (
-        <ErrorState title={t("common.error.title")} description={t("common.error.description")} onRetry={() => refetch()} />
-      )}
-
-      {!isLoading && !isError && leaderboard?.length === 0 && <EmptyState title={t("ratingLeaderboard.empty")} />}
-
-      {leaderboard && leaderboard.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {leaderboard.map((entry) => (
-            <Link
-              key={entry.user.id}
-              to={`/app/players/${entry.user.id}`}
-              className={cn(
-                "flex items-center gap-4 rounded-2xl border p-4 shadow-card transition-colors hover:bg-pebble",
-                entry.user.id === user?.id ? "border-signal-blue bg-highlight-blue" : "border-hairline bg-card",
-              )}
-            >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-pebble text-sm font-semibold text-ink-navy">
-                {entry.rank <= 3 ? <Trophy className="size-4 text-amber-500" /> : t("leaderboard.rank", { rank: entry.rank })}
-              </span>
-              <Avatar className="size-9">
-                <AvatarImage src={assetUrl(entry.user.avatar_url)} alt={entry.user.name} loading="lazy" className="object-cover" />
-                <AvatarFallback>{initials(entry.user.name)}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="font-medium text-ink-navy">
-                  {entry.user.name}
-                  {entry.user.id === user?.id && <span className="ml-1.5 text-xs text-signal-blue">({t("leaderboard.you")})</span>}
-                </span>
-                <span className="text-xs text-slate-gray">
-                  {t("ratingLeaderboard.rating", { rating: entry.rating })} ·{" "}
-                  {t("playerProfile.ratings.matchesPlayed", { count: entry.matches_played })}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function ProfilePage() {
+  const { user, token } = useAuth()
   const { t } = useTranslation()
+  const fmt = useFormatters()
+  const roleLabels = useRoleLabels()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get("tab") as Tab | null
+  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : "overview"
+  const { data: profile } = useQuery({
+    queryKey: ["player-profile", user?.id],
+    queryFn: () => api.getPlayerProfile(token!, user!.id),
+    enabled: Boolean(token && user),
+  })
+
+  if (!user) return null
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <SectionHeader align="left" title={t("profile.title")} description={t("profile.description")} />
-
-      <Tabs defaultValue="overview" className="mt-10">
-        <div className="-mx-6 overflow-x-auto px-6 pb-1">
-          <TabsList>
-            <TabsTrigger value="overview">{t("profile.tabs.overview")}</TabsTrigger>
-            <TabsTrigger value="achievements">{t("profile.tabs.achievements")}</TabsTrigger>
-            <TabsTrigger value="challenges">{t("profile.tabs.challenges")}</TabsTrigger>
-            <TabsTrigger value="leaderboard">{t("profile.tabs.leaderboard")}</TabsTrigger>
-            <TabsTrigger value="rating">{t("profile.tabs.rating")}</TabsTrigger>
-            <TabsTrigger value="favorites">{t("profile.tabs.favorites")}</TabsTrigger>
-            <TabsTrigger value="reviews">{t("profile.tabs.reviews")}</TabsTrigger>
-          </TabsList>
+    <PageContainer size="wide">
+      <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex items-center gap-4">
+          <UserAvatar name={user.name} avatarUrl={user.avatar_url} size="xl" className="ring-4 ring-card shadow-sm" />
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-[-0.025em]">{user.name}</h1>
+              <Badge variant={ROLE_VARIANT[user.role]}>{roleLabels[user.role]}</Badge>
+              {profile && !profile.profile_public && (
+                <Badge variant="outline">
+                  <Lock /> {t("profile.private")}
+                </Badge>
+              )}
+            </div>
+            {profile?.bio ? (
+              <p className="max-w-xl text-[13px] text-muted-foreground">{profile.bio}</p>
+            ) : (
+              <Link to="/app/settings#public-profile" className="text-[13px] text-muted-foreground underline decoration-dashed underline-offset-4 hover:text-foreground">
+                {t("profile.addBio")}
+              </Link>
+            )}
+            {profile && (
+              <p className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>
+                  <span className="font-semibold text-foreground tabular">{fmt.number(profile.followers_count)}</span> {t("playerProfile.followers.label")}
+                </span>
+                <span>
+                  <span className="font-semibold text-foreground tabular">{fmt.number(profile.following_count)}</span> {t("playerProfile.following.label")}
+                </span>
+              </p>
+            )}
+          </div>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/app/players/${user.id}`}>
+              {t("playerProfile.visibility.viewPublic")} <ArrowUpRight />
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/app/settings">
+              <Settings /> {t("nav.settings")}
+            </Link>
+          </Button>
+        </div>
+      </header>
+
+      <Tabs
+        value={tab}
+        onValueChange={(value) =>
+          setSearchParams(
+            (prev) => {
+              const next = new URLSearchParams(prev)
+              if (value === "overview") next.delete("tab")
+              else next.set("tab", value)
+              return next
+            },
+            { replace: true },
+          )
+        }
+      >
+        <TabsList variant="line">
+          <TabsTrigger value="overview">{t("profile.tabs.overview")}</TabsTrigger>
+          <TabsTrigger value="achievements">{t("profile.tabs.achievements")}</TabsTrigger>
+          <TabsTrigger value="challenges">{t("profile.tabs.challenges")}</TabsTrigger>
+          <TabsTrigger value="favorites">{t("profile.tabs.favorites")}</TabsTrigger>
+          <TabsTrigger value="reviews">{t("profile.tabs.reviews")}</TabsTrigger>
+        </TabsList>
         <TabsContent value="overview">
           <OverviewTab />
         </TabsContent>
@@ -937,12 +593,6 @@ function ProfilePage() {
         <TabsContent value="challenges">
           <ChallengesTab />
         </TabsContent>
-        <TabsContent value="leaderboard">
-          <LeaderboardTab />
-        </TabsContent>
-        <TabsContent value="rating">
-          <RatingLeaderboardTab />
-        </TabsContent>
         <TabsContent value="favorites">
           <FavoritesTab />
         </TabsContent>
@@ -950,7 +600,7 @@ function ProfilePage() {
           <ReviewsTab />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   )
 }
 

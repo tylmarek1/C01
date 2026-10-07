@@ -5,16 +5,20 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex w-fit shrink-0 items-center gap-1 overflow-hidden rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex w-fit shrink-0 items-center gap-1 overflow-hidden rounded-xs border border-transparent px-1.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
-        default: "bg-tint-blue text-deep-cobalt",
-        secondary: "bg-pebble text-ink-navy",
-        outline: "border border-hairline text-ink-navy",
-        success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
-        destructive: "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-400",
-        warning: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+        /** Neutral metadata chip. */
+        default: "bg-muted text-foreground",
+        secondary: "bg-muted text-muted-foreground",
+        outline: "border-border-strong text-muted-foreground",
+        brand: "bg-brand-soft text-brand-ink",
+        solid: "bg-primary text-primary-foreground",
+        success: "bg-success-soft text-success",
+        warning: "bg-warning-soft text-warning",
+        destructive: "bg-danger-soft text-danger",
+        info: "bg-info-soft text-info",
       },
     },
     defaultVariants: {
@@ -23,22 +27,20 @@ const badgeVariants = cva(
   },
 )
 
-export interface BadgeProps
-  extends React.ComponentProps<"span">,
-    VariantProps<typeof badgeVariants> {
+export interface BadgeProps extends React.ComponentProps<"span">, VariantProps<typeof badgeVariants> {
   asChild?: boolean
+  /** Leading status dot in the badge's own colour. */
+  dot?: boolean
 }
 
-function Badge({ className, variant, asChild = false, ...props }: BadgeProps) {
+function Badge({ className, variant, asChild = false, dot = false, children, ...props }: BadgeProps) {
   const Comp = asChild ? Slot.Root : "span"
 
   return (
-    <Comp
-      data-slot="badge"
-      data-variant={variant}
-      className={cn(badgeVariants({ variant, className }))}
-      {...props}
-    />
+    <Comp data-slot="badge" data-variant={variant} className={cn(badgeVariants({ variant, className }))} {...props}>
+      {dot && <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />}
+      {children}
+    </Comp>
   )
 }
 

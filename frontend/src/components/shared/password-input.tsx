@@ -16,7 +16,7 @@ function PasswordInput({ className, ...props }: React.ComponentProps<typeof Inpu
         type="button"
         onClick={() => setVisible((v) => !v)}
         tabIndex={-1}
-        className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-gray transition-colors hover:text-ink-navy"
+        className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
         aria-label={visible ? t("passwordInput.hide") : t("passwordInput.show")}
       >
         {visible ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}

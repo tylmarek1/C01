@@ -1,5 +1,3 @@
-import { Languages } from "lucide-react"
-
 import { useTranslation, type Lang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
@@ -8,20 +6,23 @@ const LANGUAGES: { code: Lang; label: string }[] = [
   { code: "cs", label: "CS" },
 ]
 
-function LanguageSwitcher() {
-  const { lang, setLang } = useTranslation()
+function LanguageSwitcher({ className }: { className?: string }) {
+  const { lang, setLang, t } = useTranslation()
 
   return (
-    <div className="flex items-center gap-1 rounded-full bg-pebble p-1 text-xs font-semibold">
-      <Languages className="ml-1.5 size-3.5 text-slate-gray" />
+    <div
+      role="group"
+      aria-label={t("nav.language")}
+      className={cn("flex h-8 items-center gap-0.5 rounded-md border border-border bg-muted p-0.5 font-mono text-[11px] font-medium", className)}
+    >
       {LANGUAGES.map((option) => (
         <button
           key={option.code}
           type="button"
           onClick={() => setLang(option.code)}
           className={cn(
-            "rounded-full px-2 py-1 transition-colors",
-            lang === option.code ? "bg-paper text-ink-navy shadow-sm" : "text-slate-gray hover:text-ink-navy",
+            "h-full rounded-sm px-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+            lang === option.code ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
           )}
           aria-pressed={lang === option.code}
         >

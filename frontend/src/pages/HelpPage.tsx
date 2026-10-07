@@ -29,16 +29,16 @@ import {
   Users,
   UsersRound,
 } from "lucide-react"
-import { Link } from "react-router-dom"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { DecorativeBlob } from "@/components/shared/decorative-blob"
+import { useEffect, useState } from "react"
+
 import { FeatureItem } from "@/components/shared/feature-item"
+import { CtaBand, FaqList } from "@/components/shared/marketing"
 import { SectionHeader } from "@/components/shared/section-header"
+import { StatusBadge } from "@/components/shared/status-badge"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
-import { STATUS_VARIANT, useStatusLabels } from "@/lib/reservation-status"
+import { cn } from "@/lib/utils"
 import type { ReservationStatus } from "@/types"
 
 const QUICK_NAV: { id: string; labelKey: TranslationKey }[] = [
@@ -141,29 +141,32 @@ const FAQ_ITEMS: { questionKey: TranslationKey; answerKey: TranslationKey }[] = 
   { questionKey: "help.faq.teamMembers.question", answerKey: "help.faq.teamMembers.answer" },
 ]
 
-function QuickNav() {
-  const { t } = useTranslation()
-  return (
-    <nav aria-label={t("help.nav.aria")} className="flex flex-wrap justify-center gap-2">
-      {QUICK_NAV.map((item) => (
-        <a
-          key={item.id}
-          href={`#${item.id}`}
-          className="rounded-full border border-hairline bg-card px-3.5 py-1.5 text-sm font-medium text-slate-gray shadow-sm transition-colors hover:border-signal-blue/40 hover:text-ink-navy"
-        >
-          {t(item.labelKey)}
-        </a>
-      ))}
-    </nav>
-  )
+/** Highlights the section currently in view in the table of contents. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState(ids[0])
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+        if (visible[0]) setActive(visible[0].target.id)
+      },
+      { rootMargin: "-20% 0px -70% 0px" },
+    )
+    ids.forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [ids])
+  return active
 }
 
 function FeatureGrid({ items }: { items: { icon: typeof Users; titleKey: TranslationKey; descriptionKey: TranslationKey }[] }) {
   const { t } = useTranslation()
   return (
-    <div className="grid gap-6 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2">
       {items.map((item) => (
-        <div key={item.titleKey} className="rounded-2xl border border-hairline bg-card p-6 shadow-card">
+        <div key={item.titleKey} className="rounded-xl border border-border bg-card p-5 shadow-xs">
           <FeatureItem icon={item.icon} title={t(item.titleKey)} description={t(item.descriptionKey)} />
         </div>
       ))}
@@ -171,132 +174,105 @@ function FeatureGrid({ items }: { items: { icon: typeof Users; titleKey: Transla
   )
 }
 
+function HelpSection({ id, eyebrow, title, description, children }: { id: string; eyebrow: string; title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <section id={id} className="flex scroll-mt-20 flex-col gap-8 border-t border-border pt-12 first:border-t-0 first:pt-0">
+      <SectionHeader align="left" eyebrow={eyebrow} title={title} description={description} className="[&_h2]:text-[28px] sm:[&_h2]:text-[32px]" />
+      {children}
+    </section>
+  )
+}
+
+const SECTION_IDS = QUICK_NAV.map((item) => item.id)
+
 function HelpPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const statusLabels = useStatusLabels()
+  const active = useActiveSection(SECTION_IDS)
 
   return (
     <div>
-      <section className="relative mx-auto max-w-4xl px-6 pt-16 pb-10 text-center sm:pt-24">
-        <DecorativeBlob color="cyan" className="-top-10 right-10 size-64" />
-        <DecorativeBlob color="magenta" className="bottom-0 left-0 size-56" />
-        <SectionHeader eyebrow={t("help.hero.eyebrow")} title={t("help.hero.title")} description={t("help.hero.description")} />
-        <div className="relative mt-10">
-          <QuickNav />
+      <section className="relative isolate overflow-hidden border-b border-border">
+        <div aria-hidden className="absolute inset-0 -z-10 bg-court-grid opacity-50 [mask-image:radial-gradient(50%_80%_at_50%_0%,black,transparent)]" />
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20">
+          <SectionHeader eyebrow={t("help.hero.eyebrow")} title={t("help.hero.title")} description={t("help.hero.description")} />
         </div>
       </section>
 
-      <section id="getting-started" className="mx-auto max-w-5xl px-6 pb-20">
-        <SectionHeader
-          align="left"
-          eyebrow={t("help.gettingStarted.eyebrow")}
-          title={t("help.gettingStarted.title")}
-          description={t("help.gettingStarted.description")}
-          className="mb-10"
-        />
-        <div className="flex flex-col rounded-2xl border border-hairline bg-card px-6 shadow-card">
-          {GETTING_STARTED.map((step) => (
-            <FeatureItem key={step.titleKey} icon={step.icon} title={t(step.titleKey)} description={t(step.descriptionKey)} />
-          ))}
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:py-16">
+        <nav aria-label={t("help.nav.aria")} className="lg:sticky lg:top-20 lg:self-start">
+          <span className="eyebrow mb-3 hidden lg:block">{t("help.nav.title")}</span>
+          <ul className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 scrollbar-none lg:flex-col lg:overflow-visible">
+            {QUICK_NAV.map((item) => (
+              <li key={item.id}>
+                <a
+                  href={`#${item.id}`}
+                  aria-current={active === item.id ? "true" : undefined}
+                  className={cn(
+                    "block shrink-0 rounded-sm border-l-2 px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
+                    active === item.id
+                      ? "border-brand bg-card text-foreground lg:shadow-xs"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t(item.labelKey)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="flex min-w-0 flex-col gap-12">
+          <HelpSection id="getting-started" eyebrow={t("help.gettingStarted.eyebrow")} title={t("help.gettingStarted.title")} description={t("help.gettingStarted.description")}>
+            <ol className="grid gap-3 sm:grid-cols-2">
+              {GETTING_STARTED.map((step, index) => (
+                <li key={step.titleKey} className="flex gap-4 rounded-xl border border-border bg-card p-5 shadow-xs">
+                  <span className="font-mono text-[13px] font-semibold text-subtle-foreground tabular">0{index + 1}</span>
+                  <FeatureItem icon={step.icon} title={t(step.titleKey)} description={t(step.descriptionKey)} />
+                </li>
+              ))}
+            </ol>
+          </HelpSection>
+
+          <HelpSection id="booking" eyebrow={t("help.booking.eyebrow")} title={t("help.booking.title")} description={t("help.booking.description")}>
+            <FeatureGrid items={BOOKING_RULES} />
+          </HelpSection>
+
+          <HelpSection id="states" eyebrow={t("help.states.eyebrow")} title={t("help.states.title")} description={t("help.states.description")}>
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+              {RESERVATION_STATES.map((status) => (
+                <li key={status} className="grid gap-2 px-5 py-4 sm:grid-cols-[10rem_1fr] sm:items-center sm:gap-5">
+                  <StatusBadge status={status} />
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">{t(STATE_DESCRIPTION_KEYS[status])}</p>
+                </li>
+              ))}
+            </ul>
+          </HelpSection>
+
+          <HelpSection id="social" eyebrow={t("help.social.eyebrow")} title={t("help.social.title")} description={t("help.social.description")}>
+            <FeatureGrid items={SOCIAL_FEATURES} />
+          </HelpSection>
+
+          <HelpSection id="manage" eyebrow={t("help.manage.eyebrow")} title={t("help.manage.title")} description={t("help.manage.description")}>
+            <FeatureGrid items={MANAGE_FEATURES} />
+          </HelpSection>
+
+          <HelpSection id="venue-managers" eyebrow={t("help.venueManagers.eyebrow")} title={t("help.venueManagers.title")} description={t("help.venueManagers.description")}>
+            <FeatureGrid items={VENUE_MANAGER_FEATURES} />
+          </HelpSection>
+
+          <HelpSection id="faq" eyebrow={t("help.faq.eyebrow")} title={t("help.faq.title")}>
+            <FaqList items={FAQ_ITEMS.map((item) => ({ question: t(item.questionKey), answer: t(item.answerKey) }))} />
+          </HelpSection>
+
+          <CtaBand
+            title={t("help.cta.title")}
+            description={t("help.cta.description")}
+            cta={user ? t("help.cta.button.authed") : t("help.cta.button")}
+            to={user ? "/app/book" : "/register"}
+          />
         </div>
-      </section>
-
-      <section id="booking" className="mx-auto max-w-5xl px-6 pb-20">
-        <SectionHeader
-          align="left"
-          eyebrow={t("help.booking.eyebrow")}
-          title={t("help.booking.title")}
-          description={t("help.booking.description")}
-          className="mb-10"
-        />
-        <FeatureGrid items={BOOKING_RULES} />
-      </section>
-
-      <section id="states" className="mx-auto max-w-5xl px-6 pb-20">
-        <SectionHeader
-          align="left"
-          eyebrow={t("help.states.eyebrow")}
-          title={t("help.states.title")}
-          description={t("help.states.description")}
-          className="mb-10"
-        />
-        <div className="flex flex-col gap-3">
-          {RESERVATION_STATES.map((status) => (
-            <div
-              key={status}
-              className="flex flex-col gap-2 rounded-2xl border border-hairline bg-card p-5 shadow-card sm:flex-row sm:items-center sm:gap-5"
-            >
-              <Badge variant={STATUS_VARIANT[status]} className="w-fit shrink-0 sm:w-28 sm:justify-center">
-                {statusLabels[status]}
-              </Badge>
-              <p className="text-sm text-slate-gray">{t(STATE_DESCRIPTION_KEYS[status])}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="social" className="mx-auto max-w-5xl px-6 pb-20">
-        <SectionHeader
-          align="left"
-          eyebrow={t("help.social.eyebrow")}
-          title={t("help.social.title")}
-          description={t("help.social.description")}
-          className="mb-10"
-        />
-        <FeatureGrid items={SOCIAL_FEATURES} />
-      </section>
-
-      <section id="manage" className="mx-auto max-w-5xl px-6 pb-20">
-        <SectionHeader
-          align="left"
-          eyebrow={t("help.manage.eyebrow")}
-          title={t("help.manage.title")}
-          description={t("help.manage.description")}
-          className="mb-10"
-        />
-        <FeatureGrid items={MANAGE_FEATURES} />
-      </section>
-
-      <section id="venue-managers" className="mx-auto max-w-5xl px-6 pb-20">
-        <SectionHeader
-          align="left"
-          eyebrow={t("help.venueManagers.eyebrow")}
-          title={t("help.venueManagers.title")}
-          description={t("help.venueManagers.description")}
-          className="mb-10"
-        />
-        <div className="flex flex-col rounded-2xl border border-hairline bg-card px-6 shadow-card">
-          {VENUE_MANAGER_FEATURES.map((item) => (
-            <FeatureItem key={item.titleKey} icon={item.icon} title={t(item.titleKey)} description={t(item.descriptionKey)} />
-          ))}
-        </div>
-      </section>
-
-      <section id="faq" className="mx-auto max-w-3xl px-6 pb-20">
-        <SectionHeader align="left" eyebrow={t("help.faq.eyebrow")} title={t("help.faq.title")} className="mb-10" />
-        <div className="flex flex-col gap-3">
-          {FAQ_ITEMS.map((item) => (
-            <details key={item.questionKey} className="group rounded-2xl border border-hairline bg-card p-5 shadow-card open:pb-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-ink-navy marker:content-none">
-                {t(item.questionKey)}
-                <span className="shrink-0 text-lg text-slate-gray transition-transform group-open:rotate-45">+</span>
-              </summary>
-              <p className="mt-3 text-sm text-slate-gray">{t(item.answerKey)}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="flex flex-col items-center gap-6 rounded-3xl bg-ink-navy px-8 py-16 text-center">
-          <h2 className="text-3xl font-bold text-paper sm:text-4xl">{t("help.cta.title")}</h2>
-          <p className="max-w-md text-mist-gray">{t("help.cta.description")}</p>
-          <Button size="lg" asChild>
-            <Link to={user ? "/app/book" : "/register"}>{user ? t("help.cta.button.authed") : t("help.cta.button")}</Link>
-          </Button>
-        </div>
-      </section>
+      </div>
     </div>
   )
 }

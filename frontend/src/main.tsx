@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom"
 
 import App from "@/App.tsx"
 import { Toaster } from "@/components/ui/sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { AuthProvider } from "@/lib/auth-context"
 import { I18nProvider } from "@/lib/i18n"
 import { queryClient } from "@/lib/query-client"
@@ -18,8 +19,10 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <I18nProvider>
             <AuthProvider>
-              <App />
-              <Toaster position="top-right" />
+              <TooltipProvider>
+                <App />
+                <Toaster position="bottom-right" />
+              </TooltipProvider>
             </AuthProvider>
           </I18nProvider>
         </BrowserRouter>

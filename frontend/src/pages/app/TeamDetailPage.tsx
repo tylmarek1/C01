@@ -1,40 +1,44 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Camera, Check, MessageCircle, Pencil, Trash2, UserPlus, X } from "lucide-react"
+import { ArrowLeft, Camera, Check, Crown, Globe, Lock, LogOut, MessageCircle, MoreHorizontal, Pencil, Shield, Trash2, UserMinus, UserPlus, X } from "lucide-react"
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ConfirmDialog } from "@/components/shared/confirm-dialog"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ErrorState } from "@/components/shared/error-state"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlayerSearch } from "@/components/shared/player-search"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSportLabels } from "@/components/shared/sport-icon"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { compressImageFile } from "@/lib/image"
-import { ApiError, api, assetUrl } from "@/lib/api"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { ErrorState } from "@/components/shared/error-state"
+import { PageContainer } from "@/components/shared/page-header"
+import { PlayerSearch } from "@/components/shared/player-search"
+import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
+import { SportPicker } from "@/components/shared/sport-picker"
+import { SubsectionHeading } from "@/components/shared/subsection-heading"
+import { UserAvatar } from "@/components/shared/user-avatar"
+import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
+import { useFormatters } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
+import { compressImageFile } from "@/lib/image"
+import { cn } from "@/lib/utils"
 import type { PlayerSearchResult, SportType, Team, TeamRole } from "@/types"
 
-const SPORT_TYPES: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
-}
+const ROLE_ORDER: Record<TeamRole, number> = { OWNER: 0, CAPTAIN: 1, MEMBER: 2 }
 
 function TeamAvatarUpload({ team, canManage }: { team: Team; canManage: boolean }) {
   const { token } = useAuth()
@@ -47,6 +51,7 @@ function TeamAvatarUpload({ team, canManage }: { team: Team; canManage: boolean 
     mutationFn: async (file: File) => api.uploadTeamAvatar(token!, team.id, await compressImageFile(file)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team", team.id] })
+      queryClient.invalidateQueries({ queryKey: ["teams-mine"] })
       toast.success(t("teams.toast.avatarUpdated"))
     },
     onError: (error) => {
@@ -65,40 +70,29 @@ function TeamAvatarUpload({ team, canManage }: { team: Team; canManage: boolean 
 
   return (
     <div className="relative shrink-0">
-      <Avatar className="size-14">
-        <AvatarImage src={preview ?? assetUrl(team.avatar_url)} alt={team.name} className="object-cover" />
-        <AvatarFallback className="text-base">{initials(team.name)}</AvatarFallback>
-      </Avatar>
+      <UserAvatar name={team.name} avatarUrl={team.avatar_url} src={preview} size="2xl" className="rounded-2xl ring-4 ring-card [&_*]:rounded-2xl" />
       {canManage && (
         <>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={avatarMutation.isPending}
-            className="absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full bg-signal-blue text-paper shadow-button transition-transform hover:scale-105 disabled:opacity-60"
+            className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition-transform outline-none hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
             aria-label={t("teams.avatar.change")}
           >
-            <Camera className="size-3" />
+            <Camera className="size-3.5" />
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            className="hidden"
-            onChange={handleChange}
-          />
+          <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={handleChange} />
         </>
       )}
     </div>
   )
 }
 
-function EditTeamDialog({ team, isOwner }: { team: Team; isOwner: boolean }) {
+function EditTeamDialog({ team, isOwner, open, onOpenChange }: { team: Team; isOwner: boolean; open: boolean; onOpenChange: (open: boolean) => void }) {
   const { token } = useAuth()
   const { t } = useTranslation()
-  const sportLabels = useSportLabels()
   const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
   const [name, setName] = useState(team.name)
   const [sport, setSport] = useState<SportType | "ANY">(team.sport_type ?? "ANY")
   const [description, setDescription] = useState(team.description ?? "")
@@ -113,8 +107,9 @@ function EditTeamDialog({ team, isOwner }: { team: Team; isOwner: boolean }) {
         ...(isOwner ? { is_public: isPublic } : {}),
       }),
     onSuccess: () => {
-      setOpen(false)
+      onOpenChange(false)
       queryClient.invalidateQueries({ queryKey: ["team", team.id] })
+      queryClient.invalidateQueries({ queryKey: ["teams-mine"] })
       toast.success(t("teams.toast.updated"))
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.error.updateFailed")),
@@ -127,15 +122,11 @@ function EditTeamDialog({ team, isOwner }: { team: Team; isOwner: boolean }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="icon" aria-label={t("teams.edit")}>
-          <Pencil className="size-4" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("teams.edit.title")}</DialogTitle>
+          <DialogDescription>{team.name}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -144,42 +135,29 @@ function EditTeamDialog({ team, isOwner }: { team: Team; isOwner: boolean }) {
           </div>
           <div className="flex flex-col gap-2">
             <Label>{t("teams.field.sport")}</Label>
-            <Select value={sport} onValueChange={(value) => setSport(value as SportType | "ANY")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ANY">{t("teams.field.sport.any")}</SelectItem>
-                {SPORT_TYPES.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {sportLabels[option]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SportPicker value={sport} onChange={setSport} />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="edit-team-description">{t("teams.field.description")}</Label>
-            <Textarea
-              id="edit-team-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              maxLength={500}
-              rows={3}
-            />
+            <Textarea id="edit-team-description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} rows={3} />
           </div>
           {isOwner && (
-            <div className="flex items-center justify-between rounded-lg border border-hairline p-3">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-ink-navy">{t("teams.field.isPublic")}</span>
-                <span className="text-xs text-slate-gray">{t("teams.field.isPublic.hint")}</span>
-              </div>
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-border p-3">
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[13px] font-medium">{t("teams.field.isPublic")}</span>
+                <span className="text-xs text-muted-foreground">{t("teams.field.isPublic.hint")}</span>
+              </span>
               <Switch checked={isPublic} onCheckedChange={setIsPublic} aria-label={t("teams.field.isPublic")} />
-            </div>
+            </label>
           )}
-          <Button type="submit" disabled={updateMutation.isPending || name.trim().length === 0} className="mt-1 w-fit">
-            {updateMutation.isPending ? t("teams.creating") : t("common.save")}
-          </Button>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={name.trim().length === 0} isLoading={updateMutation.isPending}>
+              {t("common.save")}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
@@ -189,19 +167,17 @@ function EditTeamDialog({ team, isOwner }: { team: Team; isOwner: boolean }) {
 function JoinRequestsPanel({ teamId }: { teamId: string }) {
   const { token } = useAuth()
   const { t } = useTranslation()
+  const fmt = useFormatters()
   const queryClient = useQueryClient()
-
   const { data: requests } = useQuery({
     queryKey: ["team-join-requests", teamId],
     queryFn: () => api.listTeamJoinRequests(token!, teamId),
     enabled: Boolean(token),
   })
-
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["team-join-requests", teamId] })
     queryClient.invalidateQueries({ queryKey: ["team", teamId] })
   }
-
   const acceptMutation = useMutation({
     mutationFn: (requestId: string) => api.acceptTeamJoinRequest(token!, teamId, requestId),
     onSuccess: () => {
@@ -210,7 +186,6 @@ function JoinRequestsPanel({ teamId }: { teamId: string }) {
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.joinRequests.error.decideFailed")),
   })
-
   const declineMutation = useMutation({
     mutationFn: (requestId: string) => api.declineTeamJoinRequest(token!, teamId, requestId),
     onSuccess: () => {
@@ -220,40 +195,32 @@ function JoinRequestsPanel({ teamId }: { teamId: string }) {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.joinRequests.error.decideFailed")),
   })
 
-  if (!requests || requests.length === 0) return null
+  const pending = (requests ?? []).filter((r) => r.status === "PENDING")
+  if (pending.length === 0) return null
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("teams.joinRequests.title", { count: requests.length })}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        {requests.map((request) => (
-          <div key={request.id} className="flex items-center justify-between gap-3 rounded-xl border border-hairline px-3 py-2">
-            <Link to={`/app/players/${request.user.id}`} className="flex items-center gap-3">
-              <Avatar className="size-9">
-                <AvatarImage src={assetUrl(request.user.avatar_url)} alt={request.user.name} loading="lazy" className="object-cover" />
-                <AvatarFallback>{initials(request.user.name)}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium text-ink-navy">{request.user.name}</span>
+    <section className="flex animate-fade-up flex-col gap-3 rounded-xl border border-brand/50 bg-brand-soft/50 p-4">
+      <SubsectionHeading title={t("teams.joinRequests.heading")} count={pending.length} />
+      <ul className="flex flex-col gap-2">
+        {pending.map((request) => (
+          <li key={request.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 shadow-xs">
+            <Link to={`/app/players/${request.user.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+              <UserAvatar name={request.user.name} avatarUrl={request.user.avatar_url} size="sm" />
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate text-[13px] font-medium">{request.user.name}</span>
+                <span className="font-mono text-[11px] text-subtle-foreground">{fmt.relativeTime(request.created_at)}</span>
+              </span>
             </Link>
-            <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={declineMutation.isPending}
-                onClick={() => declineMutation.mutate(request.id)}
-              >
-                <X className="size-3.5" /> {t("teams.joinRequests.decline")}
-              </Button>
-              <Button size="sm" disabled={acceptMutation.isPending} onClick={() => acceptMutation.mutate(request.id)}>
-                <Check className="size-3.5" /> {t("teams.joinRequests.accept")}
-              </Button>
-            </div>
-          </div>
+            <Button size="sm" variant="outline" disabled={declineMutation.isPending || acceptMutation.isPending} onClick={() => declineMutation.mutate(request.id)}>
+              <X /> {t("teams.joinRequests.decline")}
+            </Button>
+            <Button size="sm" disabled={acceptMutation.isPending || declineMutation.isPending} onClick={() => acceptMutation.mutate(request.id)}>
+              <Check /> {t("teams.joinRequests.accept")}
+            </Button>
+          </li>
         ))}
-      </CardContent>
-    </Card>
+      </ul>
+    </section>
   )
 }
 
@@ -263,32 +230,32 @@ function TeamDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
+  const fmt = useFormatters()
   const sportLabels = useSportLabels()
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
 
-  const {
-    data: team,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
+  const { data: team, isLoading, isError, refetch } = useQuery({
     queryKey: ["team", id],
     queryFn: () => api.getTeam(token!, id!),
     enabled: Boolean(token && id),
   })
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["team", id] })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["team", id] })
+    queryClient.invalidateQueries({ queryKey: ["teams-mine"] })
+  }
 
   const addMemberMutation = useMutation({
     mutationFn: (player: PlayerSearchResult) => api.addTeamMember(token!, id!, { userId: player.id }),
-    onSuccess: () => {
+    onSuccess: (_team, player) => {
       invalidate()
-      toast.success(t("teams.toast.memberAdded"))
+      toast.success(t("teams.toast.memberAddedName", { name: player.name }))
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.error.addMemberFailed")),
   })
-
   const removeMemberMutation = useMutation({
     mutationFn: (userId: string) => api.removeTeamMember(token!, id!, userId),
     onSuccess: (_team, removedUserId) => {
@@ -296,6 +263,7 @@ function TeamDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["teams-mine"] })
       if (removedUserId === user?.id) {
         // We just left — the detail page is no longer accessible to us.
+        toast.success(t("teams.toast.left"))
         navigate("/app/teams")
       } else {
         invalidate()
@@ -303,7 +271,6 @@ function TeamDetailPage() {
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.error.removeMemberFailed")),
   })
-
   const roleMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: TeamRole }) => api.setTeamMemberRole(token!, id!, userId, role),
     onSuccess: () => {
@@ -312,7 +279,6 @@ function TeamDetailPage() {
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.error.roleUpdateFailed")),
   })
-
   const deleteTeamMutation = useMutation({
     mutationFn: () => api.deleteTeam(token!, id!),
     onSuccess: () => {
@@ -322,7 +288,6 @@ function TeamDetailPage() {
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("teams.error.deleteFailed")),
   })
-
   const chatMutation = useMutation({
     mutationFn: () => api.openTeamChat(token!, id!),
     onSuccess: (conversation) => navigate(`/app/chat?conversation=${conversation.id}`),
@@ -331,145 +296,195 @@ function TeamDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-16">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-48 w-full" />
-      </div>
+      <PageContainer>
+        <Skeleton className="h-44 w-full rounded-2xl" />
+        <Skeleton className="mt-6 h-64 w-full rounded-xl" />
+      </PageContainer>
     )
   }
-
   if (isError || !team) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-16">
+      <PageContainer size="narrow">
         <ErrorState title={t("teams.error.loadFailed")} onRetry={() => refetch()} />
-      </div>
+      </PageContainer>
     )
   }
 
   const isOwner = team.my_role === "OWNER"
   const isManage = isOwner || team.my_role === "CAPTAIN"
+  const members = [...team.members].sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || a.user.name.localeCompare(b.user.name))
+  const removeIsSelf = removeTarget === user?.id
+  const removeName = team.members.find((m) => m.user.id === removeTarget)?.user.name ?? ""
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-16">
-      <Button variant="ghost" size="sm" className="w-fit" onClick={() => navigate("/app/teams")}>
+    <PageContainer>
+      <Link to="/app/teams" className="mb-4 inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> {t("teams.back")}
-      </Button>
+      </Link>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 py-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <TeamAvatarUpload team={team} canManage={isManage} />
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-ink-navy">{team.name}</h1>
-                  {team.sport_type && <Badge>{sportLabels[team.sport_type]}</Badge>}
-                  {!team.is_public && <Badge variant="secondary">{t("teams.private")}</Badge>}
-                </div>
+      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div aria-hidden className="h-20 bg-panel bg-[radial-gradient(70%_140%_at_10%_0%,color-mix(in_oklab,var(--brand)_40%,transparent),transparent_70%)]" />
+        <div className="flex flex-col gap-4 px-5 pb-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+          <div className="-mt-10 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <TeamAvatarUpload team={team} canManage={isManage} />
+            <div className="flex flex-col gap-1.5">
+              <h1 className="text-2xl font-semibold tracking-[-0.025em]">{team.name}</h1>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {team.sport_type && (
+                  <Badge variant="secondary">
+                    <SportIcon sport={team.sport_type} /> {sportLabels[team.sport_type]}
+                  </Badge>
+                )}
+                <Badge variant="outline">
+                  {team.is_public ? <Globe /> : <Lock />} {team.is_public ? t("teams.public") : t("teams.private")}
+                </Badge>
+                <span className="text-xs text-muted-foreground">{t("teams.createdAt", { date: fmt.dateMedium(team.created_at) })}</span>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {isManage && <EditTeamDialog team={team} isOwner={isOwner} />}
-              <Button variant="outline" disabled={chatMutation.isPending} onClick={() => chatMutation.mutate()}>
-                <MessageCircle className="size-4" /> {t("teams.chat")}
-              </Button>
-              {isOwner && (
-                <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-                  <Trash2 className="size-4" /> {t("teams.delete")}
-                </Button>
-              )}
             </div>
           </div>
-          {team.description && <p className="text-sm text-slate-gray">{team.description}</p>}
-          <span className="text-xs text-slate-gray">
-            {t("teams.createdAt", { date: new Date(team.created_at).toLocaleDateString() })}
-          </span>
-        </CardContent>
-      </Card>
+          <div className="flex gap-2">
+            <Button size="sm" isLoading={chatMutation.isPending} onClick={() => chatMutation.mutate()}>
+              {!chatMutation.isPending && <MessageCircle />} {t("teams.chat")}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon-sm" variant="outline" aria-label={t("reservationCard.moreActions")}>
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {isManage && (
+                  <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                    <Pencil /> {t("teams.edit")}
+                  </DropdownMenuItem>
+                )}
+                {!isOwner && (
+                  <DropdownMenuItem variant="destructive" onSelect={() => setRemoveTarget(user!.id)}>
+                    <LogOut /> {t("teams.leave")}
+                  </DropdownMenuItem>
+                )}
+                {isOwner && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
+                      <Trash2 /> {t("teams.delete")}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+        {team.description && <p className="border-t border-border px-5 py-4 text-[14px] leading-relaxed text-foreground/85 sm:px-6">{team.description}</p>}
+      </section>
 
-      {isManage && <JoinRequestsPanel teamId={team.id} />}
+      <div className="mt-6 flex flex-col gap-6">
+        {isManage && <JoinRequestsPanel teamId={team.id} />}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("teams.roster.title", { count: team.members.length })}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {team.members.map((member) => {
-            const canRemove =
-              member.user.id === user?.id ||
-              isOwner ||
-              (team.my_role === "CAPTAIN" && member.role === "MEMBER")
-            return (
-              <div key={member.user.id} className="flex items-center justify-between gap-3 rounded-xl border border-hairline px-3 py-2">
-                <Link to={`/app/players/${member.user.id}`} className="flex items-center gap-3">
-                  <Avatar className="size-9">
-                    <AvatarImage src={assetUrl(member.user.avatar_url)} alt={member.user.name} loading="lazy" className="object-cover" />
-                    <AvatarFallback>{initials(member.user.name)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-ink-navy">{member.user.name}</span>
-                    <span className="text-xs text-slate-gray">
-                      {member.role !== "MEMBER" && `${t(member.role === "OWNER" ? "teams.role.owner" : "teams.role.captain")} · `}
-                      {t("teams.roster.joinedAt", { date: new Date(member.joined_at).toLocaleDateString() })}
+        <section className="flex flex-col gap-3">
+          <SubsectionHeading
+            title={t("teams.roster.heading")}
+            count={team.members.length}
+            action={
+              isManage && (
+                <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+                  <UserPlus /> {t("teams.addMember")}
+                </Button>
+              )
+            }
+          />
+          <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+            {members.map((member) => {
+              const isMe = member.user.id === user?.id
+              const canRemove = !isMe && (isOwner || (team.my_role === "CAPTAIN" && member.role === "MEMBER"))
+              return (
+                <li key={member.user.id} className={cn("flex items-center gap-3 px-4 py-3", isMe && "bg-muted/40")}>
+                  <Link to={`/app/players/${member.user.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                    <UserAvatar name={member.user.name} avatarUrl={member.user.avatar_url} />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="flex items-center gap-2 truncate text-[13px] font-medium">
+                        {member.user.name}
+                        {isMe && <span className="text-[11px] font-normal text-muted-foreground">({t("leaderboard.you")})</span>}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{t("teams.roster.joinedAt", { date: fmt.dateMedium(member.joined_at) })}</span>
                     </span>
-                  </div>
-                </Link>
-                <div className="flex items-center gap-2">
-                  {isOwner && member.role !== "OWNER" && (
-                    <Select
-                      value={member.role}
-                      onValueChange={(value) => roleMutation.mutate({ userId: member.user.id, role: value as TeamRole })}
-                    >
-                      <SelectTrigger className="h-8 w-32 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MEMBER">{t("teams.role.member")}</SelectItem>
-                        <SelectItem value="CAPTAIN">{t("teams.role.captain")}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  </Link>
+                  {member.role === "OWNER" && (
+                    <Badge variant="brand">
+                      <Crown /> {t("teams.role.owner")}
+                    </Badge>
                   )}
-                  {canRemove && (
-                    <button
-                      type="button"
-                      onClick={() => setRemoveTarget(member.user.id)}
-                      disabled={removeMemberMutation.isPending}
-                      className="text-slate-gray hover:text-destructive"
-                      aria-label={member.user.id === user?.id ? t("teams.leave") : t("teams.roster.remove")}
-                    >
-                      <X className="size-4" />
-                    </button>
+                  {member.role === "CAPTAIN" && (
+                    <Badge variant="info">
+                      <Shield /> {t("teams.role.captain")}
+                    </Badge>
                   )}
-                </div>
-              </div>
-            )
-          })}
+                  {(isOwner && member.role !== "OWNER") || canRemove ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon-sm" variant="ghost" aria-label={t("teams.roster.manage", { name: member.user.name })}>
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {isOwner && member.role !== "OWNER" && (
+                          <>
+                            <DropdownMenuLabel>{t("teams.roster.role")}</DropdownMenuLabel>
+                            <DropdownMenuRadioGroup
+                              value={member.role}
+                              onValueChange={(value) => roleMutation.mutate({ userId: member.user.id, role: value as TeamRole })}
+                            >
+                              <DropdownMenuRadioItem value="MEMBER">{t("teams.role.member")}</DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="CAPTAIN">{t("teams.role.captain")}</DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </>
+                        )}
+                        {canRemove && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem variant="destructive" onSelect={() => setRemoveTarget(member.user.id)}>
+                              <UserMinus /> {t("teams.roster.remove")}
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <span className="w-8" />
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      </div>
 
-          {isManage && (
-            <div className="mt-2 flex items-center gap-2">
-              <UserPlus className="size-4 shrink-0 text-slate-gray" />
-              <div className="flex-1">
-                <PlayerSearch
-                  placeholder={t("teams.field.addMemberPlaceholder")}
-                  excludeIds={team.members.map((member) => member.user.id)}
-                  onSelect={(player) => addMemberMutation.mutate(player)}
-                />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {editOpen && <EditTeamDialog team={team} isOwner={isOwner} open onOpenChange={setEditOpen} />}
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t("teams.addMember")}</DialogTitle>
+            <DialogDescription>{t("teams.addMemberDescription", { team: team.name })}</DialogDescription>
+          </DialogHeader>
+          <PlayerSearch
+            autoFocus
+            placeholder={t("teams.field.addMemberPlaceholder")}
+            excludeIds={team.members.map((member) => member.user.id)}
+            onSelect={(player) => addMemberMutation.mutate(player)}
+          />
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={Boolean(removeTarget)}
         onOpenChange={(open) => !open && setRemoveTarget(null)}
-        title={removeTarget === user?.id ? t("confirmDialog.leaveTeam.title") : t("confirmDialog.removeTeamMember.title")}
-        description={removeTarget === user?.id ? t("confirmDialog.leaveTeam.description") : t("confirmDialog.removeTeamMember.description")}
-        confirmLabel={removeTarget === user?.id ? t("teams.leave") : t("teams.roster.remove")}
+        title={removeIsSelf ? t("confirmDialog.leaveTeam.title") : t("confirmDialog.removeTeamMemberNamed.title", { name: removeName })}
+        description={removeIsSelf ? t("confirmDialog.leaveTeam.description") : t("confirmDialog.removeTeamMember.description")}
+        confirmLabel={removeIsSelf ? t("teams.leave") : t("teams.roster.remove")}
         isLoading={removeMemberMutation.isPending}
         onConfirm={() => removeTarget && removeMemberMutation.mutate(removeTarget)}
       />
-
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
@@ -479,7 +494,7 @@ function TeamDetailPage() {
         isLoading={deleteTeamMutation.isPending}
         onConfirm={() => deleteTeamMutation.mutate()}
       />
-    </div>
+    </PageContainer>
   )
 }
 

@@ -1,6 +1,5 @@
 import type { ReactElement } from "react"
 
-import { DecorativeBlob } from "@/components/shared/decorative-blob"
 import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
 import { assetUrl } from "@/lib/api"
 import { useTranslation } from "@/lib/i18n"
@@ -8,53 +7,47 @@ import { cn } from "@/lib/utils"
 import type { SportType } from "@/types"
 
 /**
- * Branded line-art illustration per sport, standing in for a real venue
- * photo. Every court renders one of exactly three sport illustrations, so
- * it stays crisp and on-brand instead of depending on external photography
- * that could 404 or look inconsistent between venues.
+ * A court's cover: its real photo when it has one, otherwise a branded
+ * line-art plan of the sport's court — crisp and consistent instead of
+ * depending on external photography that could 404.
  */
-
-const BLOB_BY_SPORT: Record<SportType, "cyan" | "magenta"> = {
-  TENNIS: "cyan",
-  VOLLEYBALL: "magenta",
-  BADMINTON: "cyan",
-}
 
 function TennisLines() {
   return (
-    <g stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.55">
-      <rect x="10" y="14" width="80" height="52" rx="1.5" />
-      <rect x="16" y="14" width="68" height="52" rx="1.5" />
-      <line x1="10" y1="40" x2="90" y2="40" strokeDasharray="2 2" />
-      <line x1="50" y1="14" x2="50" y2="66" />
-      <line x1="34" y1="14" x2="34" y2="66" opacity="0.4" />
-      <line x1="66" y1="14" x2="66" y2="66" opacity="0.4" />
+    <g fill="none" strokeWidth="1.2">
+      <rect x="10" y="12" width="80" height="56" rx="1" />
+      <rect x="10" y="18" width="80" height="44" />
+      <line x1="50" y1="12" x2="50" y2="68" strokeWidth="2" />
+      <line x1="28" y1="18" x2="28" y2="62" />
+      <line x1="72" y1="18" x2="72" y2="62" />
+      <line x1="28" y1="40" x2="72" y2="40" />
     </g>
   )
 }
 
 function VolleyballLines() {
   return (
-    <g stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.55">
-      <rect x="12" y="16" width="76" height="48" rx="1.5" />
-      <line x1="50" y1="16" x2="50" y2="64" strokeWidth="2.5" />
-      <line x1="50" y1="8" x2="50" y2="16" />
-      <line x1="50" y1="64" x2="50" y2="72" />
-      <line x1="34" y1="16" x2="34" y2="64" opacity="0.4" />
-      <line x1="66" y1="16" x2="66" y2="64" opacity="0.4" />
+    <g fill="none" strokeWidth="1.2">
+      <rect x="12" y="14" width="76" height="52" rx="1" />
+      <line x1="50" y1="8" x2="50" y2="72" strokeWidth="2" />
+      <line x1="37" y1="14" x2="37" y2="66" />
+      <line x1="63" y1="14" x2="63" y2="66" />
     </g>
   )
 }
 
 function BadmintonLines() {
   return (
-    <g stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.55">
-      <rect x="14" y="14" width="72" height="52" rx="1.5" />
-      <line x1="50" y1="14" x2="50" y2="66" strokeWidth="2.5" />
-      <line x1="22" y1="14" x2="22" y2="66" opacity="0.4" />
-      <line x1="78" y1="14" x2="78" y2="66" opacity="0.4" />
-      <line x1="14" y1="26" x2="86" y2="26" opacity="0.4" />
-      <line x1="14" y1="54" x2="86" y2="54" opacity="0.4" />
+    <g fill="none" strokeWidth="1.2">
+      <rect x="14" y="14" width="72" height="52" rx="1" />
+      <rect x="14" y="18" width="72" height="44" />
+      <line x1="50" y1="14" x2="50" y2="66" strokeWidth="2" />
+      <line x1="22" y1="14" x2="22" y2="66" />
+      <line x1="78" y1="14" x2="78" y2="66" />
+      <line x1="40" y1="14" x2="40" y2="66" />
+      <line x1="60" y1="14" x2="60" y2="66" />
+      <line x1="22" y1="40" x2="40" y2="40" />
+      <line x1="60" y1="40" x2="78" y2="40" />
     </g>
   )
 }
@@ -76,9 +69,11 @@ interface CourtArtProps {
    * doesn't compete with the lazy default that's right everywhere this
    * renders many courts at once (grids, admin lists). */
   loading?: "lazy" | "eager"
+  /** Hide the indoor/outdoor chip (when the caller renders its own meta). */
+  hideMeta?: boolean
 }
 
-function CourtArt({ sport, indoor, className, compact = false, imageUrl, loading = "lazy" }: CourtArtProps) {
+function CourtArt({ sport, indoor, className, compact = false, imageUrl, loading = "lazy", hideMeta = false }: CourtArtProps) {
   const { t } = useTranslation()
   const sportLabels = useSportLabels()
   const Lines = LINES_BY_SPORT[sport]
@@ -87,43 +82,42 @@ function CourtArt({ sport, indoor, className, compact = false, imageUrl, loading
   return (
     <div
       className={cn(
-        "relative flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-2xl bg-pebble text-ink-navy",
+        "relative isolate flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-xl bg-muted text-foreground",
         className,
       )}
     >
       {photo ? (
-        <img
-          src={photo}
-          alt={`${sportLabels[sport]} court`}
-          loading={loading}
-          className="absolute inset-0 size-full object-cover"
-        />
+        <>
+          <img
+            src={photo}
+            alt={t("courtArt.photoAlt", { sport: sportLabels[sport] })}
+            loading={loading}
+            className="absolute inset-0 size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          />
+          <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/25 to-transparent" />
+        </>
       ) : (
         <>
-          <DecorativeBlob color={BLOB_BY_SPORT[sport]} className="-top-8 -right-6 size-32 opacity-40" />
-          <DecorativeBlob
-            color={BLOB_BY_SPORT[sport] === "cyan" ? "magenta" : "cyan"}
-            className="-bottom-10 -left-8 size-28 opacity-30"
-          />
-          <svg viewBox="0 0 100 80" className="relative h-full w-full">
+          <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_80%_at_80%_0%,color-mix(in_oklab,var(--brand)_28%,transparent),transparent_60%)]" />
+          <svg viewBox="0 0 100 80" aria-hidden className="relative h-[78%] w-[78%] stroke-foreground/25 transition-transform duration-500 ease-out group-hover:scale-[1.03]">
             <Lines />
           </svg>
+          <span
+            className={cn(
+              "absolute flex items-center justify-center rounded-lg bg-card text-foreground shadow-md ring-1 ring-border",
+              compact ? "size-9" : "size-12",
+            )}
+          >
+            <SportIcon sport={sport} className={compact ? "size-4" : "size-5"} />
+          </span>
+          <span className="sr-only">{t("courtArt.illustrationAlt", { sport: sportLabels[sport] })}</span>
         </>
       )}
-      <span
-        className={cn(
-          "absolute flex items-center justify-center rounded-2xl bg-ink-navy text-paper shadow-button",
-          compact ? "size-10" : "size-14",
-        )}
-      >
-        <SportIcon sport={sport} className={compact ? "size-4.5" : "size-6"} />
-      </span>
-      {indoor !== undefined && !compact && (
-        <span className="absolute top-3 right-3 rounded-full bg-paper/90 px-2.5 py-1 text-xs font-medium text-ink-navy shadow-sm backdrop-blur-sm">
+      {indoor !== undefined && !compact && !hideMeta && (
+        <span className="absolute top-2.5 right-2.5 rounded-xs bg-card/90 px-1.5 py-0.5 text-[11px] font-medium text-foreground shadow-xs backdrop-blur-sm">
           {indoor ? t("courts.indoor") : t("courts.outdoor")}
         </span>
       )}
-      <span className="sr-only">{sportLabels[sport]} court illustration</span>
     </div>
   )
 }

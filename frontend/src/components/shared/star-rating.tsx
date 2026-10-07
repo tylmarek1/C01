@@ -18,7 +18,7 @@ function StarRating({ value, className, size = "sm" }: StarRatingProps) {
       {Array.from({ length: 5 }).map((_, index) => {
         const filled = index < Math.round(value)
         return (
-          <Star key={index} className={cn(starSize, filled ? "fill-amber-400 text-amber-400" : "text-hairline")} />
+          <Star key={index} className={cn(starSize, filled ? "fill-star text-star" : "text-border-strong")} />
         )
       })}
     </span>
@@ -38,7 +38,7 @@ function StarRatingInput({ value, onChange, className }: StarRatingInputProps) {
   const shown = hovered ?? value
 
   return (
-    <span className={cn("inline-flex items-center gap-1", className)}>
+    <span role="radiogroup" aria-label={t("starRating.group")} className={cn("inline-flex items-center gap-1", className)}>
       {Array.from({ length: 5 }).map((_, index) => {
         const starValue = index + 1
         const filled = starValue <= shown
@@ -46,13 +46,15 @@ function StarRatingInput({ value, onChange, className }: StarRatingInputProps) {
           <button
             key={index}
             type="button"
+            role="radio"
+            aria-checked={starValue === value}
             onClick={() => onChange(starValue)}
             onMouseEnter={() => setHovered(starValue)}
             onMouseLeave={() => setHovered(null)}
-            className="flex size-9 items-center justify-center rounded-full transition-transform hover:scale-110"
+            className="flex size-9 items-center justify-center rounded-full transition-transform outline-none hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-95"
             aria-label={t("starRating.ariaLabel", { count: starValue })}
           >
-            <Star className={cn("size-6", filled ? "fill-amber-400 text-amber-400" : "text-hairline")} />
+            <Star className={cn("size-6", filled ? "fill-star text-star" : "text-border-strong")} />
           </button>
         )
       })}

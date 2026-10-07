@@ -1,9 +1,10 @@
-import { CalendarCheck2, ExternalLink, ShieldCheck, Users } from "lucide-react"
+import { CalendarCheck2, FolderGit2, ShieldCheck, Users } from "lucide-react"
 
-import { DecorativeBlob } from "@/components/shared/decorative-blob"
 import { FeatureItem } from "@/components/shared/feature-item"
+import { MarketingSection } from "@/components/shared/marketing"
 import { SectionHeader } from "@/components/shared/section-header"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
+import { initials } from "@/lib/utils"
 
 const TEAM = ["Adam Vrána", "Marek Tyl", "Josef Glogar", "Adam Mikoláš"]
 
@@ -18,36 +19,35 @@ function AboutPage() {
 
   return (
     <div>
-      <section className="relative mx-auto max-w-4xl px-6 pt-16 pb-8 text-center sm:pt-24">
-        <DecorativeBlob color="cyan" className="-top-10 right-10 size-64" />
-        <DecorativeBlob color="magenta" className="bottom-0 left-0 size-56" />
-        <SectionHeader eyebrow={t("about.eyebrow")} title={t("about.title")} description={t("about.description")} />
+      <section className="relative isolate overflow-hidden border-b border-border">
+        <div aria-hidden className="absolute inset-0 -z-10 bg-court-grid opacity-50 [mask-image:radial-gradient(50%_80%_at_50%_0%,black,transparent)]" />
+        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
+          <SectionHeader eyebrow={t("about.eyebrow")} title={t("about.title")} description={t("about.description")} />
+        </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-16">
-        <div className="grid gap-6 sm:grid-cols-3">
+      <MarketingSection>
+        <div className="grid gap-3 sm:grid-cols-3">
           {values.map((value) => (
-            <div key={value.titleKey} className="rounded-2xl border border-hairline bg-card p-6 shadow-card">
+            <div key={value.titleKey} className="rounded-xl border border-border bg-card p-6 shadow-xs">
               <FeatureItem icon={value.icon} title={t(value.titleKey)} description={t(value.descriptionKey)} />
             </div>
           ))}
         </div>
-      </section>
+      </MarketingSection>
 
-      <section className="mx-auto max-w-3xl px-6 pb-24">
-        <div className="rounded-3xl border border-hairline bg-cloud p-8 sm:p-10">
-          <h2 className="text-2xl font-bold text-ink-navy">{t("about.team.title")}</h2>
-          <p className="mt-2 text-slate-gray">{t("about.team.description")}</p>
-          <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+      <MarketingSection size="narrow" className="pt-0 sm:pt-0">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-xs sm:p-10">
+          <span className="eyebrow">{t("about.team.eyebrow")}</span>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.025em]">{t("about.team.title")}</h2>
+          <p className="mt-2 text-[14px] text-muted-foreground">{t("about.team.description")}</p>
+          <ul className="mt-6 grid gap-2 sm:grid-cols-2">
             {TEAM.map((member) => (
-              <li key={member} className="flex items-center gap-3 rounded-xl border border-hairline bg-paper p-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink-navy text-sm font-semibold text-paper">
-                  {member
-                    .split(" ")
-                    .map((part) => part[0])
-                    .join("")}
+              <li key={member} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-[13px] font-semibold text-brand-foreground">
+                  {initials(member)}
                 </span>
-                <span className="font-medium text-ink-navy">{member}</span>
+                <span className="text-[14px] font-medium">{member}</span>
               </li>
             ))}
           </ul>
@@ -55,12 +55,12 @@ function AboutPage() {
             href="https://github.com/tylmarek1/C01"
             target="_blank"
             rel="noreferrer"
-            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-ink-navy hover:underline"
+            className="mt-6 inline-flex items-center gap-2 text-[13px] font-medium underline decoration-border-strong underline-offset-4 hover:decoration-foreground"
           >
-            <ExternalLink className="size-4" /> {t("about.team.viewSource")}
+            <FolderGit2 className="size-4" /> {t("about.team.viewSource")}
           </a>
         </div>
-      </section>
+      </MarketingSection>
     </div>
   )
 }

@@ -1,21 +1,22 @@
 import { Moon, Sun } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import { Tooltip } from "@/components/ui/tooltip"
 import { useTranslation } from "@/lib/i18n"
 import { useTheme } from "@/lib/theme"
 
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
   const { t } = useTranslation()
+  const label = theme === "dark" ? t("nav.theme.toggleToLight") : t("nav.theme.toggleToDark")
 
   return (
-    <button
-      type="button"
-      onClick={toggleTheme}
-      className="flex size-9 items-center justify-center rounded-full text-slate-gray transition-colors hover:bg-pebble hover:text-ink-navy"
-      aria-label={theme === "dark" ? t("nav.theme.toggleToLight") : t("nav.theme.toggleToDark")}
-    >
-      {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-    </button>
+    <Tooltip content={label}>
+      <Button variant="subtle" size="icon-sm" onClick={toggleTheme} aria-label={label}>
+        <Sun className="size-4 scale-100 rotate-0 transition-transform duration-300 dark:scale-0 dark:-rotate-90" />
+        <Moon className="absolute size-4 scale-0 rotate-90 transition-transform duration-300 dark:scale-100 dark:rotate-0" />
+      </Button>
+    </Tooltip>
   )
 }
 

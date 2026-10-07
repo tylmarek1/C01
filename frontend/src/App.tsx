@@ -1,7 +1,7 @@
 import { lazy } from "react"
 import { Route, Routes } from "react-router-dom"
 
-import { AppLayout, AppShellLayout } from "@/components/shared/app-layout"
+import { AdaptiveLayout, AppLayout, AppShellLayout } from "@/components/shared/app-layout"
 import { ProtectedRoute, RedirectIfAuthed } from "@/components/shared/protected-route"
 import { LandingPage } from "@/pages/landing/LandingPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
@@ -26,6 +26,8 @@ const PlayersDirectoryPage = lazy(() =>
 const ChatPage = lazy(() => import("@/pages/app/ChatPage").then((m) => ({ default: m.ChatPage })))
 const TeamsPage = lazy(() => import("@/pages/app/TeamsPage").then((m) => ({ default: m.TeamsPage })))
 const TeamDetailPage = lazy(() => import("@/pages/app/TeamDetailPage").then((m) => ({ default: m.TeamDetailPage })))
+const OpenGamesPage = lazy(() => import("@/pages/app/OpenGamesPage").then((m) => ({ default: m.OpenGamesPage })))
+const SettingsPage = lazy(() => import("@/pages/app/SettingsPage").then((m) => ({ default: m.SettingsPage })))
 const AdminPage = lazy(() => import("@/pages/app/AdminPage").then((m) => ({ default: m.AdminPage })))
 
 function App() {
@@ -52,9 +54,11 @@ function App() {
         <Route path="about" element={<AboutPage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="help" element={<HelpPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+      <Route element={<AdaptiveLayout />}>
         <Route path="courts" element={<CourtsPage />} />
         <Route path="courts/:id" element={<CourtDetailPage />} />
-        <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route element={<AppShellLayout />}>
         <Route
@@ -118,6 +122,22 @@ function App() {
           element={
             <ProtectedRoute>
               <TeamDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="app/games"
+          element={
+            <ProtectedRoute>
+              <OpenGamesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="app/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

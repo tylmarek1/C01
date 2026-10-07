@@ -206,8 +206,8 @@ export const api = {
 
   listReservations: (token: string) => request<Reservation[]>("/reservations", {}, token),
 
-  listAllReservations: (token: string, status?: ReservationStatus) =>
-    request<ReservationAdmin[]>(`/reservations/admin${buildQuery({ status })}`, {}, token),
+  listAllReservations: (token: string, status?: ReservationStatus, options: { limit?: number; offset?: number } = {}) =>
+    request<ReservationAdmin[]>(`/reservations/admin${buildQuery({ status, limit: options.limit, offset: options.offset })}`, {}, token),
 
   createReservation: (token: string, courtId: string, startTime: string, endTime: string) =>
     request<Reservation>(
@@ -360,7 +360,8 @@ export const api = {
   getAdminStats: (token: string, days?: number) =>
     request<AdminStats>(`/admin/stats${buildQuery({ days })}`, {}, token),
 
-  listAdminUsers: (token: string) => request<UserAdmin[]>("/admin/users", {}, token),
+  listAdminUsers: (token: string, options: { limit?: number; offset?: number } = {}) =>
+    request<UserAdmin[]>(`/admin/users${buildQuery({ limit: options.limit, offset: options.offset })}`, {}, token),
 
   updateUserRole: (token: string, userId: string, role: UserRole) =>
     request<UserAdmin>(`/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) }, token),

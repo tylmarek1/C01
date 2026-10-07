@@ -7,22 +7,25 @@ interface FeatureItemProps {
   title: string
   description: string
   active?: boolean
+  className?: string
 }
 
-function FeatureItem({ icon: Icon, title, description, active = true }: FeatureItemProps) {
+function FeatureItem({ icon: Icon, title, description, active = true, className }: FeatureItemProps) {
   return (
-    <div className="flex gap-4 border-b border-hairline py-5 last:border-b-0">
+    <div className={cn("flex flex-col gap-3", className)}>
       <span
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-xl",
-          active ? "bg-tint-blue text-signal-blue" : "bg-pebble text-mist-gray",
+          "flex size-9 shrink-0 items-center justify-center rounded-md border",
+          active ? "border-border bg-card text-foreground shadow-xs" : "border-transparent bg-muted text-subtle-foreground",
         )}
       >
-        <Icon className="size-5" />
+        <Icon className="size-[18px]" />
       </span>
       <div className="flex flex-col gap-1">
-        <h3 className={cn("text-lg font-semibold", active ? "text-ink-navy" : "text-mist-gray")}>{title}</h3>
-        <p className="text-sm text-slate-gray">{description}</p>
+        <h3 className={cn("text-[15px] font-semibold tracking-[-0.01em]", active ? "text-foreground" : "text-subtle-foreground")}>
+          {title}
+        </h3>
+        <p className="text-[13px] leading-relaxed text-muted-foreground">{description}</p>
       </div>
     </div>
   )
