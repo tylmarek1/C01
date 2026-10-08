@@ -8,6 +8,19 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+## [4.0.2] - 2026-10-08
+
+Backend-only patch: backend 0.3.1 -> 0.3.2, frontend stays 4.0.0.
+
+### Fixed
+
+- **Accepting a waitlist offer now respects the same per-player limits as
+  booking:** the active-reservation limit and the no-show booking pause.
+  Before, a player already at the limit, or paused for no-shows, could get
+  another booking through the waitlist. A refused accept leaves the offer
+  open. The player sees the reason (the same message as when booking) and
+  can free a slot and accept again before the offer runs out.
+
 ## [4.0.1] - 2026-10-08
 
 A backend-only patch release. The backend moves 0.3.0 -> 0.3.1 and the

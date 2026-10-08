@@ -20,6 +20,7 @@ from reservations.models import (
     WaitlistStatus,
 )
 from reservations import approval_service, rules
+from reservations.booking_validation import check_active_reservation_limit, check_no_show_penalty
 from reservations.lifecycle import transition
 from reservations.notifications import notify
 from reservations.schemas.reservation import ReservationOut
@@ -111,6 +112,10 @@ def accept_waitlist_offer(
         raise HTTPException(status.HTTP_409_CONFLICT, "This waitlist entry has no active offer")
     if entry.offer_expires_at is not None and entry.offer_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status.HTTP_409_CONFLICT, "This offer has expired")
+    # Accepting is booking: the same per-player limits as Create Reservation.
+    # A refusal leaves the offer OFFERED, so freeing up a slot in time still works.
+    check_active_reservation_limit(db, current_user)
+    check_no_show_penalty(db, current_user)
 
     # The new row starts as a hold (PENDING) like any booking, so its way to
     # CONFIRMED / PENDING_APPROVAL goes through the Lifecycle and its guards
