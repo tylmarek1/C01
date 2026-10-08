@@ -8,6 +8,15 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+### Changed
+
+- **Backend tests no longer wipe the dev database.** `uv run pytest` now
+  runs in its own database (`reservations_test` by default, created on
+  first run; override with `TEST_DATABASE_URL`). The seeded demo data stays
+  in place, and the tests can run while the dev server is up. The fixture
+  refuses to drop the schema of any database whose name doesn't end in
+  `_test`.
+
 ### Fixed
 
 - **Accepting a waitlist offer now goes through the reservation lifecycle**
