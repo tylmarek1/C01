@@ -1,11 +1,21 @@
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from reservations.main import app
-from reservations.models import Court, SportType
+from reservations.models import (
+    Court,
+    ReservationEvent,
+    ReservationEventType,
+    SportType,
+    User,
+    WaitlistEntry,
+    WaitlistStatus,
+)
 
 PRAGUE = ZoneInfo("Europe/Prague")
 
@@ -118,3 +128,60 @@ def test_cancel_waitlist_entry(session_factory: sessionmaker) -> None:
 
     assert response.status_code == 200
     assert response.json()["status"] == "CANCELLED"
+
+
+def _offer(session_factory: sessionmaker, court_id: str, email: str) -> str:
+    """An OFFERED entry for 18:00-19:00, as offer_next() would leave it."""
+    with session_factory() as session:
+        user = session.scalar(select(User).where(User.email == email))
+        entry = WaitlistEntry(
+            court_id=uuid.UUID(court_id),
+            user_id=user.id,
+            start_time=datetime.fromisoformat(at(18)),
+            end_time=datetime.fromisoformat(at(19)),
+            status=WaitlistStatus.OFFERED,
+            offer_expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        )
+        session.add(entry)
+        session.commit()
+        return str(entry.id)
+
+
+def test_accepted_offer_is_confirmed_through_the_lifecycle(session_factory: sessionmaker) -> None:
+    """Hold first, then the Lifecycle's PENDING -> CONFIRMED — the same audit
+    trail a normal Book + Confirm leaves, and no hold deadline left behind."""
+    client = TestClient(app)
+    court_id = seed_court(session_factory)
+    token = register_and_login(client, "hana@example.com")
+    entry_id = _offer(session_factory, court_id, "hana@example.com")
+
+    response = client.post(f"/waitlist/{entry_id}/accept", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "CONFIRMED"
+    assert body["hold_expires_at"] is None
+    with session_factory() as session:
+        events = session.scalars(
+            select(ReservationEvent.event_type)
+            .where(ReservationEvent.reservation_id == uuid.UUID(body["id"]))
+            .order_by(ReservationEvent.created_at)
+        ).all()
+    assert events == [ReservationEventType.CREATED, ReservationEventType.CONFIRMED]
+
+
+def test_offer_on_a_court_deactivated_meanwhile_cannot_be_accepted(session_factory: sessionmaker) -> None:
+    """The Lifecycle's court-active guard (BR-06) now covers this path too."""
+    client = TestClient(app)
+    court_id = seed_court(session_factory)
+    token = register_and_login(client, "ivan@example.com")
+    entry_id = _offer(session_factory, court_id, "ivan@example.com")
+    with session_factory() as session:
+        session.get(Court, uuid.UUID(court_id)).active = False
+        session.commit()
+
+    response = client.post(f"/waitlist/{entry_id}/accept", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 409
+    with session_factory() as session:
+        assert session.get(WaitlistEntry, uuid.UUID(entry_id)).status == WaitlistStatus.OFFERED

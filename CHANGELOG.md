@@ -8,6 +8,17 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Accepting a waitlist offer now goes through the reservation lifecycle**
+  instead of creating the booking directly as confirmed. The booking gets
+  the same guards and audit trail as a normal Book + Confirm. The one
+  visible change: an offer on a court that was deactivated in the meantime
+  is now refused (409) instead of being booked. A new architecture test
+  (`backend/tests/test_architecture.py`) keeps every reservation status
+  change inside `lifecycle.py`. This closes the open C03 risk "waitlist
+  accept bypasses the Lifecycle" (AD-4).
+
 ## [4.0.0] - 2026-10-08
 
 Version 4.0 is the product release of the "Clubhouse programme" redesign.

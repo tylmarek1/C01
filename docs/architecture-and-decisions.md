@@ -757,3 +757,32 @@ to `PushDispatcher`.
 - **Architectural rule:** only the Push Delivery Integration (`push_delivery.py`) may use the Web Push vendor SDK (`pywebpush`). Business code reaches Web Push only through the outbox (ADR-005, G2).
 - **Check:** `backend/tests/test_architecture.py` parses every module under `src/reservations/` with `ast` and fails if any module other than `push_delivery.py` imports `pywebpush`. A second test makes sure the scan really sees the allowed import, so a wrong path cannot make it pass vacuously. It runs with the normal `uv run pytest`.
 - **Result:** passes (2 passed). A mutation check that temporarily added `from pywebpush import webpush` to `notifications.py` made it fail: `AssertionError: pywebpush imported outside push_delivery.py: ['notifications.py']`. The change was reverted.
+
+### Amendment (2026-10-08): waitlist accept now goes through the Lifecycle
+
+The risk recorded in I ("statechart ↔ G3/H1") and J ("only Lifecycle
+changes reservation status", VERIFY failed) is closed. The sections
+above stay as they were written, because they record the state on
+2026-10-05.
+
+- `api/waitlist.py` `accept_waitlist_offer` now creates the row as a
+  `PENDING` hold, like Create Reservation does. It then reaches its target
+  state through the same calls Confirm uses:
+  - `transition(…, CONFIRMED)` on a normal court;
+  - `approval_service.submit_for_approval` on an approval-required court.
+- As a result, the Lifecycle guards (BR-06 court active, BR-11 approval)
+  now also cover this path. A behaviour difference this fixed: before,
+  an offer on a court that had been deactivated in the meantime was still
+  booked as `CONFIRMED`. Now it gets 409.
+- J's last row is now **CHANGE, done**. AD-4 ("several doors to
+  `CONFIRMED`") still describes several *requesters*. All of them now
+  pass through one owner (G3).
+- The L2 rule set grew by one check. `test_only_the_lifecycle_changes_reservation_status`
+  in `backend/tests/test_architecture.py` scans `src/reservations/` with
+  `ast`. It fails on:
+  - a `Reservation(status=…)` that is not `PENDING`;
+  - any `….status = ReservationStatus.…` assignment.
+
+  Two files are exempt: `lifecycle.py`, and `seed.py`, which writes
+  finished demo history. Evidence is in `docs/evidence-and-evolution.md`
+  § "C03 — Architecture Evidence", Follow-up 2026-10-08.

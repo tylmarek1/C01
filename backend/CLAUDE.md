@@ -38,9 +38,12 @@ service-module map. Three rules that aren't just "where" but genuinely
 change behavior if missed, so they stay here rather than in the map:
 
 - `lifecycle.py` is the *only* place a reservation's status should change.
-  Never construct a `Reservation` with `status=CONFIRMED` around
-  `transition()`: the waitlist-accept path did, and it would have
-  bypassed the approval rule.
+  A new reservation is created as `PENDING` and moved on with
+  `transition()`, never built directly in a later state: the
+  waitlist-accept path once did, and that bypassed the approval and
+  court-active guards. `tests/test_architecture.py` fails on a
+  non-`PENDING` `Reservation(status=…)` or a `.status = ReservationStatus.…`
+  assignment outside `lifecycle.py` (`seed.py` is exempt).
 - `worker.py` is the *only* place a time-based side effect belongs
   (hold-expiry, reminders, auto-complete, waitlist cascade, push dispatch),
   following its existing tick pattern — not an ad hoc call from a route handler.
