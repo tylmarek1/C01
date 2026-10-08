@@ -15,6 +15,7 @@ from reservations.models import (
     ReservationStatus,
     User,
     UserRole,
+    VenueManager,
 )
 from reservations.notifications import notify
 from reservations.schemas.reservation import VENUE_TZ
@@ -28,7 +29,8 @@ def approval_deadline(start_time: datetime, now: datetime | None = None) -> date
 
 
 def notify_approval_requested(db: Session, reservation: Reservation) -> None:
-    """Owner gets a receipt; every venue manager learns there is something to decide."""
+    """Owner gets a receipt; the managers of the court's venue — and the
+    admins, who can decide anywhere — learn there is something to decide."""
     court_name = reservation.court.name
     when = reservation.start_time.astimezone(VENUE_TZ).strftime("%d %b %H:%M")
     notify(
@@ -38,8 +40,14 @@ def notify_approval_requested(db: Session, reservation: Reservation) -> None:
         "Approval requested",
         f"{court_name} on {when} needs a venue manager's approval — you'll be notified of the decision.",
     )
+    venue_managers = select(VenueManager.user_id).where(
+        VenueManager.venue_id == reservation.court.venue_id
+    )
     managers = db.scalars(
-        select(User).where(User.role.in_((UserRole.VENUE_MANAGER, UserRole.ADMIN)))
+        select(User).where(
+            (User.role == UserRole.ADMIN)
+            | ((User.role == UserRole.VENUE_MANAGER) & User.id.in_(venue_managers))
+        )
     )
     for manager in managers:
         notify(

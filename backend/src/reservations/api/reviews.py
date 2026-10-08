@@ -30,6 +30,7 @@ from reservations.schemas.review import (
     ReviewOut,
     ReviewReplyCreate,
 )
+from reservations.venue_access import require_court_manager
 
 router = APIRouter(tags=["reviews"])
 
@@ -236,6 +237,7 @@ def reply_to_review(
     review = db.get(Review, review_id)
     if review is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
+    require_court_manager(db, current_user, review.court)
     review.manager_reply = payload.reply
     review.manager_reply_at = datetime.now(timezone.utc)
     db.commit()
@@ -254,6 +256,7 @@ def delete_review_reply(
     review = db.get(Review, review_id)
     if review is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
+    require_court_manager(db, current_user, review.court)
     review.manager_reply = None
     review.manager_reply_at = None
     db.commit()

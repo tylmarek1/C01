@@ -18,6 +18,7 @@ class CourtOut(BaseModel):
 
     id: uuid.UUID
     name: str
+    venue_id: uuid.UUID
     sport_type: SportType
     indoor: bool
     active: bool
@@ -38,6 +39,9 @@ class CourtOut(BaseModel):
 
 class CourtCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    # Optional while a manager manages exactly one venue (or, for an admin,
+    # while only one venue exists) — then the court goes there (ADR-008).
+    venue_id: uuid.UUID | None = None
     sport_type: SportType
     indoor: bool = False
     requires_approval: bool = False

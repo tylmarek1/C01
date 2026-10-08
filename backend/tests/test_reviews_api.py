@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id, make_venue_manager
 
 from reservations.main import app
 from reservations.models import Court, Reservation, ReservationStatus, SportType
@@ -29,7 +30,7 @@ def seed_completed_reservation(
     session_factory: sessionmaker, user_id, court_name: str = "Tennis 1"
 ) -> tuple:
     with session_factory() as session:
-        court = Court(name=court_name, sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name=court_name, sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.flush()
         reservation = Reservation(
@@ -57,7 +58,7 @@ def test_cannot_review_non_completed_reservation(session_factory: sessionmaker) 
     user_id = get_user_id(session_factory, "amy@example.com")
 
     with session_factory() as session:
-        court = Court(name="Pending Court", sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name="Pending Court", sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.flush()
         reservation = Reservation(
@@ -139,11 +140,11 @@ def test_cannot_review_someone_elses_reservation(session_factory: sessionmaker) 
 
 
 def promote_to_manager(session_factory: sessionmaker, email: str) -> None:
-    from reservations.models import User, UserRole
+    from reservations.models import User
 
     with session_factory() as session:
         user = session.query(User).filter_by(email=email).one()
-        user.role = UserRole.VENUE_MANAGER
+        make_venue_manager(session, user)
         session.commit()
 
 

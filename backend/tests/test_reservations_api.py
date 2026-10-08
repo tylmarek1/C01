@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id, make_venue_manager
 
 from reservations.main import app
 from reservations.models import Court, SportType
@@ -38,7 +39,7 @@ def register_and_login(client: TestClient, email: str) -> str:
 
 def seed_court(session_factory: sessionmaker, name: str = "Tennis 1") -> str:
     with session_factory() as session:
-        court = Court(name=name, sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name=name, sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.commit()
         return str(court.id)
@@ -392,7 +393,7 @@ def test_non_manager_cannot_list_all_reservations(
 def test_manager_lists_all_reservations_with_booker(
     session_factory: sessionmaker,
 ) -> None:
-    from reservations.models import User, UserRole
+    from reservations.models import User
 
     client = TestClient(app)
     court_id = seed_court(session_factory)
@@ -412,7 +413,7 @@ def test_manager_lists_all_reservations_with_booker(
     manager_token = register_and_login(client, "noah-manager@example.com")
     with session_factory() as session:
         manager = session.query(User).filter_by(email="noah-manager@example.com").one()
-        manager.role = UserRole.VENUE_MANAGER
+        make_venue_manager(session, manager)
         session.commit()
 
     response = client.get(
@@ -440,7 +441,7 @@ def test_list_my_reservations_respects_limit_and_offset(
     with session_factory() as session:
         user = session.query(User).filter_by(email="paige@example.com").one()
         for i in range(5):
-            court = Court(
+            court = Court(venue_id=default_venue_id(session), 
                 name=f"Pagination Court {i}", sport_type=SportType.TENNIS, indoor=False
             )
             session.add(court)
@@ -485,7 +486,7 @@ def test_list_my_reservations_respects_limit_and_offset(
 def test_admin_reservations_list_respects_limit_and_offset(
     session_factory: sessionmaker,
 ) -> None:
-    from reservations.models import Reservation, ReservationStatus, User, UserRole
+    from reservations.models import Reservation, ReservationStatus, User
 
     client = TestClient(app)
     register_and_login(client, "quinn@example.com")
@@ -493,7 +494,7 @@ def test_admin_reservations_list_respects_limit_and_offset(
     with session_factory() as session:
         user = session.query(User).filter_by(email="quinn@example.com").one()
         for i in range(4):
-            court = Court(
+            court = Court(venue_id=default_venue_id(session), 
                 name=f"Admin Pagination Court {i}",
                 sport_type=SportType.TENNIS,
                 indoor=False,
@@ -521,7 +522,7 @@ def test_admin_reservations_list_respects_limit_and_offset(
     manager_token = register_and_login(client, "quinn-manager@example.com")
     with session_factory() as session:
         manager = session.query(User).filter_by(email="quinn-manager@example.com").one()
-        manager.role = UserRole.VENUE_MANAGER
+        make_venue_manager(session, manager)
         session.commit()
 
     headers = {"Authorization": f"Bearer {manager_token}"}
@@ -537,7 +538,7 @@ def test_admin_reservations_list_respects_limit_and_offset(
 
 
 def test_manager_can_cancel_any_reservation(session_factory: sessionmaker) -> None:
-    from reservations.models import User, UserRole
+    from reservations.models import User
 
     client = TestClient(app)
     court_id = seed_court(session_factory)
@@ -551,7 +552,7 @@ def test_manager_can_cancel_any_reservation(session_factory: sessionmaker) -> No
     manager_token = register_and_login(client, "peter-manager@example.com")
     with session_factory() as session:
         manager = session.query(User).filter_by(email="peter-manager@example.com").one()
-        manager.role = UserRole.VENUE_MANAGER
+        make_venue_manager(session, manager)
         session.commit()
 
     response = client.post(

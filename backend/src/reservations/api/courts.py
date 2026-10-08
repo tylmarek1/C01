@@ -29,6 +29,7 @@ from reservations.models import (
     SportType,
     User,
     UserRole,
+    Venue,
     WaitlistEntry,
 )
 from reservations.schemas.availability import (
@@ -39,6 +40,11 @@ from reservations.schemas.availability import (
 )
 from reservations.schemas.court import CourtCreate, CourtOut, CourtUpdate
 from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
+from reservations.venue_access import (
+    managed_venue_ids,
+    require_court_manager,
+    require_venue_manager,
+)
 
 router = APIRouter(prefix="/courts", tags=["courts"])
 
@@ -308,19 +314,37 @@ def check_court_availability(
     )
 
 
+def _only_venue_of(db: Session, manager: User) -> uuid.UUID:
+    """The venue a court goes to when the request doesn't name one: the
+    manager's single venue, or for an admin the only venue there is."""
+    venues = managed_venue_ids(db, manager)
+    candidates = set(db.scalars(select(Venue.id))) if venues is None else venues
+    if len(candidates) != 1:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "venue_id is required — you manage more than one venue, or none",
+        )
+    return next(iter(candidates))
+
+
 @router.post("", response_model=CourtOut, status_code=status.HTTP_201_CREATED)
 def create_court(
     payload: CourtCreate,
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> Court:
+    venue_id = payload.venue_id or _only_venue_of(db, manager)
+    if db.get(Venue, venue_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Venue not found")
+    require_venue_manager(db, manager, venue_id)
+
     existing = db.scalar(select(Court).where(Court.name == payload.name))
     if existing is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "A court with that name already exists"
         )
 
-    court = Court(**payload.model_dump())
+    court = Court(**payload.model_dump(exclude={"venue_id"}), venue_id=venue_id)
     db.add(court)
     db.commit()
     db.refresh(court)
@@ -332,9 +356,10 @@ def update_court(
     court_id: uuid.UUID,
     payload: CourtUpdate,
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> Court:
     court = _get_court(db, court_id)
+    require_court_manager(db, manager, court)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(court, field, value)
     db.commit()
@@ -347,9 +372,10 @@ def upload_court_image(
     court_id: uuid.UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> Court:
     court = _get_court(db, court_id)
+    require_court_manager(db, manager, court)
     raw = file.file.read()
     court.image_url = compress_and_store_court_image(file, raw)
     db.commit()
@@ -364,9 +390,10 @@ def add_court_gallery_image(
     court_id: uuid.UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> Court:
     court = _get_court(db, court_id)
+    require_court_manager(db, manager, court)
     existing_count = db.scalar(
         select(func.count())
         .select_from(CourtImage)
@@ -392,9 +419,10 @@ def delete_court_gallery_image(
     court_id: uuid.UUID,
     image_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> Court:
     court = _get_court(db, court_id)
+    require_court_manager(db, manager, court)
     image = db.get(CourtImage, image_id)
     if image is None or image.court_id != court.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Gallery image not found")

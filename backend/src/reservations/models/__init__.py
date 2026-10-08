@@ -34,9 +34,12 @@ from reservations.models.team import Team, TeamRole
 from reservations.models.team_join_request import TeamJoinRequest, TeamJoinRequestStatus
 from reservations.models.team_member import TeamMember
 from reservations.models.user import User, UserRole
+from reservations.models.venue import Venue, VenueManager
 from reservations.models.waitlist import WaitlistEntry, WaitlistStatus
 
 __all__ = [
+    "Venue",
+    "VenueManager",
     "Court",
     "SportType",
     "Amenity",

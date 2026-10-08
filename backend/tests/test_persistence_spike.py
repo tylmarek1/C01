@@ -11,6 +11,7 @@ import pytest
 from psycopg.errors import ExclusionViolation
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id
 
 from reservations.models import Court, Reservation, ReservationStatus, SportType, User
 
@@ -23,7 +24,7 @@ def at(hour: int, minute: int = 0) -> datetime:
 
 def seed_court_and_user(session_factory: sessionmaker) -> tuple[Court, User]:
     with session_factory() as session:
-        court = Court(name="Tennis 1", sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name="Tennis 1", sport_type=SportType.TENNIS, indoor=False)
         user = User(name="Alice Player", email="alice@example.com", password_hash="not-a-real-hash")
         session.add_all([court, user])
         session.commit()

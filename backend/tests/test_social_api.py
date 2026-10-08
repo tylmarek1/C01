@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id
 
 from reservations.main import app
 from reservations.models import (
@@ -21,7 +22,7 @@ def seed_completed_reservation(
     court_name: str = "Recent Games Court",
 ) -> str:
     with session_factory() as session:
-        court = Court(name=court_name, sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name=court_name, sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.flush()
         reservation = Reservation(

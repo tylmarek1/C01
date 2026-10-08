@@ -132,3 +132,43 @@ def test_drop_schema_leaves_nothing_behind(scratch_engine: Engine) -> None:
     drop_schema(scratch_engine)
     with scratch_engine.connect() as conn:
         assert inspect(conn).get_table_names() == []
+
+
+def test_0003_puts_existing_courts_and_managers_into_one_venue(
+    scratch_engine: Engine,
+) -> None:
+    """Nobody's access changes by the upgrade itself (ADR-008)."""
+    upgrade_schema(scratch_engine, "0002")
+    with scratch_engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO users (id, name, email, password_hash, role, muted_notification_types, profile_public) "
+                "VALUES (gen_random_uuid(), 'M', 'm@example.com', 'x', 'VENUE_MANAGER', '{}', true), "
+                "(gen_random_uuid(), 'P', 'p@example.com', 'x', 'PLAYER', '{}', true)"
+            )
+        )
+        conn.execute(
+            text(
+                "INSERT INTO courts (id, name, sport_type, indoor, active, requires_approval, amenities) "
+                "VALUES (gen_random_uuid(), 'Old Court', 'TENNIS', false, true, false, '{}')"
+            )
+        )
+
+    upgrade_schema(scratch_engine, "0003")
+
+    with scratch_engine.connect() as conn:
+        venues = conn.execute(text("SELECT id, name FROM venues")).all()
+        assert [name for _, name in venues] == ["Courtly Sports Club"]
+        assert conn.scalar(text("SELECT venue_id FROM courts")) == venues[0].id
+        managers = conn.scalars(
+            text(
+                "SELECT u.email FROM venue_managers vm JOIN users u ON u.id = vm.user_id"
+            )
+        ).all()
+        assert managers == ["m@example.com"]
+
+
+def test_0003_on_an_empty_database_creates_no_venue(scratch_engine: Engine) -> None:
+    upgrade_schema(scratch_engine, "0003")
+    with scratch_engine.connect() as conn:
+        assert conn.scalar(text("SELECT count(*) FROM venues")) == 0

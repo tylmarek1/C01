@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id, make_venue_manager
 
 from reservations.main import app
 from reservations.models import Court, SportType
@@ -25,11 +26,11 @@ def register_and_login(client: TestClient, email: str, name: str = "Player") -> 
 
 
 def promote_to_manager(session_factory: sessionmaker, email: str) -> None:
-    from reservations.models import User, UserRole
+    from reservations.models import User
 
     with session_factory() as session:
         user = session.query(User).filter_by(email=email).one()
-        user.role = UserRole.VENUE_MANAGER
+        make_venue_manager(session, user)
         session.commit()
 
 
@@ -46,7 +47,7 @@ def seed_court(
     session_factory: sessionmaker, name: str = "Tennis 1", active: bool = True
 ) -> str:
     with session_factory() as session:
-        court = Court(
+        court = Court(venue_id=default_venue_id(session), 
             name=name, sport_type=SportType.TENNIS, indoor=False, active=active
         )
         session.add(court)

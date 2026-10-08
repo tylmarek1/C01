@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id, make_venue_manager
 
 from reservations.lifecycle import transition
 from reservations.main import app
@@ -28,7 +29,11 @@ def register(
         json={"name": email.split("@")[0], "email": email, "password": "supersecret"},
     )
     with session_factory() as session:
-        session.query(User).filter_by(email=email).one().role = role
+        user = session.query(User).filter_by(email=email).one()
+        if role == UserRole.VENUE_MANAGER:
+            make_venue_manager(session, user)
+        else:
+            user.role = role
         session.commit()
     return client.post(
         "/auth/login", json={"email": email, "password": "supersecret"}
@@ -118,7 +123,7 @@ def test_a_rolled_back_change_leaves_no_audit_row(
     session_factory: sessionmaker,
 ) -> None:
     with session_factory() as session:
-        court = Court(name="Ghost", sport_type=SportType.TENNIS)
+        court = Court(venue_id=default_venue_id(session), name="Ghost", sport_type=SportType.TENNIS)
         session.add(court)
         session.flush()
         court_id = court.id
@@ -133,7 +138,7 @@ def test_a_status_change_outside_a_request_is_audited_without_an_actor(
     """The background worker (expiry, auto-complete) has no request and no user."""
     with session_factory() as session:
         user = User(name="P", email="p@example.com", password_hash="x")
-        court = Court(name="C", sport_type=SportType.TENNIS)
+        court = Court(venue_id=default_venue_id(session), name="C", sport_type=SportType.TENNIS)
         session.add_all([user, court])
         session.flush()
         start = datetime.now(timezone.utc) + timedelta(days=1)

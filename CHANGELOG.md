@@ -10,6 +10,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Venues and venue-scoped managers** (ADR-008, specification v0.3): courts
+  belong to a venue; admins create venues and assign managers
+  (`/venues`, `/venues/{id}/managers/{user_id}`); a venue manager can only
+  manage, approve, block, reply and report for their own venues. Existing
+  courts and managers are migrated into one venue, so nothing changes for
+  them. `POST /courts` takes an optional `venue_id`.
 - **Structured logs and an audit log** (ADR-007): every response carries an
   `X-Request-ID`; every `reservations.*` log line carries the request id and
   user id (`LOG_FORMAT=text|json`), with one access line per request. Changes to

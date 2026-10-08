@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id
 
 from reservations.main import app
 from reservations.models import Court, SportType
@@ -23,7 +24,7 @@ def register_and_login(client: TestClient, email: str) -> str:
 
 def seed_court(session_factory: sessionmaker, name: str = "Volleyball Arena") -> str:
     with session_factory() as session:
-        court = Court(name=name, sport_type=SportType.VOLLEYBALL, indoor=True)
+        court = Court(venue_id=default_venue_id(session), name=name, sport_type=SportType.VOLLEYBALL, indoor=True)
         session.add(court)
         session.commit()
         return str(court.id)

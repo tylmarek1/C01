@@ -829,3 +829,32 @@ above stay as they were written, because they record the state on
   - `reservation_events` stays. It is the specified, user-facing history. `audit_log` is the technical, admin-only record (`GET /admin/audit-log`).
   - `audit_log` grows without retention, like `push_deliveries` (ADR-005).
   - The request context is per process. It is not distributed tracing.
+
+### ADR-008: Venues own courts; venue managers are scoped to their venues
+
+- **Status:** accepted (2026-10-08). Specification v0.3 (D-21, BR-10).
+- **Context:** `Court` had no owner, and every `VENUE_MANAGER` could edit every court, approve every request and read every report. D-14 ("any Venue Manager may approve") rested on the premise of a single small venue (A-06). Once one installation serves several facilities, that premise no longer holds.
+- **Decision:**
+  - New `venues` table. `courts.venue_id` is NOT NULL. New `venue_managers` (venue, user) assignments, made by admins only (`PUT/DELETE /venues/{id}/managers/{user_id}`). Assigning a user doesn't promote them; the user must already hold the role.
+  - `venue_access.py` answers "a manager of *what*". `ADMIN` is a manager of every venue.
+  - Every manager action checks it:
+    - court edits and photos;
+    - facility blocks;
+    - Confirm/Cancel on someone else's behalf;
+    - Approve/Reject (always the venue, even for the request's own owner);
+    - review replies;
+    - the reservation list, stats, CSV export and utilization.
+  - `get_current_manager` stays the coarse "is a manager anywhere" gate in front of these checks.
+  - An approval request notifies the court's venue managers and every admin, not every manager.
+  - Demoting a manager to `PLAYER` removes their assignments.
+  - Migration `0003` puts every existing court and every existing manager into one venue ("Courtly Sports Club", the name `seed.py` uses), so the upgrade changes nobody's access.
+- **Alternatives considered:**
+  - An owner FK on `Court` (one manager per court). This doesn't model a team of managers for one place, and every court would need reassigning when staff change.
+  - A per-court ACL. It is finer than any requirement asks for, and has many more rows to keep consistent.
+- **Consequences:**
+  - A manager acting outside their venues gets `403 "You don't manage this venue"`.
+  - The challenges feature stays global: a challenge isn't tied to a venue.
+  - The user list in `/admin/users` stays global, and so does promoting PLAYER→VENUE_MANAGER. A new manager can do nothing until an admin assigns a venue. *Demoting* drops the user's assignments, so a non-admin may demote only a manager whose venues are all their own.
+  - `POST /courts` accepts an optional `venue_id`. Without it, the court goes to the caller's only venue (or, for an admin, the only venue there is), which is why the current frontend keeps working. With several venues it is 422.
+  - The time zone is still the single global `VENUE_TZ`. A per-venue zone would touch every time-of-day check (pitfall #1), and no venue outside Prague exists.
+  - The frontend has no UI for venues yet.

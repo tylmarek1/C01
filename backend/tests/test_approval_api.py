@@ -16,22 +16,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 from sqlalchemy.orm import sessionmaker
-
-from reservations import approval_service, worker
-from reservations.lifecycle import transition
-from reservations.main import app
-from reservations.models import (
-    ACTIVE_RESERVATION_STATUSES,
-    Court,
-    Notification,
-    NotificationType,
-    Reservation,
-    ReservationEventType,
-    ReservationStatus,
-    UserRole,
-    WaitlistEntry,
-    WaitlistStatus,
-)
+from support import make_venue, make_venue_manager
 from test_spec_baseline import (
     add_reservation,
     at,
@@ -45,6 +30,23 @@ from test_spec_baseline import (
     make_court,
     make_user,
     status_of,
+)
+
+from reservations import approval_service, worker
+from reservations.lifecycle import transition
+from reservations.main import app
+from reservations.models import (
+    ACTIVE_RESERVATION_STATUSES,
+    Court,
+    Notification,
+    NotificationType,
+    Reservation,
+    ReservationEventType,
+    ReservationStatus,
+    User,
+    UserRole,
+    WaitlistEntry,
+    WaitlistStatus,
 )
 
 PENDING_APPROVAL = ReservationStatus.PENDING_APPROVAL
@@ -963,3 +965,97 @@ def test_a_pending_approval_reservation_is_tentative_in_the_calendar(
 
     assert response.status_code == 200
     assert "STATUS:TENTATIVE" in response.text
+
+
+# ------------------------------------------------------- v0.3: venue-scoped approvers (BR-10)
+
+
+def _manager_of_another_venue(
+    session_factory: sessionmaker, email: str
+) -> tuple[uuid.UUID, str]:
+    """A VENUE_MANAGER assigned only to a venue that isn't the test courts' venue."""
+    user_id, token = make_user(session_factory, email)
+    with session_factory() as session:
+        user = session.get(User, user_id)
+        make_venue_manager(session, user, make_venue(session, f"Elsewhere {email}"))
+        session.commit()
+    return user_id, token
+
+
+def test_ve_05_9_a_manager_of_another_venue_cannot_approve(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    user_id, _ = make_user(session_factory, "player@example.com")
+    _, outsider = _manager_of_another_venue(session_factory, "outsider@example.com")
+    court_id = make_court(session_factory, requires_approval=True)
+    reservation_id = request_pending(session_factory, court_id, user_id)
+
+    response = approve(client, outsider, reservation_id)
+
+    assert response.status_code == 403
+    assert status_of(session_factory, reservation_id) == PENDING_APPROVAL
+
+
+def test_ve_05_10_owning_the_request_does_not_make_another_venues_manager_an_approver(
+    session_factory: sessionmaker,
+) -> None:
+    """A manager booking at a venue they don't manage is just a player there."""
+    client = TestClient(app)
+    outsider_id, outsider = _manager_of_another_venue(
+        session_factory, "outsider@example.com"
+    )
+    court_id = make_court(session_factory, requires_approval=True)
+    reservation_id = request_pending(session_factory, court_id, outsider_id)
+
+    response = approve(client, outsider, reservation_id)
+
+    assert response.status_code == 403
+    assert status_of(session_factory, reservation_id) == PENDING_APPROVAL
+
+
+def test_ve_06_6_a_manager_of_another_venue_cannot_reject(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    user_id, _ = make_user(session_factory, "player@example.com")
+    _, outsider = _manager_of_another_venue(session_factory, "outsider@example.com")
+    court_id = make_court(session_factory, requires_approval=True)
+    reservation_id = request_pending(session_factory, court_id, user_id)
+
+    response = reject(client, outsider, reservation_id)
+
+    assert response.status_code == 403
+    assert status_of(session_factory, reservation_id) == PENDING_APPROVAL
+
+
+def test_ve_03_8c_only_the_courts_venue_managers_and_admins_are_asked_to_approve(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    user_id, token = make_user(session_factory, "player@example.com")
+    own_manager, _ = make_user(
+        session_factory, "own@example.com", UserRole.VENUE_MANAGER
+    )
+    outsider, _ = _manager_of_another_venue(session_factory, "outsider@example.com")
+    admin, _ = make_user(session_factory, "admin@example.com", UserRole.ADMIN)
+    court_id = make_court(session_factory, requires_approval=True)
+    reservation_id = add_reservation(
+        session_factory,
+        court_id,
+        user_id,
+        at(18),
+        at(19),
+        ReservationStatus.PENDING,
+        hold_in_future(),
+    )
+
+    assert confirm(client, token, reservation_id).json()["status"] == "PENDING_APPROVAL"
+
+    assert notification_types(session_factory, own_manager) == [
+        NotificationType.APPROVAL_REQUESTED
+    ]
+    assert notification_types(session_factory, admin) == [
+        NotificationType.APPROVAL_REQUESTED
+    ]
+    assert notification_types(session_factory, outsider) == []

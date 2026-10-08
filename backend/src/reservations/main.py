@@ -26,6 +26,7 @@ from reservations.api import (
     social,
     stats,
     teams,
+    venues,
     waitlist,
 )
 from reservations.config import settings
@@ -87,6 +88,7 @@ settings.upload_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/static", _CachedStaticFiles(directory=settings.upload_dir), name="static")
 
 app.include_router(auth.router)
+app.include_router(venues.router)
 app.include_router(courts.router)
 app.include_router(reservations.router)
 app.include_router(waitlist.router)

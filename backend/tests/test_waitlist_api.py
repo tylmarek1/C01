@@ -5,9 +5,10 @@ from zoneinfo import ZoneInfo
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id
 
-from reservations.main import app
 from reservations import rules
+from reservations.main import app
 from reservations.models import (
     Court,
     Reservation,
@@ -37,7 +38,7 @@ def register_and_login(client: TestClient, email: str) -> str:
 
 def seed_court(session_factory: sessionmaker, name: str = "Tennis 1") -> str:
     with session_factory() as session:
-        court = Court(name=name, sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name=name, sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.commit()
         return str(court.id)
@@ -197,7 +198,7 @@ def _add_reservations(
     """`count` one-hour reservations on a separate court; days_ago < 0 is the future."""
     with session_factory() as session:
         user = session.scalar(select(User).where(User.email == email))
-        court = Court(name="Other court", sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name="Other court", sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.flush()
         base = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) - timedelta(days=days_ago)

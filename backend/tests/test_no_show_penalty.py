@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id
 
 from reservations.main import app
 from reservations.models import Court, Reservation, ReservationStatus, SportType, User
@@ -27,7 +28,7 @@ def test_repeat_no_shows_block_new_booking(session_factory: sessionmaker) -> Non
 
     with session_factory() as session:
         user = session.query(User).filter_by(email="rex@example.com").one()
-        court = Court(name="No Show Test Court", sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name="No Show Test Court", sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.flush()
         court_id = court.id

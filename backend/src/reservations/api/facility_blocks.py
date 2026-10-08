@@ -18,6 +18,7 @@ from reservations.models import (
 )
 from reservations.notifications import notify
 from reservations.schemas.facility_block import FacilityBlockCreate, FacilityBlockOut
+from reservations.venue_access import managed_venue_ids, require_court_manager
 
 router = APIRouter(prefix="/facility-blocks", tags=["facility-blocks"])
 
@@ -90,6 +91,7 @@ def create_facility_block(
     court = db.get(Court, payload.court_id)
     if court is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
+    require_court_manager(db, manager, court)
 
     # A recurring request always gets its own series_id, even though this
     # endpoint still only returns the first occurrence — the admin UI
@@ -117,7 +119,7 @@ def create_facility_block(
 def delete_facility_block_series(
     series_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> None:
     blocks = list(
         db.scalars(select(FacilityBlock).where(FacilityBlock.series_id == series_id))
@@ -126,6 +128,9 @@ def delete_facility_block_series(
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, "Facility block series not found"
         )
+    venues = managed_venue_ids(db, manager)
+    if venues is not None and any(b.court.venue_id not in venues for b in blocks):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You don't manage this venue")
     for block in blocks:
         db.delete(block)
     db.commit()
@@ -135,10 +140,11 @@ def delete_facility_block_series(
 def delete_facility_block(
     block_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> None:
     block = db.get(FacilityBlock, block_id)
     if block is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Facility block not found")
+    require_court_manager(db, manager, block.court)
     db.delete(block)
     db.commit()

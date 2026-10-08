@@ -18,6 +18,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id, make_venue_manager
 
 from reservations import worker
 from reservations.main import app
@@ -60,6 +61,8 @@ def make_user(
             role=role,
         )
         session.add(user)
+        if role == UserRole.VENUE_MANAGER:
+            make_venue_manager(session, user)
         session.commit()
         return user.id, create_access_token(str(user.id))
 
@@ -71,7 +74,7 @@ def make_court(
     requires_approval: bool = False,
 ) -> uuid.UUID:
     with session_factory() as session:
-        court = Court(
+        court = Court(venue_id=default_venue_id(session), 
             name=name,
             sport_type=SportType.TENNIS,
             indoor=False,

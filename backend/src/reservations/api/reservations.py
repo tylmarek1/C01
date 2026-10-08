@@ -30,7 +30,6 @@ from reservations.models import (
     ReservationSeries,
     ReservationStatus,
     User,
-    UserRole,
 )
 from reservations.notifications import notify
 from reservations.schemas.auth import UserOut
@@ -54,6 +53,11 @@ from reservations.schemas.reservation import (
 )
 from reservations.schemas.reservation_guest import GuestInvite, ReservationGuestOut
 from reservations.schemas.stats import TeammateOut
+from reservations.venue_access import (
+    managed_courts_filter,
+    manages_venue,
+    require_court_manager,
+)
 from reservations.waitlist_service import offer_next
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
@@ -171,9 +175,13 @@ def list_all_reservations(
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> list[Reservation]:
-    stmt = select(Reservation).order_by(Reservation.start_time.desc())
+    stmt = (
+        select(Reservation)
+        .where(managed_courts_filter(db, manager, Reservation.court_id))
+        .order_by(Reservation.start_time.desc())
+    )
     if status_filter is not None:
         stmt = stmt.where(Reservation.status == status_filter)
     stmt = stmt.offset(offset).limit(limit)
@@ -423,9 +431,8 @@ def _get_owned_reservation(
     reservation = db.get(Reservation, reservation_id, with_for_update=lock)
     if reservation is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Reservation not found")
-    if reservation.user_id != current_user.id and current_user.role not in (
-        UserRole.VENUE_MANAGER,
-        UserRole.ADMIN,
+    if reservation.user_id != current_user.id and not manages_venue(
+        db, current_user, reservation.court.venue_id
     ):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your reservation")
     return reservation
@@ -489,6 +496,9 @@ def approve_reservation(
 ) -> Reservation:
     """OP-05 — a venue manager accepts a PENDING_APPROVAL request."""
     reservation = _get_owned_reservation(db, manager, reservation_id, lock=True)
+    # Owning the request isn't enough here: only a manager of its venue
+    # decides (BR-10, v0.3).
+    require_court_manager(db, manager, reservation.court)
     transition(
         db,
         reservation,
@@ -517,6 +527,9 @@ def reject_reservation(
 ) -> Reservation:
     """OP-06 — a venue manager declines a PENDING_APPROVAL request; the slot is released."""
     reservation = _get_owned_reservation(db, manager, reservation_id, lock=True)
+    # Owning the request isn't enough here: only a manager of its venue
+    # decides (BR-10, v0.3).
+    require_court_manager(db, manager, reservation.court)
     court_id, start_time, end_time = (
         reservation.court_id,
         reservation.start_time,
