@@ -10,16 +10,18 @@ from reservations.schemas.court import CourtOut
 from reservations.schemas.reservation_guest import ReservationGuestOut
 
 ALLOWED_DURATIONS_MINUTES = {60, 90, 120}
-OPENING_HOUR = 7
-CLOSING_HOUR = 22
 # Opening hours are a wall-clock rule at the venue, not at whatever UTC
-# offset a client happens to send — always check it in the venue's own zone.
+# offset a client happens to send — always check them in the venue's own
+# zone. The hours themselves live in the database per venue (ADR-009,
+# booking_validation.check_within_opening_hours), not here.
 VENUE_TZ = ZoneInfo("Europe/Prague")
 
 
 def validate_slot_shape(start_time: datetime, end_time: datetime) -> None:
-    """Duration, opening hours, and on-the-half-hour checks shared by new
-    bookings, reschedules, and recurring-series occurrences."""
+    """Duration and on-the-half-hour checks shared by new bookings,
+    reschedules, recurring-series occurrences and the availability check.
+    Opening hours need the court's venue, so they're checked against the
+    database in booking_validation.check_within_opening_hours."""
     if start_time.tzinfo is None or end_time.tzinfo is None:
         raise ValueError("start_time and end_time must include a timezone offset")
     if end_time <= start_time:
@@ -30,17 +32,9 @@ def validate_slot_shape(start_time: datetime, end_time: datetime) -> None:
         raise ValueError("reservation must be 60, 90 or 120 minutes long")
 
     local_start = start_time.astimezone(VENUE_TZ)
-    local_end = end_time.astimezone(VENUE_TZ)
 
     if local_start.minute not in (0, 30):
         raise ValueError("reservation must start on the hour or half hour")
-
-    opens_at = local_start.replace(hour=OPENING_HOUR, minute=0, second=0, microsecond=0)
-    closes_at = local_start.replace(
-        hour=CLOSING_HOUR, minute=0, second=0, microsecond=0
-    )
-    if local_start < opens_at or local_end > closes_at:
-        raise ValueError("reservation must lie within opening hours 07:00-22:00")
 
 
 class ReservationCreate(BaseModel):
@@ -127,6 +121,8 @@ class ReservationOut(BaseModel):
     series_id: uuid.UUID | None
     open_to_join: bool
     open_note: str | None
+    # Quoted when booked (ADR-009); None when the court publishes no price.
+    price_total: float | None = None
     created_at: datetime
 
 
@@ -152,7 +148,7 @@ class ReservationSplitParticipant(BaseModel):
 
 class ReservationSplit(BaseModel):
     total_cost: float | None
-    currency_note: str = "Informational only — no payment is processed."
+    currency_note: str = "The price quoted when the slot was booked."
     duration_hours: float
     participant_count: int
     per_person: float | None

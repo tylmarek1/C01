@@ -10,6 +10,7 @@ import uuid
 from sqlalchemy.orm import Session
 
 from reservations.models import User, UserRole, Venue, VenueManager
+from reservations.opening_hours import add_default_hours
 
 DEFAULT_VENUE_NAME = "Test Venue"
 
@@ -19,6 +20,8 @@ def default_venue_id(session: Session) -> uuid.UUID:
     if venue is None:
         venue = Venue(name=DEFAULT_VENUE_NAME)
         session.add(venue)
+        session.flush()
+        add_default_hours(session, venue)
         session.flush()
     return venue.id
 
@@ -37,7 +40,10 @@ def make_venue_manager(
 
 
 def make_venue(session: Session, name: str) -> uuid.UUID:
+    """A venue open 07:00–22:00 every day, like a new one from the API."""
     venue = Venue(name=name)
     session.add(venue)
+    session.flush()
+    add_default_hours(session, venue)
     session.flush()
     return venue.id

@@ -8,8 +8,17 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from reservations import rules
-from reservations.models import ACTIVE_RESERVATION_STATUSES, FacilityBlock, Reservation, ReservationStatus, User
+from reservations import opening_hours, rules
+from reservations.models import (
+    ACTIVE_RESERVATION_STATUSES,
+    Court,
+    FacilityBlock,
+    Reservation,
+    ReservationStatus,
+    User,
+)
+from reservations.schemas.reservation import VENUE_TZ
+from reservations.schemas.time_of_day import minute_label
 
 # Causes reported by the availability verdict (schemas/availability.py mirrors them as a Literal).
 AVAILABILITY_RESERVATION_OVERLAP = "RESERVATION_OVERLAP"
@@ -28,10 +37,35 @@ def _overlapping_facility_block(
     return db.scalar(stmt.limit(1))
 
 
-def check_facility_available(db: Session, court_id: uuid.UUID, start_time: datetime, end_time: datetime) -> None:
+def check_within_opening_hours(
+    db: Session, court: Court, start_time: datetime, end_time: datetime
+) -> None:
+    """BR-04: the whole slot lies within the venue's opening hours on the
+    venue-local day it starts (ADR-009). INVALID_INPUT (422) like the rest
+    of the slot shape."""
+    day = start_time.astimezone(VENUE_TZ).date()
+    minutes = opening_hours.weekly_hours(db, court.venue_id).get(day.weekday())
+    if minutes is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "The venue is closed on that day"
+        )
+    opens_at, closes_at = opening_hours.instants(day, minutes)
+    if start_time < opens_at or end_time > closes_at:
+        label = "-".join(minute_label(m) for m in minutes)
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"reservation must lie within opening hours {label}",
+        )
+
+
+def check_facility_available(
+    db: Session, court_id: uuid.UUID, start_time: datetime, end_time: datetime
+) -> None:
     block = _overlapping_facility_block(db, court_id, start_time, end_time)
     if block is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Court unavailable: {block.reason}")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"Court unavailable: {block.reason}"
+        )
 
 
 def find_availability_conflict(
@@ -53,7 +87,9 @@ def find_availability_conflict(
     return None
 
 
-def check_within_booking_window(start_time: datetime, now: datetime | None = None) -> None:
+def check_within_booking_window(
+    start_time: datetime, now: datetime | None = None
+) -> None:
     now = now or datetime.now(timezone.utc)
     if start_time < now + timedelta(minutes=rules.MIN_LEAD_MINUTES):
         raise HTTPException(

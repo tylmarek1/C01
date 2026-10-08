@@ -22,17 +22,21 @@ from reservations.models import (
     AuditAction,
     AuditLog,
     Court,
+    CourtPriceRule,
     FacilityBlock,
     Reservation,
     User,
     Venue,
     VenueManager,
+    VenueOpeningHours,
 )
 from reservations.observability import current_context
 
 AUDITED_FIELDS: dict[type, tuple[str, ...]] = {
     Venue: ("name", "address", "description", "active"),
     VenueManager: ("venue_id", "user_id"),
+    VenueOpeningHours: ("venue_id", "weekday", "opens_minute", "closes_minute"),
+    CourtPriceRule: ("court_id", "weekday", "start_minute", "end_minute", "price_per_hour"),
     Court: (
         "name",
         "venue_id",
@@ -46,7 +50,7 @@ AUDITED_FIELDS: dict[type, tuple[str, ...]] = {
         "price_per_hour",
     ),
     User: ("name", "email", "role", "profile_public"),
-    Reservation: ("court_id", "user_id", "start_time", "end_time", "status"),
+    Reservation: ("court_id", "user_id", "start_time", "end_time", "status", "price_total"),
     FacilityBlock: ("court_id", "start_time", "end_time", "reason", "series_id"),
 }
 

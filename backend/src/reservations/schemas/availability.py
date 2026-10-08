@@ -24,6 +24,9 @@ class CourtAvailability(BaseModel):
     date: str
     opens_at: str
     closes_at: str
+    # The venue's opening hours for that weekday come from the database
+    # (ADR-009); on a closed day opens_at == closes_at (local midnight).
+    closed: bool = False
     busy: list[BusySlot]
 
 

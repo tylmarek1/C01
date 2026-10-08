@@ -1,6 +1,8 @@
-// Mirrors OPENING_HOUR / CLOSING_HOUR / VENUE_TZ in
-// backend/src/reservations/schemas/reservation.py. Display-only — the
-// availability endpoint stays the real source of opening hours.
+// The default opening hours every venue starts with
+// (backend opening_hours.DEFAULT_*) and VENUE_TZ from
+// backend/src/reservations/schemas/reservation.py. Display-only — real hours
+// are per venue in the database (GET /venues/{id}/opening-hours) and the
+// availability endpoint returns the day's hours (ADR-009).
 export const VENUE_TZ = "Europe/Prague"
 export const OPENING_HOUR = 7
 export const CLOSING_HOUR = 22

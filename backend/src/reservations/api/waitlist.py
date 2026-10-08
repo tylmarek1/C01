@@ -6,7 +6,13 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from reservations import approval_service, rules
+from reservations.booking_validation import (
+    check_active_reservation_limit,
+    check_no_show_penalty,
+)
 from reservations.deps import get_current_user, get_db
+from reservations.lifecycle import transition
 from reservations.models import (
     ACTIVE_RESERVATION_STATUSES,
     Court,
@@ -19,10 +25,8 @@ from reservations.models import (
     WaitlistEntry,
     WaitlistStatus,
 )
-from reservations import approval_service, rules
-from reservations.booking_validation import check_active_reservation_limit, check_no_show_penalty
-from reservations.lifecycle import transition
 from reservations.notifications import notify
+from reservations.pricing import quote
 from reservations.schemas.reservation import ReservationOut
 from reservations.schemas.waitlist import WaitlistEntryOut, WaitlistJoin
 from reservations.waitlist_service import offer_next
@@ -37,7 +41,9 @@ def _get_active_court(db: Session, court_id: uuid.UUID) -> Court:
     return court
 
 
-def _get_owned_entry(db: Session, current_user: User, entry_id: uuid.UUID) -> WaitlistEntry:
+def _get_owned_entry(
+    db: Session, current_user: User, entry_id: uuid.UUID
+) -> WaitlistEntry:
     entry = db.get(WaitlistEntry, entry_id)
     if entry is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Waitlist entry not found")
@@ -62,7 +68,10 @@ def join_waitlist(
         .where(Reservation.status.in_(ACTIVE_RESERVATION_STATUSES))
     )
     if taken is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This slot is available — book it directly instead of waitlisting")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "This slot is available — book it directly instead of waitlisting",
+        )
 
     existing = db.scalar(
         select(WaitlistEntry)
@@ -70,13 +79,20 @@ def join_waitlist(
         .where(WaitlistEntry.user_id == current_user.id)
         .where(WaitlistEntry.start_time == payload.start_time)
         .where(WaitlistEntry.end_time == payload.end_time)
-        .where(WaitlistEntry.status.in_([WaitlistStatus.WAITING, WaitlistStatus.OFFERED]))
+        .where(
+            WaitlistEntry.status.in_([WaitlistStatus.WAITING, WaitlistStatus.OFFERED])
+        )
     )
     if existing is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "You're already on the waitlist for this slot")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "You're already on the waitlist for this slot"
+        )
 
     entry = WaitlistEntry(
-        court_id=court.id, user_id=current_user.id, start_time=payload.start_time, end_time=payload.end_time
+        court_id=court.id,
+        user_id=current_user.id,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
     )
     db.add(entry)
     notify(
@@ -96,7 +112,9 @@ def list_my_waitlist(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> list[WaitlistEntry]:
     stmt = (
-        select(WaitlistEntry).where(WaitlistEntry.user_id == current_user.id).order_by(WaitlistEntry.created_at.desc())
+        select(WaitlistEntry)
+        .where(WaitlistEntry.user_id == current_user.id)
+        .order_by(WaitlistEntry.created_at.desc())
     )
     return list(db.scalars(stmt))
 
@@ -109,8 +127,12 @@ def accept_waitlist_offer(
 ) -> Reservation:
     entry = _get_owned_entry(db, current_user, entry_id)
     if entry.status != WaitlistStatus.OFFERED:
-        raise HTTPException(status.HTTP_409_CONFLICT, "This waitlist entry has no active offer")
-    if entry.offer_expires_at is not None and entry.offer_expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This waitlist entry has no active offer"
+        )
+    if entry.offer_expires_at is not None and entry.offer_expires_at < datetime.now(
+        timezone.utc
+    ):
         raise HTTPException(status.HTTP_409_CONFLICT, "This offer has expired")
     # Accepting is booking: the same per-player limits as Create Reservation.
     # A refusal leaves the offer OFFERED, so freeing up a slot in time still works.
@@ -128,13 +150,16 @@ def accept_waitlist_offer(
         end_time=entry.end_time,
         status=ReservationStatus.PENDING,
         hold_expires_at=datetime.now(timezone.utc) + rules.HOLD_DURATION,
+        price_total=quote(db, entry.court, entry.start_time, entry.end_time),
     )
     db.add(reservation)
     try:
         db.flush()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "That slot was just taken") from exc
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "That slot was just taken"
+        ) from exc
 
     entry.status = WaitlistStatus.ACCEPTED
     db.add(
@@ -149,7 +174,9 @@ def accept_waitlist_offer(
         # BR-11: on an approval-required court an accepted offer is a request, not a booking.
         approval_service.submit_for_approval(db, reservation, actor_id=current_user.id)
     else:
-        transition(db, reservation, ReservationStatus.CONFIRMED, actor_id=current_user.id)
+        transition(
+            db, reservation, ReservationStatus.CONFIRMED, actor_id=current_user.id
+        )
         notify(
             db,
             current_user.id,
@@ -169,8 +196,15 @@ def cancel_waitlist_entry(
     current_user: User = Depends(get_current_user),
 ) -> WaitlistEntry:
     entry = _get_owned_entry(db, current_user, entry_id)
-    if entry.status in (WaitlistStatus.ACCEPTED, WaitlistStatus.CANCELLED, WaitlistStatus.EXPIRED):
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Waitlist entry is already {entry.status.lower()}")
+    if entry.status in (
+        WaitlistStatus.ACCEPTED,
+        WaitlistStatus.CANCELLED,
+        WaitlistStatus.EXPIRED,
+    ):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Waitlist entry is already {entry.status.lower()}",
+        )
 
     was_offered = entry.status == WaitlistStatus.OFFERED
     court_id, start_time, end_time = entry.court_id, entry.start_time, entry.end_time

@@ -15,7 +15,8 @@ Every part below is marked **Unchanged**, **Changed** or **New** relative to v0.
 | Courts belong to a **Venue**; a Venue Manager is assigned to venues by an admin and acts only on reservations and courts of those venues. An **Admin** acts on every venue. | §1 vocabulary, BR-10, OP-03…OP-06, D-21 | One operator ran several venues' bookings with no boundary between them (ADR-008) |
 | On submission, only the court's venue managers and the admins are notified | OP-03 postcondition | Follows from the above |
 | New verification examples VE-03.8c, VE-05.9, VE-05.10, VE-06.6 | OP-03, OP-05, OP-06 | Executable form of the change |
-| Existing courts and managers were all put into one venue by the migration | — | So no existing reservation's behaviour changed by the upgrade; VE-01…VE-08 are unchanged and still green |
+| Opening hours are per venue and weekday instead of a fixed 07:00–22:00 (BR-04); a weekday can be closed | BR-04, OP-01, OP-02 failure outcomes; VE-01.11, VE-01.12, VE-02.8 | Venues differ; the hours were a code constant no manager could change (ADR-009) |
+| Existing courts and managers were all put into one venue, and every venue starts open 07:00–22:00 daily | — | So no existing reservation's behaviour changed by the upgrade; VE-01…VE-08 are unchanged and still green |
 
 ## 1. Scope, conventions, vocabulary — *Changed (two terms added)*
 
@@ -77,8 +78,8 @@ A reservation may be cancelled iff **all** hold:
 
 Cancelling a reservation in any other state is an explicit rejection (`CONFLICT`), not an idempotent success (D-03). Cancelling a `PENDING_APPROVAL` request withdraws it and releases the slot (D-16).
 
-### BR-04 — Slot shape (domain-specific rule from C01) — *Unchanged*
-60, 90 or 120 minutes; start on `:00`/`:30` venue-local; entirely within 07:00–22:00 Europe/Prague on the local day it starts. Checked in venue-local time (known pitfall #1). Violations: `INVALID_INPUT`.
+### BR-04 — Slot shape (domain-specific rule from C01) — *Changed in v0.3 (hours per venue)*
+60, 90 or 120 minutes; start on `:00`/`:30` venue-local; entirely within **the opening hours of the court's venue for the weekday it starts on (v0.3)** — every venue opens 07:00–22:00 every day until its managers change that, so the v0.1 examples still hold. A weekday with no opening hours is closed. Checked in venue-local time (Europe/Prague, known pitfall #1). Violations: `INVALID_INPUT`.
 
 ### BR-05 — Booking window — *Unchanged*
 `now + 15 min ≤ start ≤ now + 14 days` for a new reservation; otherwise Create is `CONFLICT`.
@@ -139,9 +140,9 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 
 **Main success scenario:** 1. Player submits court and interval. 2. System validates authentication, court, interval, window, blocks, limits. 3. System creates the reservation in `PENDING` with a 5-minute hold; the database refuses the insert if a blocking reservation overlaps. 4. System records the event and notification and returns id, state, hold deadline.
 
-**Alternative / failure outcomes** (all *rejected*): no/invalid token → `UNAUTHENTICATED`; unknown or inactive court → `NOT_FOUND`; `start ≥ end`, naive times, duration not 60/90/120, start not on `:00`/`:30`, outside 07:00–22:00 Prague → `INVALID_INPUT`; outside the booking window, overlapping a facility block or a blocking reservation, or over the BR-07 limits → `CONFLICT`.
+**Alternative / failure outcomes** (all *rejected*): no/invalid token → `UNAUTHENTICATED`; unknown or inactive court → `NOT_FOUND`; `start ≥ end`, naive times, duration not 60/90/120, start not on `:00`/`:30`, outside the venue's opening hours or on a day it is closed (v0.3) → `INVALID_INPUT`; outside the booking window, overlapping a facility block or a blocking reservation, or over the BR-07 limits → `CONFLICT`.
 
-**Verification examples:** VE-01.1 – VE-01.9 as in v0.1 (executable in `test_spec_baseline.py`). One added consequence of BR-07's widened set: **VE-01.10** — a player with 2 `CONFIRMED` reservations and 1 `PENDING_APPROVAL` request cannot create a 4th → `CONFLICT`.
+**Verification examples:** VE-01.1 – VE-01.9 as in v0.1 (executable in `test_spec_baseline.py`). One added consequence of BR-07's widened set: **VE-01.10** — a player with 2 `CONFIRMED` reservations and 1 `PENDING_APPROVAL` request cannot create a 4th → `CONFLICT`. **v0.3:** **VE-01.11** — the venue opens 09:00–17:00: 08:00–09:00 and 16:30–17:30 → `INVALID_INPUT`, 09:00–10:00 → created. **VE-01.12** — the venue is closed that weekday → `INVALID_INPUT`.
 
 **Rationale:** as v0.1 (D-01). **Assumption / TBD:** A-01.
 
@@ -161,7 +162,7 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 
 **Alternative / failure outcomes:** unknown or inactive court → `NOT_FOUND`; invalid interval → `INVALID_INPUT`.
 
-**Verification examples:** VE-02.1 – VE-02.6 as in v0.1. **New: VE-02.7** — a `PENDING_APPROVAL` request makes its interval unavailable; once it is `REJECTED`, `EXPIRED` or `CANCELLED` the interval is available again.
+**Verification examples:** VE-02.1 – VE-02.6 as in v0.1. **New: VE-02.7** — a `PENDING_APPROVAL` request makes its interval unavailable; once it is `REJECTED`, `EXPIRED` or `CANCELLED` the interval is available again. **v0.3: VE-02.8** — an interval outside the venue's opening hours → `INVALID_INPUT`.
 
 ### OP-03 — Confirm Reservation — *Changed*
 
@@ -551,10 +552,10 @@ Each accepted requirement went through the nine questions. Feasibility and consi
 | U-04 | Should moving a `CONFIRMED` booking on an approval court trigger re-approval instead of being refused? | Open; refusing is the safe minimum (D-15). |
 
 ## 9. Outside this baseline
-As in v0.1: check-in/completion/no-show; facility blocks (they also cancel `PENDING_APPROVAL` requests they overlap); waitlist (offered after a Cancel, Reject or either expiry; **on an approval-required court an accepted offer becomes `PENDING_APPROVAL`, REQ-11**); rescheduling (**refused for a `CONFIRMED` reservation on an approval-required court, REQ-11**); recurring series (each occurrence is confirmed individually, so each is approved individually); guests, join requests, cost split; reviews, favourites, achievements; calendar export; admin reports; the day-view availability read model (G-01); the UI and i18n. The UI change for C02 (badges, the manager's approval queue, the court flag) is implemented but not specified here.
+As in v0.1: check-in/completion/no-show; facility blocks (they also cancel `PENDING_APPROVAL` requests they overlap); waitlist (offered after a Cancel, Reject or either expiry; **on an approval-required court an accepted offer becomes `PENDING_APPROVAL`, REQ-11**); rescheduling (**refused for a `CONFIRMED` reservation on an approval-required court, REQ-11**); recurring series (each occurrence is confirmed individually, so each is approved individually); guests, join requests, cost split; reviews, favourites, achievements; calendar export; admin reports; the day-view availability read model (G-01); the UI and i18n. The UI change for C02 (badges, the manager's approval queue, the court flag) is implemented but not specified here. **v0.3:** court pricing (rates by weekday and time, the price quoted when booking — ADR-009) is outside the baseline like the cost split it feeds.
 
 ## 10. Verification traceability
-Every `VE-*` is executable: VE-01…VE-04 in `backend/tests/test_spec_baseline.py` (v0.1, still green under v0.2), VE-01.10, VE-02.7, VE-03.8/03.9, VE-04.8 and VE-05…VE-08 in `backend/tests/test_approval_api.py`, including the v0.3 examples VE-03.8c, VE-05.9, VE-05.10 and VE-06.6. Tests carry the VE id as the start of their name. Two further tests in `test_approval_api.py` are guards rather than examples: the exclusion constraint must block exactly the states in `ACTIVE_RESERVATION_STATUSES` (mechanising known pitfall #4 / driver AD-2), and a `PENDING_APPROVAL` reservation must be `TENTATIVE` in the calendar export. The live run of the operations is recorded in `evidence-and-evolution.md`.
+Every `VE-*` is executable: VE-01…VE-04 in `backend/tests/test_spec_baseline.py` (v0.1, still green under v0.2), VE-01.10, VE-02.7, VE-03.8/03.9, VE-04.8 and VE-05…VE-08 in `backend/tests/test_approval_api.py`, including the v0.3 examples VE-03.8c, VE-05.9, VE-05.10 and VE-06.6; the v0.3 opening-hours examples VE-01.11, VE-01.12 and VE-02.8 are in `backend/tests/test_opening_hours_api.py`. Tests carry the VE id as the start of their name. Two further tests in `test_approval_api.py` are guards rather than examples: the exclusion constraint must block exactly the states in `ACTIVE_RESERVATION_STATUSES` (mechanising known pitfall #4 / driver AD-2), and a `PENDING_APPROVAL` reservation must be `TENTATIVE` in the calendar export. The live run of the operations is recorded in `evidence-and-evolution.md`.
 
 ## 11. Approval
 v0.2's approval is recorded in `specification-v0.2.md` §11 (still open there). v0.3 becomes **approved by the team** when every member below has reviewed the parts marked **(v0.3)** (the table at the top lists them) and ticks their line; approving the pull request that introduces them counts.

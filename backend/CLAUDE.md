@@ -71,8 +71,11 @@ change behavior if missed, so they stay here rather than in the map:
 modules for every tunable booking limit (`rules.py`: max active
 reservations per role, min lead time, max advance booking window, hold
 duration, no-show penalty threshold/window, max guests per reservation;
-`schemas/reservation.py`: allowed slot durations, opening/closing hours,
-venue timezone). Both are already written with a comment explaining *why*
+`schemas/reservation.py`: allowed slot durations, venue timezone).
+Opening hours and court rates are **data**, not constants: per venue and
+weekday in `venue_opening_hours`, per court in `court_price_rules`
+(ADR-009, `opening_hours.py`/`pricing.py`); a new venue starts with
+`opening_hours.DEFAULT_*`. Both are already written with a comment explaining *why*
 each constant is what it is — read them directly rather than trusting a
 number restated in a doc, a skill, or a comment elsewhere, including this
 file. If you find yourself typing one of these numbers into a new location,
@@ -145,8 +148,8 @@ exists to eliminate.
 ## Timezones
 
 A real bug already happened here: comparing UTC wall-clock hours directly
-against the venue's opening-hours rule (07:00–22:00 **Europe/Prague** local
-time) rejected valid bookings from browsers in other offsets. The fix —
+against the venue's opening hours (then a fixed 07:00–22:00 **Europe/Prague**
+local time, now per venue in the database) rejected valid bookings from browsers in other offsets. The fix —
 `astimezone(VENUE_TZ)` before any hour/minute comparison — is now the
 pattern and is regression-tested. Any new time-of-day validation must
 convert to venue-local time first; never compare naive UTC hours/minutes
