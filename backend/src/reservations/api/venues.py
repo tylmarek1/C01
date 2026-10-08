@@ -241,19 +241,24 @@ def replace_opening_hours(
     switched to approval-required (D-19)."""
     venue = _get_venue(db, venue_id)
     require_venue_manager(db, manager, venue.id)
-    for row in db.scalars(
-        select(VenueOpeningHours).where(VenueOpeningHours.venue_id == venue.id)
-    ):
-        db.delete(row)
-    db.flush()  # the unique (venue, weekday) rows must be gone before the new ones go in
-    for day in payload.days:
-        db.add(
-            VenueOpeningHours(
-                venue_id=venue.id,
-                weekday=day.weekday,
-                opens_minute=to_minute(day.opens_at),
-                closes_minute=to_minute(day.closes_at),
-            )
+    # Change rows in place rather than delete-and-recreate, so the audit log
+    # records only the days that actually changed (ADR-007).
+    existing = {
+        row.weekday: row
+        for row in db.scalars(
+            select(VenueOpeningHours).where(VenueOpeningHours.venue_id == venue.id)
         )
+    }
+    wanted = {day.weekday: day for day in payload.days}
+    for weekday, row in existing.items():
+        if weekday not in wanted:
+            db.delete(row)
+    for weekday, day in wanted.items():
+        row = existing.get(weekday)
+        if row is None:
+            row = VenueOpeningHours(venue_id=venue.id, weekday=weekday)
+            db.add(row)
+        row.opens_minute = to_minute(day.opens_at)
+        row.closes_minute = to_minute(day.closes_at)
     db.commit()
     return _opening_hours_out(db, venue.id)

@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query"
-import { Check, ClipboardList, Download, History, LogIn, MoreHorizontal, Sparkles, Users, X, XCircle } from "lucide-react"
+import { Banknote, Check, ClipboardList, Download, History, LogIn, MoreHorizontal, Sparkles, Users, X, XCircle } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -23,11 +23,12 @@ import { FilterChip } from "@/components/shared/filter-chip"
 import { ReservationTimeline } from "@/components/shared/reservation-detail-dialog"
 import { SearchInput } from "@/components/shared/search-input"
 import { SportIcon } from "@/components/shared/sport-icon"
-import { StatusBadge } from "@/components/shared/status-badge"
+import { PaymentBadge, StatusBadge } from "@/components/shared/status-badge"
 import { UserAvatar } from "@/components/shared/user-avatar"
 import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { useFormatters } from "@/lib/format"
+import { formatCurrency, useFormatters } from "@/lib/format"
+import { CASH_PAYABLE, SETTLED } from "@/lib/payment-status"
 import { useTranslation } from "@/lib/i18n"
 import { useAdminStats } from "@/lib/queries"
 import { useStatusLabels } from "@/lib/reservation-status"
@@ -62,6 +63,10 @@ function RowActions({
   const { t } = useTranslation()
   const [historyOpen, setHistoryOpen] = useState(false)
   const canCancel = CANCELLABLE_STATUSES.includes(reservation.status) && new Date(reservation.start_time) > new Date()
+  const canTakeCash =
+    reservation.price_total !== null &&
+    CASH_PAYABLE.includes(reservation.status) &&
+    !(reservation.payment_status && SETTLED.includes(reservation.payment_status))
 
   return (
     <div className="flex items-center justify-end gap-1.5">
@@ -102,6 +107,11 @@ function RowActions({
               <Users /> {t("admin.reservations.viewPlayer")}
             </Link>
           </DropdownMenuItem>
+          {canTakeCash && (
+            <DropdownMenuItem disabled={actions.isBusy} onSelect={() => actions.recordCash.mutate(reservation)}>
+              <Banknote /> {t("admin.reservations.recordCash", { amount: formatCurrency(reservation.price_total!) })}
+            </DropdownMenuItem>
+          )}
           {canCancel && (
             <>
               <DropdownMenuSeparator />
@@ -276,7 +286,10 @@ function ReservationsTab() {
                   </div>
                 </td>
                 <td className="px-4 py-3 align-middle">
-                  <StatusBadge status={reservation.status} />
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <StatusBadge status={reservation.status} />
+                    {reservation.payment_status && <PaymentBadge status={reservation.payment_status} />}
+                  </span>
                   {reservation.status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
                     <div className="mt-1 font-mono text-[11px] text-muted-foreground">
                       {t("admin.reservations.due", { time: fmt.dateTime(reservation.approval_expires_at) })}
@@ -306,7 +319,10 @@ function ReservationsTab() {
                   <span className="truncate text-[14px] font-semibold">{reservation.court.name}</span>
                   <span className="font-mono text-xs text-muted-foreground tabular">{fmt.dateRange(reservation.start_time, reservation.end_time)}</span>
                 </div>
-                <StatusBadge status={reservation.status} />
+                <span className="flex flex-col items-end gap-1">
+                  <StatusBadge status={reservation.status} />
+                  {reservation.payment_status && <PaymentBadge status={reservation.payment_status} />}
+                </span>
               </div>
               <div className="flex items-center gap-2.5">
                 <UserAvatar name={reservation.user.name} avatarUrl={reservation.user.avatar_url} size="xs" />

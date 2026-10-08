@@ -6,14 +6,17 @@ import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
 import { usePendingApprovalCount } from "@/lib/queries"
 import { useRoleLabels } from "@/lib/user-role"
+import { AuditTab } from "@/pages/app/admin/AuditTab"
 import { AvailabilityTab } from "@/pages/app/admin/AvailabilityTab"
 import { ChallengesTab } from "@/pages/app/admin/ChallengesTab"
 import { CourtsTab } from "@/pages/app/admin/CourtsTab"
 import { OverviewTab } from "@/pages/app/admin/OverviewTab"
+import { PaymentsTab } from "@/pages/app/admin/PaymentsTab"
 import { ReservationsTab } from "@/pages/app/admin/ReservationsTab"
 import { UsersTab } from "@/pages/app/admin/UsersTab"
+import { VenuesTab } from "@/pages/app/admin/VenuesTab"
 
-const TABS = ["overview", "reservations", "courts", "availability", "challenges", "users"] as const
+const TABS = ["overview", "reservations", "payments", "courts", "venues", "availability", "challenges", "users", "audit"] as const
 type Tab = (typeof TABS)[number]
 
 function AdminPage() {
@@ -23,7 +26,9 @@ function AdminPage() {
   const pending = usePendingApprovalCount()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get("tab") as Tab | null
-  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : "overview"
+  const isAdmin = user?.role === "ADMIN"
+  // The audit log spans every venue and every account — admins only (ADR-007).
+  const tab: Tab = tabParam && TABS.includes(tabParam) && (tabParam !== "audit" || isAdmin) ? tabParam : "overview"
 
   function setTab(next: string) {
     // Switching tab drops tab-specific params (e.g. the reservations ?status filter).
@@ -46,10 +51,13 @@ function AdminPage() {
               <span className="rounded-full bg-brand px-1.5 font-mono text-[10px] font-semibold text-brand-foreground tabular">{pending}</span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="payments">{t("admin.tabs.payments")}</TabsTrigger>
           <TabsTrigger value="courts">{t("admin.tabs.courts")}</TabsTrigger>
+          <TabsTrigger value="venues">{t("admin.tabs.venues")}</TabsTrigger>
           <TabsTrigger value="availability">{t("admin.tabs.availability")}</TabsTrigger>
           <TabsTrigger value="challenges">{t("admin.tabs.challenges")}</TabsTrigger>
           <TabsTrigger value="users">{t("admin.tabs.users")}</TabsTrigger>
+          {isAdmin && <TabsTrigger value="audit">{t("admin.tabs.audit")}</TabsTrigger>}
         </TabsList>
         <TabsContent value="overview">
           <OverviewTab />
@@ -57,8 +65,14 @@ function AdminPage() {
         <TabsContent value="reservations">
           <ReservationsTab />
         </TabsContent>
+        <TabsContent value="payments">
+          <PaymentsTab />
+        </TabsContent>
         <TabsContent value="courts">
           <CourtsTab />
+        </TabsContent>
+        <TabsContent value="venues">
+          <VenuesTab />
         </TabsContent>
         <TabsContent value="availability">
           <AvailabilityTab />
@@ -69,6 +83,11 @@ function AdminPage() {
         <TabsContent value="users">
           <UsersTab />
         </TabsContent>
+        {isAdmin && (
+          <TabsContent value="audit">
+            <AuditTab />
+          </TabsContent>
+        )}
       </Tabs>
     </PageContainer>
   )

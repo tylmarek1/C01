@@ -83,6 +83,7 @@ export interface CourtImage {
 export interface Court {
   id: string
   name: string
+  venue_id: string
   sport_type: SportType
   indoor: boolean
   active: boolean
@@ -107,6 +108,10 @@ export interface Reservation {
   series_id: string | null
   open_to_join: boolean
   open_note: string | null
+  /** Quoted when booked (ADR-009); null when the court publishes no price. */
+  price_total: number | null
+  /** Latest payment's status (ADR-010); only filled in by list endpoints. */
+  payment_status?: PaymentStatus | null
   created_at: string
 }
 
@@ -144,6 +149,8 @@ export interface CourtAvailability {
   date: string
   opens_at: string
   closes_at: string
+  /** The venue is closed that day (opens_at === closes_at). */
+  closed: boolean
   busy: BusySlot[]
 }
 
@@ -481,4 +488,81 @@ export interface CourtUtilization {
   court_id: string
   days_analyzed: number
   cells: CourtUtilizationCell[]
+}
+
+export interface Venue {
+  id: string
+  name: string
+  address: string | null
+  description: string | null
+  active: boolean
+  court_count: number
+}
+
+export interface VenueManagerEntry {
+  user: User
+  created_at: string
+}
+
+/** 0 = Monday … 6 = Sunday; times are venue-local "HH:MM" ("24:00" = midnight). */
+export interface OpeningHoursDay {
+  weekday: number
+  opens_at: string
+  closes_at: string
+}
+
+export interface PriceRule {
+  weekday: number
+  starts_at: string
+  ends_at: string
+  price_per_hour: number
+}
+
+export interface PriceQuote {
+  court_id: string
+  start_time: string
+  end_time: string
+  price_total: number | null
+}
+
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUND_PENDING" | "REFUNDED" | "REFUND_FAILED"
+export type PaymentMethod = "ONLINE" | "CASH"
+
+export interface Payment {
+  id: string
+  reservation_id: string
+  amount: number
+  currency: string
+  method: PaymentMethod
+  status: PaymentStatus
+  provider: string | null
+  failure_reason: string | null
+  created_at: string
+  paid_at: string | null
+  refunded_at: string | null
+}
+
+export interface PaymentAdmin extends Payment {
+  reservation: {
+    id: string
+    court: Court
+    user: User
+    start_time: string
+    end_time: string
+    status: ReservationStatus
+  }
+  refund_attempts: number
+}
+
+export type AuditAction = "CREATE" | "UPDATE" | "DELETE"
+
+export interface AuditLogEntry {
+  id: string
+  created_at: string
+  actor: User | null
+  request_id: string | null
+  action: AuditAction
+  entity_type: string
+  entity_id: string
+  changes: Record<string, [unknown, unknown]>
 }

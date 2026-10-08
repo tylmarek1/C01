@@ -60,6 +60,7 @@ export function useFormatters() {
     const dateLong = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long" })
     const dayMonth = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" })
     const weekdayShort = new Intl.DateTimeFormat(locale, { weekday: "short" })
+    const weekdayLong = new Intl.DateTimeFormat(locale, { weekday: "long" })
     const monthShort = new Intl.DateTimeFormat(locale, { month: "short" })
     const monthYear = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" })
     const dateTime = new Intl.DateTimeFormat(locale, {
@@ -112,6 +113,9 @@ export function useFormatters() {
       dateLong: (iso: string | Date) => dateLong.format(typeof iso === "string" ? new Date(iso) : iso),
       dayMonth: (iso: string | Date) => dayMonth.format(typeof iso === "string" ? new Date(iso) : iso),
       weekday: (iso: string | Date) => weekdayShort.format(typeof iso === "string" ? new Date(iso) : iso),
+      /** Name of a backend weekday index (0 = Monday … 6 = Sunday); 1 Jan 2024 was a Monday. */
+      weekdayName: (index: number, style: "short" | "long" = "long") =>
+        (style === "long" ? weekdayLong : weekdayShort).format(new Date(2024, 0, 1 + index)),
       monthShort: (iso: string | Date) => monthShort.format(typeof iso === "string" ? new Date(iso) : iso).replace(".", ""),
       monthYear: (iso: string | Date) => monthYear.format(typeof iso === "string" ? new Date(iso) : iso),
       dateTime: (iso: string | Date) => dateTime.format(typeof iso === "string" ? new Date(iso) : iso),

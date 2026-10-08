@@ -63,6 +63,16 @@ export function useReservationActions(onDone?: () => void) {
     onError: fail("admin.error.reservationCheckIn"),
   })
 
-  const isBusy = cancel.isPending || confirm.isPending || approve.isPending || reject.isPending || checkIn.isPending
-  return { cancel, confirm, approve, reject, checkIn, isBusy }
+  const recordCash = useMutation({
+    mutationFn: (r: ReservationAdmin) => api.recordCashPayment(token!, r.id),
+    onSuccess: () => {
+      toast.success(t("admin.toast.cashRecorded"))
+      queryClient.invalidateQueries({ queryKey: ["admin-payments"] })
+      invalidate()
+    },
+    onError: fail("admin.error.cashRecord"),
+  })
+
+  const isBusy = cancel.isPending || confirm.isPending || approve.isPending || reject.isPending || checkIn.isPending || recordCash.isPending
+  return { cancel, confirm, approve, reject, checkIn, recordCash, isBusy }
 }
