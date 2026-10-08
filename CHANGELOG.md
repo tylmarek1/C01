@@ -10,6 +10,19 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Click a time straight on the day's timeline** (booking page, court
+  detail, reschedule dialog): hovering previews the nearest free slot for the
+  chosen duration, a click selects it, a click on a taken stretch offers the
+  waitlist, and the chosen range stays drawn on the strip with its times.
+  The booking step header shows the picked time too.
+
+### Changed
+
+- **Rescheduling uses the same day strip and free-time grid as booking**
+  instead of bare date/time inputs, so only actually free times can be picked.
+
+### Added
+
 - **Demo-account picker on the login page (dev builds only):** clicking a
   seeded account (player, teammate, venue manager, admin) fills in the form.
   Production builds don't ship the credentials.

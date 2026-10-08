@@ -285,7 +285,18 @@ function BookCourtPage() {
             )}
           </Step>
 
-          <Step index={2} title={t("book.step2")} done={Boolean(start)}>
+          <Step
+            index={2}
+            title={t("book.step2")}
+            done={Boolean(start)}
+            aside={
+              start && end ? (
+                <span key={selectedStart} className="animate-fade-in border-2 border-brand px-2 py-1 font-mono text-[13px] font-semibold text-brand-ink tabular">
+                  {fmt.weekday(start)} {fmt.timeRange(start.toISOString(), end.toISOString())}
+                </span>
+              ) : null
+            }
+          >
             {!selectedCourt ? (
               <p className="flex items-center gap-2 border border-dashed border-foreground/25 px-3 py-4 text-[13px] text-muted-foreground">
                 <Info className="size-4 shrink-0" /> {t("book.pickCourtFirst")}
@@ -330,7 +341,17 @@ function BookCourtPage() {
                 )}
                 {availability && (
                   <>
-                    <OccupancyTimeline opensAt={availability.opens_at} closesAt={availability.closes_at} busy={availability.busy} />
+                    <OccupancyTimeline
+                      opensAt={availability.opens_at}
+                      closesAt={availability.closes_at}
+                      busy={availability.busy}
+                      pick={{
+                        durationMinutes: duration,
+                        selected: selectedStart,
+                        onSelect: (slot) => setSelectedStart(slot.start.toISOString()),
+                        onTakenSelect: (slot) => setWaitlistSlot(slot),
+                      }}
+                    />
                     <SlotGrid
                       availability={availability}
                       durationMinutes={duration}
