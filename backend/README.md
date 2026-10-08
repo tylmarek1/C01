@@ -51,7 +51,7 @@ run while the dev server is up.
 | `GET /auth/me` | Bearer | Current user |
 | `GET /courts` | — | List active courts |
 | `GET /courts/{id}/availability/check?start_time=&end_time=` | — | Is the court free for exactly this interval? `{available, reason}` — reason `RESERVATION_OVERLAP` or `FACILITY_BLOCK` |
-| `POST /reservations` | Bearer | Create a `PENDING` reservation — a 5-minute hold that already blocks the court (validates the 60/90/120 min slot rule, `:00`/`:30` alignment, 07:00–22:00 opening hours, booking window, limits; 409 if the slot is held/booked) |
+| `POST /reservations` | Bearer | Create a `PENDING` reservation — a 5-minute hold that already blocks the court (validates the 60/90/120 min slot rule, `:00`/`:30` alignment, the venue's opening hours, booking window, limits; 409 if the slot is held/booked) |
 | `GET /reservations` | Bearer | List the current user's reservations |
 | `POST /reservations/{id}/confirm` | Bearer | `PENDING` → `CONFIRMED`; on a court with `requires_approval` → `PENDING_APPROVAL` instead (409 if the hold expired or the court was deactivated) |
 | `POST /reservations/{id}/approve` | Venue manager or admin | `PENDING_APPROVAL` → `CONFIRMED` |

@@ -1,8 +1,19 @@
 import enum
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, String, func, literal_column, text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Numeric,
+    String,
+    func,
+    literal_column,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,7 +58,9 @@ class Reservation(Base):
             (literal_column("tstzrange(start_time, end_time, '[)')"), "&&"),
             name="no_overlapping_active_reservations",
             using="gist",
-            where=text("status IN ('PENDING', 'PENDING_APPROVAL', 'CONFIRMED', 'CHECKED_IN')"),
+            where=text(
+                "status IN ('PENDING', 'PENDING_APPROVAL', 'CONFIRMED', 'CHECKED_IN')"
+            ),
         ),
     )
 
@@ -57,21 +70,36 @@ class Reservation(Base):
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     status: Mapped[ReservationStatus] = mapped_column(
-        Enum(ReservationStatus, name="reservation_status"), default=ReservationStatus.PENDING
+        Enum(ReservationStatus, name="reservation_status"),
+        default=ReservationStatus.PENDING,
     )
     # Set while PENDING; the background worker expires the hold once this
     # passes. Cleared (NULL) once confirmed.
-    hold_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    hold_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
     # Set while PENDING_APPROVAL: min(submission + APPROVAL_WINDOW, start_time).
     # The worker expires the request once this passes; cleared when decided.
-    approval_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    series_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("reservation_series.id"), default=None)
+    approval_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    reminder_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    series_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("reservation_series.id"), default=None
+    )
     # "Find a partner": the booker can open their own slot up for other
     # players to request a guest spot on, instead of inviting people by email.
     open_to_join: Mapped[bool] = mapped_column(default=False)
     open_note: Mapped[str | None] = mapped_column(String(200), default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # The price quoted from the court's rates when the slot was booked (or
+    # last moved) — a later price change doesn't reprice it (ADR-009).
+    # Null: the court publishes no price for (part of) that slot.
+    price_total: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), default=None)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     court: Mapped[Court] = relationship()
     user: Mapped[User] = relationship()

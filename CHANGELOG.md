@@ -10,6 +10,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Opening hours and court rates in the database** (ADR-009, specification
+  v0.3 BR-04): opening hours per venue and weekday (a day can be closed) instead of
+  a fixed 07:00–22:00; court rates by weekday and time on top of the base
+  `price_per_hour`; `GET /courts/{id}/quote`; every reservation keeps the price
+  quoted when it was booked (`price_total`), which the cost split now uses.
+  Existing venues keep 07:00–22:00 daily.
 - **Venues and venue-scoped managers** (ADR-008, specification v0.3): courts
   belong to a venue; admins create venues and assign managers
   (`/venues`, `/venues/{id}/managers/{user_id}`); a venue manager can only

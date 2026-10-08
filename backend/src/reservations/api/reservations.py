@@ -13,6 +13,7 @@ from reservations.booking_validation import (
     check_facility_available,
     check_no_show_penalty,
     check_within_booking_window,
+    check_within_opening_hours,
 )
 from reservations.calendar_export import build_calendar_feed_ics, build_single_event_ics
 from reservations.deps import get_current_manager, get_current_user, get_db
@@ -32,6 +33,7 @@ from reservations.models import (
     User,
 )
 from reservations.notifications import notify
+from reservations.pricing import quote
 from reservations.schemas.auth import UserOut
 from reservations.schemas.join_request import (
     JoinRequestCreate,
@@ -109,6 +111,7 @@ def create_reservation(
 ) -> Reservation:
     court = _get_court_or_404(db, payload.court_id)
     check_within_booking_window(payload.start_time)
+    check_within_opening_hours(db, court, payload.start_time, payload.end_time)
     check_facility_available(db, court.id, payload.start_time, payload.end_time)
     check_active_reservation_limit(db, current_user)
     check_no_show_penalty(db, current_user)
@@ -121,6 +124,7 @@ def create_reservation(
         end_time=payload.end_time,
         status=ReservationStatus.PENDING,
         hold_expires_at=hold_expires_at,
+        price_total=quote(db, court, payload.start_time, payload.end_time),
     )
     db.add(reservation)
     try:
@@ -318,6 +322,9 @@ def create_reservation_series(
 ) -> ReservationSeriesOut:
     court = _get_court_or_404(db, payload.court_id)
     check_within_booking_window(payload.start_time)
+    # Every occurrence falls on the same weekday at the same local time, so
+    # the first one stands for all of them.
+    check_within_opening_hours(db, court, payload.start_time, payload.end_time)
     check_no_show_penalty(db, current_user)
     check_active_reservation_limit(db, current_user)
 
@@ -373,6 +380,7 @@ def create_reservation_series(
                 status=ReservationStatus.PENDING,
                 hold_expires_at=datetime.now(timezone.utc) + rules.HOLD_DURATION,
                 series_id=series.id,
+                price_total=quote(db, court, start_time, end_time),
             )
             db.add(reservation)
             db.flush()
@@ -625,6 +633,9 @@ def reschedule_reservation(
         )
 
     check_within_booking_window(payload.start_time)
+    check_within_opening_hours(
+        db, reservation.court, payload.start_time, payload.end_time
+    )
     check_facility_available(
         db, reservation.court_id, payload.start_time, payload.end_time
     )
@@ -632,6 +643,10 @@ def reschedule_reservation(
     old_start, old_end = reservation.start_time, reservation.end_time
     reservation.start_time = payload.start_time
     reservation.end_time = payload.end_time
+    # A different slot can fall under a different rate.
+    reservation.price_total = quote(
+        db, reservation.court, payload.start_time, payload.end_time
+    )
     db.add(
         ReservationEvent(
             reservation_id=reservation.id,
@@ -998,11 +1013,9 @@ def split_reservation_cost(
     participants = [reservation.user, *(g.user for g in guests)]
     participant_count = len(participants)
 
-    price_per_hour = reservation.court.price_per_hour
+    # The price agreed when the slot was booked (ADR-009), not today's rate.
     total_cost = (
-        round(float(price_per_hour) * duration_hours, 2)
-        if price_per_hour is not None
-        else None
+        float(reservation.price_total) if reservation.price_total is not None else None
     )
     per_person = (
         round(total_cost / participant_count, 2) if total_cost is not None else None

@@ -14,7 +14,9 @@ from reservations.models.match_result import MatchResult
 from reservations.models.message import Message
 from reservations.models.message_reaction import ALLOWED_REACTION_EMOJI, MessageReaction
 from reservations.models.notification import Notification, NotificationType
+from reservations.models.opening_hours import VenueOpeningHours
 from reservations.models.player_follow import PlayerFollow
+from reservations.models.price_rule import CourtPriceRule
 from reservations.models.push_delivery import PushDelivery, PushDeliveryStatus
 from reservations.models.push_subscription import PushSubscription
 from reservations.models.reservation import (
@@ -40,6 +42,8 @@ from reservations.models.waitlist import WaitlistEntry, WaitlistStatus
 __all__ = [
     "Venue",
     "VenueManager",
+    "VenueOpeningHours",
+    "CourtPriceRule",
     "Court",
     "SportType",
     "Amenity",

@@ -5,9 +5,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from reservations.booking_validation import find_availability_conflict
+from reservations import opening_hours
+from reservations.booking_validation import (
+    check_within_opening_hours,
+    find_availability_conflict,
+)
 from reservations.deps import (
     get_current_admin,
     get_current_manager,
@@ -21,6 +26,7 @@ from reservations.models import (
     Amenity,
     Court,
     CourtImage,
+    CourtPriceRule,
     FacilityBlock,
     Favorite,
     Reservation,
@@ -32,14 +38,23 @@ from reservations.models import (
     Venue,
     WaitlistEntry,
 )
+from reservations.pricing import quote
 from reservations.schemas.availability import (
     AvailabilityCheckQuery,
     AvailabilityVerdict,
     BusySlot,
     CourtAvailability,
 )
-from reservations.schemas.court import CourtCreate, CourtOut, CourtUpdate
-from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
+from reservations.schemas.court import (
+    CourtCreate,
+    CourtOut,
+    CourtUpdate,
+    PriceQuote,
+    PriceRuleIn,
+    PriceRulesUpdate,
+)
+from reservations.schemas.reservation import VENUE_TZ
+from reservations.schemas.time_of_day import minute_label, to_minute
 from reservations.venue_access import (
     managed_venue_ids,
     require_court_manager,
@@ -232,12 +247,18 @@ def get_court_availability(
 ) -> CourtAvailability:
     court = _get_court(db, court_id)
 
-    opens_at = datetime.combine(date, datetime.min.time(), tzinfo=VENUE_TZ).replace(
-        hour=OPENING_HOUR
-    )
-    closes_at = datetime.combine(date, datetime.min.time(), tzinfo=VENUE_TZ).replace(
-        hour=CLOSING_HOUR
-    )
+    hours = opening_hours.hours_on(db, court.venue_id, date)
+    if hours is None:
+        midnight = datetime.combine(date, datetime.min.time(), tzinfo=VENUE_TZ)
+        return CourtAvailability(
+            court_id=str(court.id),
+            date=date.isoformat(),
+            opens_at=midnight.isoformat(),
+            closes_at=midnight.isoformat(),
+            closed=True,
+            busy=[],
+        )
+    opens_at, closes_at = hours
 
     stmt = (
         select(Reservation)
@@ -301,6 +322,7 @@ def check_court_availability(
     court = _get_court(db, court_id)
     if not court.active:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
+    check_within_opening_hours(db, court, interval.start_time, interval.end_time)
 
     conflict = find_availability_conflict(
         db, court.id, interval.start_time, interval.end_time
@@ -321,7 +343,7 @@ def _only_venue_of(db: Session, manager: User) -> uuid.UUID:
     candidates = set(db.scalars(select(Venue.id))) if venues is None else venues
     if len(candidates) != 1:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "venue_id is required — you manage more than one venue, or none",
         )
     return next(iter(candidates))
@@ -489,3 +511,84 @@ def delete_court(
     db.flush()
     db.delete(court)
     db.commit()
+
+
+def _price_rules_out(db: Session, court_id: uuid.UUID) -> list[PriceRuleIn]:
+    stmt = (
+        select(CourtPriceRule)
+        .where(CourtPriceRule.court_id == court_id)
+        .order_by(CourtPriceRule.weekday, CourtPriceRule.start_minute)
+    )
+    return [
+        PriceRuleIn(
+            weekday=rule.weekday,
+            starts_at=minute_label(rule.start_minute),
+            ends_at=minute_label(rule.end_minute),
+            price_per_hour=float(rule.price_per_hour),
+        )
+        for rule in db.scalars(stmt)
+    ]
+
+
+@router.get("/{court_id}/price-rules", response_model=list[PriceRuleIn])
+def get_price_rules(
+    court_id: uuid.UUID, db: Session = Depends(get_db)
+) -> list[PriceRuleIn]:
+    """The court's time-of-week rates (ADR-009); outside them its
+    `price_per_hour` applies."""
+    court = _get_court(db, court_id)
+    return _price_rules_out(db, court.id)
+
+
+@router.put("/{court_id}/price-rules", response_model=list[PriceRuleIn])
+def replace_price_rules(
+    court_id: uuid.UUID,
+    payload: PriceRulesUpdate,
+    db: Session = Depends(get_db),
+    manager: User = Depends(get_current_manager),
+) -> list[PriceRuleIn]:
+    """Replaces every rule of the court. Prices already quoted to existing
+    reservations don't change (`Reservation.price_total`)."""
+    court = _get_court(db, court_id)
+    require_court_manager(db, manager, court)
+    for rule in db.scalars(
+        select(CourtPriceRule).where(CourtPriceRule.court_id == court.id)
+    ):
+        db.delete(rule)
+    db.flush()  # old rules out before the exclusion constraint sees the new ones
+    for rule in payload.rules:
+        db.add(
+            CourtPriceRule(
+                court_id=court.id,
+                weekday=rule.weekday,
+                start_minute=to_minute(rule.starts_at),
+                end_minute=to_minute(rule.ends_at),
+                price_per_hour=rule.price_per_hour,
+            )
+        )
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Two price rules overlap on the same weekday"
+        ) from exc
+    return _price_rules_out(db, court.id)
+
+
+@router.get("/{court_id}/quote", response_model=PriceQuote)
+def quote_court_price(
+    court_id: uuid.UUID,
+    interval: Annotated[AvailabilityCheckQuery, Query()],
+    db: Session = Depends(get_db),
+) -> PriceQuote:
+    """What a booking of exactly this slot would cost right now."""
+    court = _get_court(db, court_id)
+    check_within_opening_hours(db, court, interval.start_time, interval.end_time)
+    price = quote(db, court, interval.start_time, interval.end_time)
+    return PriceQuote(
+        court_id=court.id,
+        start_time=interval.start_time,
+        end_time=interval.end_time,
+        price_total=float(price) if price is not None else None,
+    )

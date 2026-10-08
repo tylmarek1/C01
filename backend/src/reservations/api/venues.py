@@ -9,14 +9,25 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from reservations import opening_hours
 from reservations.deps import (
     get_current_admin,
     get_current_manager,
     get_db,
     get_optional_user,
 )
-from reservations.models import Court, User, UserRole, Venue, VenueManager
+from reservations.models import (
+    Court,
+    User,
+    UserRole,
+    Venue,
+    VenueManager,
+    VenueOpeningHours,
+)
+from reservations.schemas.time_of_day import minute_label, to_minute
 from reservations.schemas.venue import (
+    OpeningHoursDay,
+    OpeningHoursUpdate,
     VenueCreate,
     VenueManagerOut,
     VenueOut,
@@ -107,6 +118,9 @@ def create_venue(
         )
     venue = Venue(**payload.model_dump())
     db.add(venue)
+    db.flush()
+    # Open 07:00–22:00 every day until its managers set real hours.
+    opening_hours.add_default_hours(db, venue)
     db.commit()
     db.refresh(venue)
     return _with_court_counts(db, [venue])[0]
@@ -191,3 +205,55 @@ def unassign_venue_manager(
         )
     db.delete(assignment)
     db.commit()
+
+
+def _opening_hours_out(db: Session, venue_id: uuid.UUID) -> list[OpeningHoursDay]:
+    return [
+        OpeningHoursDay(
+            weekday=weekday,
+            opens_at=minute_label(opens),
+            closes_at=minute_label(closes),
+        )
+        for weekday, (opens, closes) in sorted(
+            opening_hours.weekly_hours(db, venue_id).items()
+        )
+    ]
+
+
+@router.get("/{venue_id}/opening-hours", response_model=list[OpeningHoursDay])
+def get_opening_hours(
+    venue_id: uuid.UUID, db: Session = Depends(get_db)
+) -> list[OpeningHoursDay]:
+    """The open weekdays (ADR-009); a weekday not listed is closed."""
+    venue = _get_venue(db, venue_id)
+    return _opening_hours_out(db, venue.id)
+
+
+@router.put("/{venue_id}/opening-hours", response_model=list[OpeningHoursDay])
+def replace_opening_hours(
+    venue_id: uuid.UUID,
+    payload: OpeningHoursUpdate,
+    db: Session = Depends(get_db),
+    manager: User = Depends(get_current_manager),
+) -> list[OpeningHoursDay]:
+    """Replaces the whole week. Applies to bookings made from now on —
+    existing reservations outside the new hours are kept, as with a court
+    switched to approval-required (D-19)."""
+    venue = _get_venue(db, venue_id)
+    require_venue_manager(db, manager, venue.id)
+    for row in db.scalars(
+        select(VenueOpeningHours).where(VenueOpeningHours.venue_id == venue.id)
+    ):
+        db.delete(row)
+    db.flush()  # the unique (venue, weekday) rows must be gone before the new ones go in
+    for day in payload.days:
+        db.add(
+            VenueOpeningHours(
+                venue_id=venue.id,
+                weekday=day.weekday,
+                opens_minute=to_minute(day.opens_at),
+                closes_minute=to_minute(day.closes_at),
+            )
+        )
+    db.commit()
+    return _opening_hours_out(db, venue.id)

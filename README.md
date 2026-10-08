@@ -80,7 +80,7 @@ Everything a venue manager can do, plus:
 | **States** | `PENDING` (a 5-minute hold) `→ CONFIRMED`; on courts that require approval `PENDING → PENDING_APPROVAL → CONFIRMED / REJECTED`; `→ CANCELLED` before the start; unanswered holds/requests `→ EXPIRED`; then `CHECKED_IN → COMPLETED / NO_SHOW`. Full lifecycle: [`docs/specification.md`](docs/specification.md) |
 | **Operations** | create · check availability · confirm · cancel · approve/reject (approval-required courts) |
 | **Common rule** | two reservations that hold a court (`PENDING`, `PENDING_APPROVAL`, `CONFIRMED`, `CHECKED_IN`) must never overlap |
-| **Domain-specific rule** | a reservation must be 60/90/120 minutes, start on `:00`/`:30`, and lie fully within opening hours 07:00–22:00 |
+| **Domain-specific rule** | a reservation must be 60/90/120 minutes, start on `:00`/`:30`, and lie fully within the venue's opening hours (07:00–22:00 unless a manager changes them) |
 | **External boundary** | Notification Service — currently implemented as in-app notifications; e-mail delivery was the original plan and is not yet built |
 
 Full rationale, assumptions, open unknowns and the domain's selected

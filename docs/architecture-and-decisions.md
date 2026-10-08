@@ -858,3 +858,28 @@ above stay as they were written, because they record the state on
   - `POST /courts` accepts an optional `venue_id`. Without it, the court goes to the caller's only venue (or, for an admin, the only venue there is), which is why the current frontend keeps working. With several venues it is 422.
   - The time zone is still the single global `VENUE_TZ`. A per-venue zone would touch every time-of-day check (pitfall #1), and no venue outside Prague exists.
   - The frontend has no UI for venues yet.
+
+### ADR-009: Opening hours and court rates are data in the database
+
+- **Status:** accepted (2026-10-08). Specification v0.3 (BR-04).
+- **Context:** opening hours were the constants `OPENING_HOUR = 7` / `CLOSING_HOUR = 22`, checked in a Pydantic validator. Prices were one optional `Court.price_per_hour`, used only for the cost split and computed from today's rate on every read. With several venues (ADR-008), each needs its own hours. Courts need different rates by weekday and time, and a price that changes after booking can't be the basis for a payment.
+- **Decision:**
+  - **Opening hours:** `venue_opening_hours` holds one row per venue and weekday, as venue-local minutes since midnight. 1440 means "closes at midnight", so a closing time can be 24:00. A missing weekday means the venue is closed that day.
+  - **Where hours are checked:** the check moved from the schema validator to `booking_validation.check_within_opening_hours`, because it needs the court's venue. It is called by Create, the series, Reschedule, Check Availability and the quote. It still converts to `VENUE_TZ` first (pitfall #1). The day view and the utilization heatmap read the same rows.
+  - **Rates:** `court_price_rules` holds an hourly rate per court, weekday and time range. Two rules of one court on one weekday can't overlap; an exclusion constraint on `int4range(start_minute, end_minute)` enforces this, the same mechanism as ADR-001. Outside every rule, `price_per_hour` applies.
+  - **Pricing:** `pricing.quote()` prices each half hour by the rate at its start. If any half hour has no rate, the slot has no price at all, rather than a partial one.
+  - **Price snapshot:** the quote is stored in `reservations.price_total` when the slot is booked (Create, series, waitlist accept). It is re-quoted only when the reservation is moved to another slot. The cost split uses that snapshot.
+  - **API times:** times are "HH:MM", on :00/:30 only, because a boundary between half hours could never be used.
+  - **Migration `0004`:** gives every existing venue 07:00–22:00 on all seven days. Every existing reservation gets the price the cost split showed for it so far.
+- **Alternatives considered:**
+  - A `TIME` column: it can't hold 24:00, and Postgres has no built-in range type for times to put an exclusion constraint on.
+  - Hours as JSON on `venues`: there is no constraint per weekday, and it is harder to query.
+  - Pricing on read, without a snapshot: changing a rate would silently reprice every existing booking, and with payments (next) the amount must be fixed.
+  - Hours on the court instead of the venue: no requirement asks for per-court hours, and a facility block already closes one court.
+- **Consequences:**
+  - Changing hours or rates applies to new bookings only. Existing reservations keep their slot and price, the same grandfathering as D-19.
+  - Overnight opening (past midnight) is not supported.
+  - Rates and hours are wall-clock in `VENUE_TZ`. On a DST day the minutes are still wall-clock, so a 22:00 close stays 22:00 local.
+  - Specification v0.3 changes BR-04 (VE-01.11, VE-01.12, VE-02.8). Every older example is unchanged because of the default hours.
+  - The frontend still shows the default hours in its "open now" strip. It does use the day's real hours from the availability endpoint.
+  - New endpoints: `GET/PUT /venues/{id}/opening-hours`, `GET/PUT /courts/{id}/price-rules`, `GET /courts/{id}/quote`. `ReservationOut.price_total`, `CourtAvailability.closed`.

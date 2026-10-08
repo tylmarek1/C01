@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from reservations import opening_hours
 from reservations.deps import get_current_admin, get_current_manager, get_db
 from reservations.models import (
     ACTIVE_RESERVATION_STATUSES,
@@ -30,7 +31,7 @@ from reservations.schemas.admin import (
     UserRoleUpdate,
 )
 from reservations.schemas.court import CourtOut
-from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
+from reservations.schemas.reservation import VENUE_TZ
 from reservations.schemas.stats import CourtUtilization, CourtUtilizationCell
 from reservations.venue_access import (
     managed_courts_filter,
@@ -332,11 +333,28 @@ def get_court_utilization(
     now = datetime.now(timezone.utc)
     since = now - timedelta(days=days)
 
+    # Each weekday's hours come from the venue (ADR-009); the grid spans the
+    # earliest opening to the latest closing so it stays rectangular, and an
+    # hour the venue is closed simply has no possible slots.
+    weekly = opening_hours.weekly_hours(db, court.venue_id)
+    open_hours = {
+        weekday: range(opens // 60, -(-closes // 60))
+        for weekday, (opens, closes) in weekly.items()
+    }
+    grid_hours = (
+        range(
+            min(r.start for r in open_hours.values()),
+            max(r.stop for r in open_hours.values()),
+        )
+        if open_hours
+        else range(0)
+    )
+
     possible_count: Counter[tuple[int, int]] = Counter()
     day = since
     while day < now:
         weekday = day.astimezone(VENUE_TZ).weekday()
-        for hour in range(OPENING_HOUR, CLOSING_HOUR):
+        for hour in open_hours.get(weekday, ()):
             possible_count[(weekday, hour)] += 1
         day += timedelta(days=1)
 
@@ -369,7 +387,7 @@ def get_court_utilization(
             possible_count=possible_count.get((weekday, hour), 0),
         )
         for weekday in range(7)
-        for hour in range(OPENING_HOUR, CLOSING_HOUR)
+        for hour in grid_hours
     ]
     return CourtUtilization(court_id=court.id, days_analyzed=days, cells=cells)
 

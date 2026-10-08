@@ -13,6 +13,7 @@ from reservations.achievements import evaluate_and_award
 from reservations.db import make_engine, make_session_factory, upgrade_schema
 from reservations.models import (
     Court,
+    CourtPriceRule,
     Favorite,
     FacilityBlock,
     Notification,
@@ -28,7 +29,10 @@ from reservations.models import (
     UserRole,
     Venue,
     VenueManager,
+    VenueOpeningHours,
 )
+from reservations.opening_hours import add_default_hours
+from reservations.pricing import quote
 from reservations.security import hash_password
 
 VENUE_TZ = ZoneInfo("Europe/Prague")
@@ -89,6 +93,43 @@ DEMO_COURTS = [
     ),
 ]
 
+# Peak evenings on weekdays and a flat weekend rate on the two most popular
+# courts; every other slot uses the court's price_per_hour (ADR-009).
+# weekday 0 = Monday; minutes since venue-local midnight.
+DEMO_PRICE_RULES = {
+    "Tennis Court 1": [
+        *(
+            {
+                "weekday": d,
+                "start_minute": 17 * 60,
+                "end_minute": 22 * 60,
+                "price_per_hour": 450,
+            }
+            for d in range(5)
+        ),
+        *(
+            {
+                "weekday": d,
+                "start_minute": 7 * 60,
+                "end_minute": 22 * 60,
+                "price_per_hour": 400,
+            }
+            for d in (5, 6)
+        ),
+    ],
+    "Volleyball Arena": [
+        *(
+            {
+                "weekday": d,
+                "start_minute": 18 * 60,
+                "end_minute": 22 * 60,
+                "price_per_hour": 650,
+            }
+            for d in range(5)
+        ),
+    ],
+}
+
 DEMO_MANAGER = {
     "name": "Admin",
     "email": "admin@courtly.app",
@@ -140,6 +181,12 @@ def main() -> None:
             )
             session.add(venue)
             session.flush()
+        if (
+            session.query(VenueOpeningHours).filter_by(venue_id=venue.id).first()
+            is None
+        ):
+            add_default_hours(session, venue)
+            session.flush()
 
         courts_by_name: dict[str, Court] = {}
         created_courts = 0
@@ -151,8 +198,18 @@ def main() -> None:
                 session.flush()
                 courts_by_name[court.name] = court
                 created_courts += 1
+
             else:
                 courts_by_name[court.name] = existing
+        for name, rules in DEMO_PRICE_RULES.items():
+            court = courts_by_name[name]
+            if (
+                session.query(CourtPriceRule).filter_by(court_id=court.id).first()
+                is None
+            ):
+                session.add_all(
+                    CourtPriceRule(court_id=court.id, **rule) for rule in rules
+                )
         session.commit()
 
         created_users = 0
@@ -217,6 +274,7 @@ def main() -> None:
                     start_time=start,
                     end_time=end,
                     status=reservation_status,
+                    price_total=quote(session, court, start, end),
                     hold_expires_at=(datetime.now(VENUE_TZ) + timedelta(minutes=5))
                     if reservation_status == ReservationStatus.PENDING
                     else None,
@@ -267,6 +325,9 @@ def main() -> None:
                     start_time=past_start,
                     end_time=past_start + timedelta(hours=1),
                     status=ReservationStatus.COMPLETED,
+                    price_total=quote(
+                        session, court, past_start, past_start + timedelta(hours=1)
+                    ),
                 )
                 session.add(visit)
                 session.flush()
@@ -302,6 +363,9 @@ def main() -> None:
                     start_time=mate_start,
                     end_time=mate_start + timedelta(hours=1),
                     status=ReservationStatus.COMPLETED,
+                    price_total=quote(
+                        session, court, mate_start, mate_start + timedelta(hours=1)
+                    ),
                 )
                 session.add(mate_visit)
                 session.flush()
