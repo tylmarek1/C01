@@ -13,11 +13,11 @@ import { UserMenu } from "@/components/shared/user-menu"
 import { useAuth } from "@/lib/auth-context"
 import { useFormatters } from "@/lib/format"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
-import { isVenueStaff, usePendingApprovalCount, useUnreadChatCount } from "@/lib/queries"
+import { isVenueStaff, usePendingApprovalCount, useUnreadChatCount, useVenuesWithHours } from "@/lib/queries"
 import { useNow } from "@/lib/use-now"
 import { useRoleLabels } from "@/lib/user-role"
 import { cn } from "@/lib/utils"
-import { CLOSING_HOUR, OPENING_HOUR, hourLabel, isVenueOpen } from "@/lib/venue"
+import { venueStatus } from "@/lib/venue"
 
 interface NavEntry {
   to: string
@@ -67,26 +67,42 @@ function CountBadge({ count, className }: { count?: number; className?: string }
 }
 
 /** Thin forest strip above the masthead: today's date and whether the venue
- * is open right now (venue-local time), plus language + theme. */
+ * is open right now (venue-local time, its real hours — ADR-009), plus
+ * language + theme. With several venues it counts how many are open. */
 function VenueStrip() {
   const { t } = useTranslation()
   const fmt = useFormatters()
   const now = useNow(30_000)
-  const open = isVenueOpen(now)
+  const venues = useVenuesWithHours()
+  const statuses = venues?.map(({ hours }) => venueStatus(hours, now)) ?? []
+  const single = statuses.length === 1 ? statuses[0] : null
+  const openCount = statuses.filter((status) => status.open).length
+
+  let state: string | null = null
+  if (single?.open && single.today) state = t("venue.openNow", { time: single.today.closes_at })
+  else if (single?.next)
+    state =
+      single.next === single.today
+        ? t("venue.closedNow", { time: single.next.opens_at })
+        : t("venue.closedUntil", { day: fmt.weekdayName(single.next.weekday, "short"), time: single.next.opens_at })
+  else if (single) state = t("venue.closedNoHours")
+  else if (statuses.length > 1) state = t("venue.someOpen", { open: openCount, count: statuses.length })
 
   return (
     <div className="hidden bg-panel text-panel-foreground lg:block">
       <div className="mx-auto flex h-8 max-w-7xl items-center gap-5 px-8 font-mono text-[11px] tracking-[0.06em] uppercase">
         <span className="text-panel-muted">{fmt.dateLong(new Date(now))}</span>
-        <span className="flex items-center gap-2">
-          <span aria-hidden className={cn("size-1.5", open ? "animate-blink bg-brand" : "bg-panel-muted")} />
-          {open
-            ? t("venue.openNow", { time: hourLabel(CLOSING_HOUR) })
-            : t("venue.closedNow", { time: hourLabel(OPENING_HOUR) })}
-        </span>
-        <span className="hidden text-panel-muted xl:inline">
-          {t("venue.hours", { open: hourLabel(OPENING_HOUR), close: hourLabel(CLOSING_HOUR) })}
-        </span>
+        {state && (
+          <span className="flex items-center gap-2">
+            <span aria-hidden className={cn("size-1.5", (single ? single.open : openCount > 0) ? "animate-blink bg-brand" : "bg-panel-muted")} />
+            {state}
+          </span>
+        )}
+        {single && (
+          <span className="hidden text-panel-muted xl:inline">
+            {single.today ? t("venue.hoursToday", { open: single.today.opens_at, close: single.today.closes_at }) : t("venue.closedToday")}
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <LanguageSwitcher />
           <ThemeToggle className="size-7 text-panel-foreground hover:bg-panel-foreground/10 hover:text-panel-foreground" />

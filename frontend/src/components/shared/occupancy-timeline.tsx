@@ -70,6 +70,9 @@ function OccupancyTimeline({ opensAt, closesAt, busy, className, compact = false
     return { left: `${left}%`, width: `${toPercent(slot.end.toISOString()) - left}%` }
   }
 
+  // A closed day has no hours to draw (opens_at === closes_at); SlotGrid says so.
+  if (span <= 0) return null
+
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       {pick && (

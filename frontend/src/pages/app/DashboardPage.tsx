@@ -368,6 +368,7 @@ function DashboardPage() {
     onSetOpen: (r: Reservation, openToJoin: boolean, note: string) => setOpenMutation.mutate({ reservation: r, openToJoin, note }),
     onHoldExpired: () => queryClient.invalidateQueries({ queryKey: ["reservations"] }),
     isSettingOpen: setOpenMutation.isPending,
+    canPay: true,
     hasReview: reviewedReservationIds.has(reservation.id),
     onSubmitReview: (r: Reservation, rating: number, comment: string, photos: File[]) =>
       reviewMutation.mutate({ reservation: r, rating, comment, photos }),

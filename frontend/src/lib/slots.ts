@@ -1,4 +1,4 @@
-import { CLOSING_HOUR } from "@/lib/venue"
+import { DEFAULT_CLOSING_HOUR } from "@/lib/venue"
 import type { BusySlot, CourtAvailability } from "@/types"
 
 // Mirror backend/src/reservations/rules.py — the UI disables what the API
@@ -6,14 +6,14 @@ import type { BusySlot, CourtAvailability } from "@/types"
 export const MIN_LEAD_MINUTES = 15
 export const MAX_ADVANCE_DAYS = 14
 const SLOT_STEP_MINUTES = 30
-// CLOSING_HOUR is used only to skip a "today" that has no bookable start
+// DEFAULT_CLOSING_HOUR is used only to skip a "today" that has no bookable start
 // left; availability is the real source.
 const SHORTEST_SLOT_MINUTES = 60
 
 /** Today, or tomorrow once no slot can still start today (YYYY-MM-DD, local). */
 export function firstBookableDate(now = new Date()): string {
   const lastStart = new Date(now)
-  lastStart.setHours(CLOSING_HOUR, 0, 0, 0)
+  lastStart.setHours(DEFAULT_CLOSING_HOUR, 0, 0, 0)
   lastStart.setMinutes(-SHORTEST_SLOT_MINUTES)
   const day = new Date(now)
   if (now.getTime() + MIN_LEAD_MINUTES * 60_000 > lastStart.getTime()) day.setDate(day.getDate() + 1)

@@ -155,7 +155,16 @@ function BookCourtPage() {
 
   const start = selectedStart ? new Date(selectedStart) : null
   const end = start ? new Date(start.getTime() + duration * 60_000) : null
-  const estimatedCost = selectedCourt?.price_per_hour != null ? (selectedCourt.price_per_hour * duration) / 60 : null
+  // Once a time is picked the backend quotes it from the court's rates by day
+  // and time (ADR-009); before that, the base rate gives a first idea.
+  const { data: quote, isFetching: isQuoting } = useQuery({
+    queryKey: ["price-quote", selectedCourt?.id, selectedStart, duration],
+    queryFn: () => api.getPriceQuote(selectedCourt!.id, start!.toISOString(), end!.toISOString()),
+    enabled: Boolean(selectedCourt && start),
+  })
+  const basePrice = selectedCourt?.price_per_hour ?? null
+  const estimatedCost = start ? (quote?.price_total ?? null) : basePrice !== null ? (basePrice * duration) / 60 : null
+  const priceLabel = start ? t("book.summary.price") : t("book.summary.estimate")
   const seriesLastDate = start && repeatWeekly ? addDays(start, (Number(weeks) - 1) * 7) : null
 
   const joinWaitlistMutation = useMutation({
@@ -411,9 +420,13 @@ function BookCourtPage() {
             {/* below the perforation */}
             <div className="flex h-[13.5rem] flex-col gap-3 border-t-2 border-dashed border-panel-foreground/25 px-6 pt-5 pb-6">
               <div className="flex items-end justify-between gap-3">
-                <span className="font-mono text-[10.5px] tracking-[0.08em] text-panel-muted uppercase">{t("book.summary.estimate")}</span>
+                <span className="font-mono text-[10.5px] tracking-[0.08em] text-panel-muted uppercase">{priceLabel}</span>
                 <span className="display text-[40px] normal-case! tabular">
-                  {estimatedCost !== null ? formatCurrency(estimatedCost * (repeatWeekly ? Number(weeks) : 1)) : t("courts.priceUnset")}
+                  {start && isQuoting
+                    ? "…"
+                    : estimatedCost !== null
+                      ? formatCurrency(estimatedCost * (repeatWeekly ? Number(weeks) : 1))
+                      : t("courts.priceUnset")}
                 </span>
               </div>
               <Button

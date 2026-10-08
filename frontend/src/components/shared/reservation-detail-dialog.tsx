@@ -12,12 +12,13 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { CourtArt } from "@/components/shared/court-art"
 import { Countdown } from "@/components/shared/countdown"
-import { StatusBadge } from "@/components/shared/status-badge"
+import { PaymentBadge, StatusBadge } from "@/components/shared/status-badge"
 import { UserAvatar } from "@/components/shared/user-avatar"
 import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { formatCurrency, useFormatters } from "@/lib/format"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
+import { usePaymentMethodLabels } from "@/lib/payment-status"
 import { cn } from "@/lib/utils"
 import type { Reservation, ReservationEventType, ReservationGuest } from "@/types"
 
@@ -101,6 +102,7 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
   const { token } = useAuth()
   const { t } = useTranslation()
   const fmt = useFormatters()
+  const methodLabels = usePaymentMethodLabels()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -162,8 +164,17 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t("reservationDetail.error.chat")),
   })
 
-  const hours = reservation ? (new Date(reservation.end_time).getTime() - new Date(reservation.start_time).getTime()) / 3_600_000 : 0
-  const estimatedCost = reservation?.court.price_per_hour != null ? reservation.court.price_per_hour * hours : null
+  // The price quoted when the slot was booked (ADR-009) — not today's rate.
+  const price = reservation?.price_total ?? null
+
+  // Only the booker (and the venue's staff) may see the payments; for anyone
+  // else the request is refused and the section stays hidden.
+  const { data: payments } = useQuery({
+    queryKey: ["reservation-payments", reservation?.id],
+    queryFn: () => api.listReservationPayments(token!, reservation!.id),
+    enabled: Boolean(token && reservation && price !== null),
+    retry: false,
+  })
 
   return (
     <>
@@ -211,7 +222,7 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                   </div>
                   <div className="flex flex-col gap-1 p-3">
                     <dt className="eyebrow text-[10px]">{t("reservationDetail.cost")}</dt>
-                    <dd className="text-[13px] font-medium tabular">{estimatedCost !== null ? formatCurrency(estimatedCost) : "—"}</dd>
+                    <dd className="text-[13px] font-medium tabular">{price !== null ? formatCurrency(price) : "—"}</dd>
                   </div>
                 </dl>
 
@@ -316,6 +327,27 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                         </div>
                       </div>
                     ))}
+                  </Section>
+                )}
+
+                {payments && payments.length > 0 && (
+                  <Section title={t("reservationDetail.payments.title")} count={payments.length}>
+                    <ul className="flex flex-col divide-y divide-border">
+                      {payments.map((payment) => (
+                        <li key={payment.id} className="flex items-center justify-between gap-3 py-2 text-[13px]">
+                          <span className="flex min-w-0 flex-col">
+                            <span className="font-medium">
+                              {methodLabels[payment.method]} · {formatCurrency(payment.amount)}
+                            </span>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {fmt.dateTime(payment.refunded_at ?? payment.paid_at ?? payment.created_at)}
+                              {payment.failure_reason ? ` · ${payment.failure_reason}` : ""}
+                            </span>
+                          </span>
+                          <PaymentBadge status={payment.status} />
+                        </li>
+                      ))}
+                    </ul>
                   </Section>
                 )}
 

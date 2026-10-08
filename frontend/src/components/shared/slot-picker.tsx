@@ -132,6 +132,15 @@ function SlotGrid({
     past: t("book.slot.tooSoon"),
   }
 
+  // The venue's opening hours have no row for this weekday (ADR-009).
+  if (availability.closed) {
+    return (
+      <p className={cn("border border-dashed border-foreground/25 px-4 py-6 text-center text-[13px] text-muted-foreground", className)}>
+        {t("book.slots.closedDay")}
+      </p>
+    )
+  }
+
   if (slots.length === 0 || freeCount === 0) {
     const allPast = slots.every((slot) => slot.state === "past")
     return (
