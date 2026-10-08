@@ -397,6 +397,8 @@ const cs: Record<TranslationKey, string> = {
   "notificationPrefs.teams.description": "Přidání do týmu nebo odpověď na vaši žádost o vstup.",
   "notificationPrefs.matches.title": "Výsledky zápasů",
   "notificationPrefs.matches.description": "Někdo zapsal výsledek vašeho zápasu.",
+  "notificationPrefs.payments.title": "Platby",
+  "notificationPrefs.payments.description": "Přijatá nebo vrácená platba – a pro personál sportoviště i vrácení, které se nepovedlo.",
 
   "common.retry": "Zkusit znovu",
   "common.error.title": "Něco se nepovedlo",

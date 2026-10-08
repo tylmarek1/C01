@@ -6,7 +6,8 @@ transaction. Paying is three steps — record a PENDING payment and commit;
 call the gateway with no transaction open; record the result in a new
 transaction. Refunds are only *queued* where a reservation is released
 (`release_for`, called by `lifecycle.transition`); `process_refunds` in the
-background worker makes the gateway calls.
+background worker makes the gateway calls, and a venue manager hands cash
+back at the desk (`refund_cash`).
 
 Paying never changes a reservation's status: a reservation is confirmed by
 the specified Confirm/Approve flow whether or not it has been paid
@@ -22,6 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from reservations.models import (
+    NotificationType,
     Payment,
     PaymentMethod,
     PaymentStatus,
@@ -29,7 +31,9 @@ from reservations.models import (
     ReservationStatus,
     User,
 )
+from reservations.notifications import notify
 from reservations.payment_gateway import get_gateway
+from reservations.venue_access import venue_staff
 
 logger = logging.getLogger("reservations.payments")
 
@@ -137,6 +141,7 @@ def pay_online(
             and reservation.status in PAYABLE_STATUSES
         ):
             payment.status = PaymentStatus.PAID
+            _notify_paid(db, payment)
         else:
             # Released while the charge ran (release_for already gave up on
             # this PENDING payment): the money was taken, so give it back.
@@ -162,7 +167,7 @@ def record_cash(db: Session, reservation: Reservation, manager: User) -> Payment
             status.HTTP_409_CONFLICT,
             f"A {reservation.status} reservation can't be paid at the desk",
         )
-    return _add(
+    payment = _add(
         db,
         Payment(
             reservation_id=reservation.id,
@@ -174,13 +179,82 @@ def record_cash(db: Session, reservation: Reservation, manager: User) -> Payment
             paid_at=datetime.now(timezone.utc),
         ),
     )
+    _notify_paid(db, payment)
+    return payment
+
+
+def refund_cash(db: Session, payment: Payment) -> None:
+    """A venue manager handed a released reservation's cash back. Caller
+    holds the payment lock, has checked the manager's venue, and commits."""
+    if (
+        payment.method != PaymentMethod.CASH
+        or payment.status != PaymentStatus.REFUND_PENDING
+    ):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Only a cash payment waiting for its refund can be handed back",
+        )
+    _mark_refunded(db, payment)
+
+
+def retry_refund(db: Session, payment: Payment) -> None:
+    """Put a refund the gateway kept refusing back in the worker's queue."""
+    if payment.status != PaymentStatus.REFUND_FAILED:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Only a failed refund can be retried"
+        )
+    payment.status = PaymentStatus.REFUND_PENDING
+    payment.refund_attempts = 0
+    payment.failure_reason = None
+
+
+def latest_status_by_reservation(db: Session, reservation_ids: list) -> dict:
+    """{reservation_id: status of its most recent payment}, for the
+    reservation lists (`ReservationOut.payment_status`)."""
+    if not reservation_ids:
+        return {}
+    stmt = (
+        select(Payment.reservation_id, Payment.status)
+        .where(Payment.reservation_id.in_(reservation_ids))
+        .order_by(Payment.reservation_id, Payment.created_at.desc(), Payment.id.desc())
+        .distinct(Payment.reservation_id)
+    )
+    return dict(db.execute(stmt).all())
+
+
+def _money(payment: Payment) -> str:
+    return f"{payment.amount:.2f} {payment.currency}"
+
+
+def _notify_paid(db: Session, payment: Payment) -> None:
+    court = payment.reservation.court.name
+    notify(
+        db,
+        payment.user_id,
+        NotificationType.PAYMENT_RECEIVED,
+        "Payment received",
+        f"{_money(payment)} for {court} — thank you.",
+    )
+
+
+def _mark_refunded(db: Session, payment: Payment) -> None:
+    payment.status = PaymentStatus.REFUNDED
+    payment.refunded_at = datetime.now(timezone.utc)
+    payment.failure_reason = None
+    notify(
+        db,
+        payment.user_id,
+        NotificationType.PAYMENT_REFUNDED,
+        "Payment refunded",
+        f"{_money(payment)} for {payment.reservation.court.name} was refunded.",
+    )
 
 
 def release_for(db: Session, reservation: Reservation) -> None:
     """Called by `lifecycle.transition` when a reservation is released.
-    Queues the refund of an online payment; gives up a charge still in
-    flight (pay_online refunds it if it goes through). Cash stays PAID — it
-    is handed back at the desk, not through the gateway. No network I/O."""
+    Queues the refund of a paid payment — the worker refunds an online one,
+    a manager hands cash back (`refund_cash`) — and gives up a charge still
+    in flight (pay_online refunds it if it goes through). No network I/O."""
     if reservation.status not in REFUNDED_ON:
         return
     stmt = (
@@ -189,10 +263,7 @@ def release_for(db: Session, reservation: Reservation) -> None:
         .with_for_update()
     )
     for payment in db.scalars(stmt):
-        if (
-            payment.status == PaymentStatus.PAID
-            and payment.method == PaymentMethod.ONLINE
-        ):
+        if payment.status == PaymentStatus.PAID:
             payment.status = PaymentStatus.REFUND_PENDING
         elif payment.status == PaymentStatus.PENDING:
             payment.status = PaymentStatus.FAILED
@@ -218,6 +289,8 @@ def process_refunds(db: Session) -> None:
     queued = (
         select(Payment)
         .where(Payment.status == PaymentStatus.REFUND_PENDING)
+        # Cash goes back at the desk, not through the gateway.
+        .where(Payment.method == PaymentMethod.ONLINE)
         .order_by(Payment.created_at)
         .limit(REFUND_BATCH)
         .with_for_update(skip_locked=True)
@@ -226,12 +299,21 @@ def process_refunds(db: Session) -> None:
     for payment in db.scalars(queued):
         result = gateway.refund(payment.provider_ref, payment.amount, payment.currency)
         if result.ok:
-            payment.status = PaymentStatus.REFUNDED
-            payment.refunded_at = now
-            payment.failure_reason = None
+            _mark_refunded(db, payment)
             continue
         payment.refund_attempts += 1
         payment.failure_reason = result.error
         if payment.refund_attempts >= REFUND_MAX_ATTEMPTS:
             payment.status = PaymentStatus.REFUND_FAILED
             logger.error("refund gave up", extra={"payment_id": str(payment.id)})
+            # Somebody has to sort this out with the provider by hand.
+            reservation = payment.reservation
+            for person in venue_staff(db, reservation.court.venue_id):
+                notify(
+                    db,
+                    person.id,
+                    NotificationType.REFUND_FAILED,
+                    "Refund failed",
+                    f"{_money(payment)} for {reservation.court.name} couldn't be refunded "
+                    f"to {payment.user.name}: {result.error}",
+                )

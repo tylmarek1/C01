@@ -3,7 +3,9 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from reservations.models import PaymentMethod, PaymentStatus
+from reservations.models import PaymentMethod, PaymentStatus, ReservationStatus
+from reservations.schemas.auth import UserOut
+from reservations.schemas.court import CourtOut
 
 
 class PaymentCreate(BaseModel):
@@ -26,3 +28,21 @@ class PaymentOut(BaseModel):
     created_at: datetime
     paid_at: datetime | None
     refunded_at: datetime | None
+
+
+class PaymentReservationOut(BaseModel):
+    """Just enough of the reservation to recognise it in a payments list."""
+
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    court: CourtOut
+    user: UserOut
+    start_time: datetime
+    end_time: datetime
+    status: ReservationStatus
+
+
+class PaymentAdminOut(PaymentOut):
+    reservation: PaymentReservationOut
+    refund_attempts: int

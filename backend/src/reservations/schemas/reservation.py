@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
-from reservations.models import ReservationEventType, ReservationStatus
+from reservations.models import PaymentStatus, ReservationEventType, ReservationStatus
 from reservations.schemas.auth import UserOut
 from reservations.schemas.court import CourtOut
 from reservations.schemas.reservation_guest import ReservationGuestOut
@@ -123,6 +123,9 @@ class ReservationOut(BaseModel):
     open_note: str | None
     # Quoted when booked (ADR-009); None when the court publishes no price.
     price_total: float | None = None
+    # Status of the most recent payment (ADR-010); None = never paid. Filled
+    # in by the list endpoints only.
+    payment_status: PaymentStatus | None = None
     created_at: datetime
 
 

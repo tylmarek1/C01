@@ -28,6 +28,7 @@ from reservations.main import app
 from reservations.models import (
     AuditLog,
     Court,
+    Notification,
     Payment,
     PaymentStatus,
     Reservation,
@@ -319,7 +320,7 @@ def test_an_abandoned_pending_payment_is_given_up(
 # ------------------------------------------------------------------- cash
 
 
-def test_a_manager_of_the_venue_records_cash_and_it_is_not_refunded_online(
+def test_cash_is_recorded_by_the_venue_and_handed_back_at_the_desk(
     session_factory: sessionmaker,
 ) -> None:
     client = TestClient(app)
@@ -341,9 +342,27 @@ def test_a_manager_of_the_venue_records_cash_and_it_is_not_refunded_online(
     assert recorded.status_code == 201
     assert (recorded.json()["method"], recorded.json()["status"]) == ("CASH", "PAID")
 
+    cash_id = recorded.json()["id"]
     cancel(client, player, reservation["id"])
     run_refunds(session_factory)
-    assert payment_statuses(session_factory, reservation["id"]) == [PaymentStatus.PAID]
+    # The worker never refunds cash through the gateway; it waits for the desk.
+    assert payment_statuses(session_factory, reservation["id"]) == [
+        PaymentStatus.REFUND_PENDING
+    ]
+
+    assert (
+        client.post(
+            f"/payments/{cash_id}/cash-refund", headers=bearer(outsider)
+        ).status_code
+        == 403
+    )
+    handed_back = client.post(
+        f"/payments/{cash_id}/cash-refund", headers=bearer(manager)
+    )
+    assert handed_back.status_code == 200
+    assert handed_back.json()["status"] == "REFUNDED"
+    again = client.post(f"/payments/{cash_id}/cash-refund", headers=bearer(manager))
+    assert again.status_code == 409
 
 
 def test_payments_are_listed_to_the_booker_and_the_venues_managers_only(
@@ -378,3 +397,130 @@ def test_payment_changes_are_audited(session_factory: sessionmaker) -> None:
         ).all()
     assert [row.action for row in rows] == ["CREATE", "UPDATE"]
     assert rows[1].changes["status"] == ["PENDING", "PAID"]
+
+
+def notification_types(session_factory: sessionmaker, user_id) -> list[str]:
+    with session_factory() as session:
+        stmt = (
+            select(Notification.type)
+            .where(Notification.user_id == user_id)
+            .order_by(Notification.created_at)
+        )
+        return [t.value for t in session.scalars(stmt)]
+
+
+def test_the_payer_is_told_about_the_payment_and_the_refund(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    player_id, token = make_user(session_factory, "player@example.com")
+    reservation = booked(client, token, priced_court(session_factory))
+    pay(client, token, reservation["id"])
+    cancel(client, token, reservation["id"])
+    run_refunds(session_factory)
+
+    payment_types = [
+        t
+        for t in notification_types(session_factory, player_id)
+        if t.startswith("PAYMENT")
+    ]
+    assert payment_types == ["PAYMENT_RECEIVED", "PAYMENT_REFUNDED"]
+
+
+def test_a_failed_refund_alerts_the_venue_and_can_be_retried(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    _, player = make_user(session_factory, "player@example.com")
+    manager_id, manager = make_user(
+        session_factory, "manager@example.com", UserRole.VENUE_MANAGER
+    )
+    admin_id, _ = make_user(session_factory, "admin@example.com", UserRole.ADMIN)
+    outsider_id, _ = make_user(session_factory, "outsider@example.com")
+    with session_factory() as session:
+        make_venue_manager(
+            session, session.get(User, outsider_id), make_venue(session, "Elsewhere")
+        )
+        session.commit()
+    reservation = booked(client, player, priced_court(session_factory))
+    payment_id = pay(client, player, reservation["id"]).json()["id"]
+    cancel(client, player, reservation["id"])
+
+    class RefusesRefunds(MockGateway):
+        def refund(
+            self, provider_ref: str, amount: Decimal, currency: str
+        ) -> RefundResult:
+            return RefundResult(ok=False, error="Provider unavailable")
+
+    payment_gateway.set_gateway(RefusesRefunds())
+    for _ in range(payments.REFUND_MAX_ATTEMPTS):
+        run_refunds(session_factory)
+
+    assert notification_types(session_factory, manager_id) == ["REFUND_FAILED"]
+    assert notification_types(session_factory, admin_id) == ["REFUND_FAILED"]
+    assert notification_types(session_factory, outsider_id) == []
+
+    failed = client.get(
+        "/payments", params={"status": "REFUND_FAILED"}, headers=bearer(manager)
+    ).json()
+    assert [p["id"] for p in failed] == [payment_id]
+    assert failed[0]["reservation"]["court"]["name"] == "Paid Court"
+
+    payment_gateway.set_gateway(MockGateway())
+    retried = client.post(
+        f"/payments/{payment_id}/retry-refund", headers=bearer(manager)
+    )
+    assert (
+        retried.json()["status"] == "REFUND_PENDING"
+        and retried.json()["refund_attempts"] == 0
+    )
+    run_refunds(session_factory)
+    assert payment_statuses(session_factory, reservation["id"]) == [
+        PaymentStatus.REFUNDED
+    ]
+
+
+def test_the_payments_list_is_scoped_to_the_managers_venues(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    _, player = make_user(session_factory, "player@example.com")
+    outsider_id, outsider = make_user(session_factory, "outsider@example.com")
+    with session_factory() as session:
+        make_venue_manager(
+            session, session.get(User, outsider_id), make_venue(session, "Elsewhere")
+        )
+        session.commit()
+    _, admin = make_user(session_factory, "admin@example.com", UserRole.ADMIN)
+    reservation = booked(client, player, priced_court(session_factory))
+    pay(client, player, reservation["id"])
+
+    assert client.get("/payments", headers=bearer(outsider)).json() == []
+    assert len(client.get("/payments", headers=bearer(admin)).json()) == 1
+    assert client.get("/payments", headers=bearer(player)).status_code == 403
+
+
+def test_reservation_lists_carry_the_latest_payment_status(
+    session_factory: sessionmaker,
+) -> None:
+    client = TestClient(app)
+    _, player = make_user(session_factory, "player@example.com")
+    _, manager = make_user(
+        session_factory, "manager@example.com", UserRole.VENUE_MANAGER
+    )
+    court_id = priced_court(session_factory)
+    paid = booked(client, player, court_id)
+    unpaid = create(client, player, court_id, at(10), at(11)).json()
+    pay(client, player, paid["id"], decline=True)
+    pay(client, player, paid["id"])
+
+    mine = {
+        r["id"]: r["payment_status"]
+        for r in client.get("/reservations", headers=bearer(player)).json()
+    }
+    admin_list = {
+        r["id"]: r["payment_status"]
+        for r in client.get("/reservations/admin", headers=bearer(manager)).json()
+    }
+
+    assert mine == admin_list == {paid["id"]: "PAID", unpaid["id"]: None}
