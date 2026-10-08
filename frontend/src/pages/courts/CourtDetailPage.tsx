@@ -619,7 +619,17 @@ function CourtDetailPage() {
             {isLoadingAvailability && <Skeleton className="h-48 w-full" />}
             {availability && (
               <>
-                <OccupancyTimeline opensAt={availability.opens_at} closesAt={availability.closes_at} busy={availability.busy} compact />
+                <OccupancyTimeline
+                  opensAt={availability.opens_at}
+                  closesAt={availability.closes_at}
+                  busy={availability.busy}
+                  compact
+                  pick={
+                    court.active
+                      ? { durationMinutes: duration, onSelect: (slot) => navigate(user ? bookingHref(court.id, slot.start) : "/register") }
+                      : undefined
+                  }
+                />
                 {court.active ? (
                   <SlotGrid
                     availability={availability}

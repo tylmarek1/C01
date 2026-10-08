@@ -31,7 +31,11 @@ export interface Slot {
 
 /** Every start time between opening and closing at which a `durationMinutes`
  * session fits, classified against the busy list. */
-export function buildSlots(availability: CourtAvailability, durationMinutes: number, now = Date.now()): Slot[] {
+export function buildSlots(
+  availability: Pick<CourtAvailability, "opens_at" | "closes_at" | "busy">,
+  durationMinutes: number,
+  now = Date.now(),
+): Slot[] {
   const open = new Date(availability.opens_at).getTime()
   const close = new Date(availability.closes_at).getTime()
   const slots: Slot[] = []
@@ -51,3 +55,16 @@ export function buildSlots(availability: CourtAvailability, durationMinutes: num
   return slots
 }
 
+
+/** The slot a click at `time` on the day's timeline means: of the free slots
+ * covering that moment, the one starting nearest to it — otherwise the slot
+ * starting in that half hour, so a click on a taken stretch can still offer
+ * the waitlist. */
+export function slotAt(slots: Slot[], time: Date): Slot | undefined {
+  const t = time.getTime()
+  const covering = slots.filter((slot) => slot.state === "free" && slot.start.getTime() <= t && t < slot.end.getTime())
+  if (covering.length > 0) {
+    return covering.reduce((best, slot) => (Math.abs(slot.start.getTime() - t) < Math.abs(best.start.getTime() - t) ? slot : best))
+  }
+  return slots.find((slot) => slot.start.getTime() <= t && t < slot.start.getTime() + SLOT_STEP_MINUTES * 60_000)
+}

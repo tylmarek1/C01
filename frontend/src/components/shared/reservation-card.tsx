@@ -37,13 +37,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Countdown } from "@/components/shared/countdown"
+import { OccupancyTimeline } from "@/components/shared/occupancy-timeline"
 import { PlayerSearch } from "@/components/shared/player-search"
+import { DayStrip, SlotGrid } from "@/components/shared/slot-picker"
 import { StarRatingInput } from "@/components/shared/star-rating"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { UserAvatar } from "@/components/shared/user-avatar"
 import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { formatCurrency, toDateString, todayDateString, useFormatters } from "@/lib/format"
+import { formatCurrency, toDateString, useFormatters } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
 import { useNow } from "@/lib/use-now"
 import { cn } from "@/lib/utils"
@@ -381,59 +383,93 @@ function RescheduleDialog({
 }) {
   const { t } = useTranslation()
   const fmt = useFormatters()
-  const start = new Date(reservation.start_time)
-  const durationMs = new Date(reservation.end_time).getTime() - start.getTime()
-  const [date, setDate] = useState(() => toDateString(start))
-  const [time, setTime] = useState(() => `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`)
+  const currentStart = new Date(reservation.start_time).toISOString()
+  const durationMinutes = Math.round((new Date(reservation.end_time).getTime() - new Date(reservation.start_time).getTime()) / 60_000)
+  const [date, setDate] = useState(() => toDateString(new Date(reservation.start_time)))
+  const [selectedStart, setSelectedStart] = useState<string | null>(currentStart)
 
-  const now = useNow(30_000)
-  const newStart = new Date(`${date}T${time}:00`)
-  const newEnd = new Date(newStart.getTime() + durationMs)
-  const valid = !Number.isNaN(newStart.getTime()) && newStart.getTime() > now
+  const { data: availability, isLoading } = useQuery({
+    queryKey: ["court-availability", reservation.court.id, date],
+    queryFn: () => api.getCourtAvailability(reservation.court.id, date),
+    enabled: open,
+  })
+  // The reservation being moved occupies its own slot — it mustn't block itself.
+  const ownAvailability = useMemo(
+    () =>
+      availability && {
+        ...availability,
+        busy: availability.busy.filter(
+          (slot) =>
+            !(
+              slot.source === "RESERVATION" &&
+              new Date(slot.start_time).getTime() === new Date(reservation.start_time).getTime() &&
+              new Date(slot.end_time).getTime() === new Date(reservation.end_time).getTime()
+            ),
+        ),
+      },
+    [availability, reservation.start_time, reservation.end_time],
+  )
+
+  const newStart = selectedStart ? new Date(selectedStart) : null
+  const newEnd = newStart ? new Date(newStart.getTime() + durationMinutes * 60_000) : null
+  const changed = Boolean(selectedStart) && selectedStart !== currentStart
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t("reservationCard.reschedule.title")}</DialogTitle>
           <DialogDescription>{t("reservationCard.reschedule.description", { court: reservation.court.name })}</DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`reschedule-date-${reservation.id}`}>{t("reservationCard.reschedule.date")}</Label>
-            <Input
-              id={`reschedule-date-${reservation.id}`}
-              type="date"
-              min={todayDateString()}
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`reschedule-time-${reservation.id}`}>{t("reservationCard.reschedule.startTime")}</Label>
-            <Input
-              id={`reschedule-time-${reservation.id}`}
-              type="time"
-              step={1800}
-              value={time}
-              onChange={(event) => setTime(event.target.value)}
-            />
-          </div>
+        <div className="flex max-h-[60vh] min-w-0 flex-col gap-4 overflow-y-auto">
+          <DayStrip
+            value={date}
+            onChange={(next) => {
+              setDate(next)
+              setSelectedStart(null)
+            }}
+          />
+          {isLoading && <Skeleton className="h-40 w-full" />}
+          {ownAvailability && (
+            <>
+              <OccupancyTimeline
+                opensAt={ownAvailability.opens_at}
+                closesAt={ownAvailability.closes_at}
+                busy={ownAvailability.busy}
+                compact
+                pick={{ durationMinutes, selected: selectedStart, onSelect: (slot) => setSelectedStart(slot.start.toISOString()) }}
+              />
+              <SlotGrid
+                availability={ownAvailability}
+                durationMinutes={durationMinutes}
+                selected={selectedStart}
+                onSelect={(slot) => setSelectedStart(slot.start.toISOString())}
+              />
+            </>
+          )}
         </div>
-        {valid && (
-          <p className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2.5 text-[13px]">
-            <CalendarClock className="size-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{t("reservationCard.reschedule.preview")}</span>
-            <span className="font-medium tabular">{fmt.dateRange(newStart.toISOString(), newEnd.toISOString())}</span>
-          </p>
-        )}
+        <dl className="grid gap-1.5 border-t-2 border-foreground pt-3 text-[13px] sm:grid-cols-2">
+          <div className="flex items-center gap-2">
+            <dt className="text-muted-foreground">{t("reservationCard.reschedule.current")}</dt>
+            <dd className="tabular line-through decoration-1 opacity-70">{fmt.dateRange(reservation.start_time, reservation.end_time)}</dd>
+          </div>
+          <div className="flex items-center gap-2">
+            <dt className="flex items-center gap-1.5 text-muted-foreground">
+              <CalendarClock className="size-4" /> {t("reservationCard.reschedule.preview")}
+            </dt>
+            <dd className="font-semibold tabular">
+              {changed && newStart && newEnd ? fmt.dateRange(newStart.toISOString(), newEnd.toISOString()) : "—"}
+            </dd>
+          </div>
+        </dl>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </Button>
           <Button
-            disabled={!valid}
+            disabled={!changed || !newStart || !newEnd}
             onClick={() => {
+              if (!newStart || !newEnd) return
               onSubmit(newStart.toISOString(), newEnd.toISOString())
               onOpenChange(false)
             }}
