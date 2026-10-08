@@ -260,7 +260,7 @@ Remaining uncertainty / risk:
 - The Part A spec gaps (mute, `ADMIN` as manager) are still open for the spec owners.
 - C02 team sign-off of v0.2 is still open.
 
-Commit/tag: implementation `65aad78` on branch `feat/c03-notification-outbox`; the docs commit follows it on the same branch. Tag `c03-architecture` to be placed on the commit that lands in `main`.
+Commit/tag: implementation `65aad78` and docs `38ef1a7` (branch `feat/c03-notification-outbox`), merged to `main` in PR #71 as merge commit `da3158d`. Tag **`c03-architecture`** points to `da3158d`.
 
 ### Follow-up 2026-10-08 — waitlist accept through the Lifecycle
 
