@@ -30,6 +30,7 @@ from reservations.api import (
 )
 from reservations.config import settings
 from reservations.deps import session_factory
+from reservations.observability import RequestContextMiddleware, configure_logging
 from reservations.worker import run_forever, run_push_dispatcher
 
 logger = logging.getLogger("reservations.api")
@@ -42,6 +43,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # test client wouldn't accidentally spin up a second worker loop either).
     tasks: list[asyncio.Task] = []
     if os.environ.get("PYTEST_CURRENT_TEST") is None:
+        configure_logging(settings.log_format, settings.log_level)
         tasks.append(asyncio.create_task(run_forever(session_factory)))
         tasks.append(asyncio.create_task(run_push_dispatcher(session_factory)))
     try:
@@ -62,7 +64,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+# Added last, so it's the outermost user middleware: the request id and the
+# access log line cover CORS preflights too.
+app.add_middleware(RequestContextMiddleware)
 
 
 class _CachedStaticFiles(StaticFiles):

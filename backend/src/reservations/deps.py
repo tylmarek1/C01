@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from reservations.db import make_engine, make_session_factory
 from reservations.models import User, UserRole
+from reservations.observability import bind_user
 from reservations.security import decode_access_token
 
 _engine = make_engine()
@@ -43,6 +44,7 @@ def get_current_user(
     user = db.get(User, uuid.UUID(user_id))
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
+    bind_user(user.id)
     return user
 
 
@@ -73,4 +75,7 @@ def get_optional_user(
         user_id = decode_access_token(credentials.credentials)
     except jwt.PyJWTError:
         return None
-    return db.get(User, uuid.UUID(user_id))
+    user = db.get(User, uuid.UUID(user_id))
+    if user is not None:
+        bind_user(user.id)
+    return user

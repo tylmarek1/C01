@@ -37,6 +37,10 @@ class Settings:
         self.vapid_contact_email = os.environ.get(
             "VAPID_CONTACT_EMAIL", "admin@courtly.example"
         )
+        # "text" (key=value lines, readable in a terminal) or "json" (one
+        # object per line, for shipping logs somewhere) — see observability.py.
+        self.log_format = os.environ.get("LOG_FORMAT", "text")
+        self.log_level = os.environ.get("LOG_LEVEL", "INFO")
 
 
 settings = Settings()

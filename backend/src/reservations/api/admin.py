@@ -7,11 +7,13 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from reservations.deps import get_current_manager, get_db
+from reservations.deps import get_current_admin, get_current_manager, get_db
 from reservations.models import (
     ACTIVE_RESERVATION_STATUSES,
+    AuditAction,
+    AuditLog,
     Court,
     Reservation,
     ReservationStatus,
@@ -20,6 +22,7 @@ from reservations.models import (
 )
 from reservations.schemas.admin import (
     AdminStats,
+    AuditLogOut,
     CourtPopularity,
     HourlyDemand,
     UserAdminOut,
@@ -321,3 +324,35 @@ def get_court_utilization(
         for hour in range(OPENING_HOUR, CLOSING_HOUR)
     ]
     return CourtUtilization(court_id=court.id, days_analyzed=days, cells=cells)
+
+
+@router.get("/audit-log", response_model=list[AuditLogOut])
+def list_audit_log(
+    entity_type: str | None = Query(
+        default=None, max_length=50, description="Table name, e.g. courts"
+    ),
+    entity_id: uuid.UUID | None = None,
+    actor_id: uuid.UUID | None = None,
+    action: AuditAction | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> list[AuditLog]:
+    """Newest first. Admin-only: the log spans every venue and every user's
+    account changes (ADR-007)."""
+    stmt = select(AuditLog).options(selectinload(AuditLog.actor))
+    if entity_type is not None:
+        stmt = stmt.where(AuditLog.entity_type == entity_type)
+    if entity_id is not None:
+        stmt = stmt.where(AuditLog.entity_id == entity_id)
+    if actor_id is not None:
+        stmt = stmt.where(AuditLog.actor_id == actor_id)
+    if action is not None:
+        stmt = stmt.where(AuditLog.action == action)
+    stmt = (
+        stmt.order_by(AuditLog.created_at.desc(), AuditLog.id)
+        .offset(offset)
+        .limit(limit)
+    )
+    return list(db.scalars(stmt))

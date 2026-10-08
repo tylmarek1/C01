@@ -804,3 +804,28 @@ above stay as they were written, because they record the state on
   - Autogenerate still does not compare `ExcludeConstraint`s and `CHECK`s. The exclusion constraint's status list stays guarded by its own behavioural test (ADR-001 amendment).
   - The test suite now builds its schema through the migrations, so a broken migration fails every test.
   - One new dependency (`alembic`, plus `mako`).
+
+### ADR-007: Structured logs with a request id, and an audit log written by a flush listener
+
+- **Status:** accepted (2026-10-08).
+- **Context:** the only application logging was a handful of `logger.exception` calls (worker, push dispatcher, the catch-all 500 handler). Nothing tied a log line to a request or a user. Nothing recorded who changed a court, a role or a reservation, beyond `reservation_events` (which covers only reservation state and is part of the specified API, OP-xx history). The upcoming venue/manager scoping, pricing and payments make "who changed this, and when" a real question.
+- **Decision:**
+  - **Logs:**
+    - `observability.py` adds a pure-ASGI middleware that assigns each request an id: a well-formed incoming `X-Request-ID`, otherwise a new one. It echoes the id back in the response, and logs one `reservations.access` line per request with the method, the *route template*, the status and the duration.
+    - A logging filter stamps the request id and user id (bound by `get_current_user`) on every `reservations.*` record.
+    - The output is stdlib `logging` with a JSON or key=value formatter (`LOG_FORMAT`), and needs no new dependency. `uvicorn.access` is silenced because it would duplicate the access lines.
+  - **Audit:**
+    - A new `audit_log` table holds actor, request id, action, entity type and id, and `{field: [old, new]}` as JSONB.
+    - `audit.py` registers an `after_flush` listener on every session factory. For allowlisted fields of audited models it inserts rows on the flush's own connection.
+- **Alternatives considered:**
+  - Explicit `audit(...)` calls in each route: easy to forget, and the reason `lifecycle.py` exists for reservation status.
+  - Postgres triggers: complete even for raw SQL, but they can't see the application user or request id without passing session variables. They would also put logic in the database that the team doesn't otherwise maintain there.
+  - `structlog`: a nicer API, but a new dependency for what a 30-line formatter does.
+- **Consequences:**
+  - An audit row exists if and only if its change committed, because it is written in the same transaction. This is tested, including a rollback.
+  - The allowlist means secrets (`password_hash`, `calendar_token`) and unlisted new columns never reach the log. The flip side is that a field someone forgets to list isn't audited.
+  - Core bulk `update()`/`delete()` bypass the listener. The codebase has none today, and `backend/CLAUDE.md` says to keep audited models on the ORM path.
+  - Worker and seed changes are audited with a null actor.
+  - `reservation_events` stays. It is the specified, user-facing history. `audit_log` is the technical, admin-only record (`GET /admin/audit-log`).
+  - `audit_log` grows without retention, like `push_deliveries` (ADR-005).
+  - The request context is per process. It is not distributed tracing.

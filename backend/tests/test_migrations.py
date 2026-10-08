@@ -17,6 +17,7 @@ from sqlalchemy.engine import make_url
 from reservations import models  # noqa: F401  (registers tables on Base.metadata)
 from reservations.config import settings
 from reservations.db import (
+    BASELINE_REVISION,
     Base,
     alembic_config,
     downgrade_schema,
@@ -105,11 +106,12 @@ def test_every_migration_downgrades_and_upgrades_again(scratch_engine: Engine) -
 def test_a_create_all_database_is_stamped_at_the_baseline_not_rebuilt(
     scratch_engine: Engine,
 ) -> None:
-    """The pre-Alembic dev database: tables from `create_all`, no
-    `alembic_version`. Adopting it must keep its rows untouched."""
+    """The pre-Alembic dev database: the baseline schema (which `pg_dump`
+    showed identical to what `create_all` built), but no `alembic_version`.
+    Adopting it must keep its rows and still apply the later migrations."""
+    upgrade_schema(scratch_engine, BASELINE_REVISION)
     with scratch_engine.begin() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS btree_gist"))
-    Base.metadata.create_all(scratch_engine)
+        conn.execute(text("DROP TABLE alembic_version"))
     with scratch_engine.begin() as conn:
         conn.execute(
             text(

@@ -10,6 +10,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Structured logs and an audit log** (ADR-007): every response carries an
+  `X-Request-ID`; every `reservations.*` log line carries the request id and
+  user id (`LOG_FORMAT=text|json`), with one access line per request. Changes to
+  courts, users (name/email/role), reservations (time/status) and facility
+  blocks are recorded in `audit_log` in the same transaction; admins read it
+  at `GET /admin/audit-log`.
 - **Alembic migrations** (ADR-006): the schema is built by
   `uv run alembic upgrade head` (the seed and the tests do it too) instead of
   `create_all`. An existing dev database is adopted by stamping the `0001`

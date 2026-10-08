@@ -1,5 +1,6 @@
 from reservations.models.achievement import UserAchievement
 from reservations.models.activity_event import ActivityEvent
+from reservations.models.audit_log import AuditAction, AuditLog
 from reservations.models.challenge import Challenge, ChallengeMetric
 from reservations.models.challenge_completion import ChallengeCompletion
 from reservations.models.conversation import Conversation, ConversationKind
@@ -83,4 +84,6 @@ __all__ = [
     "ChallengeMetric",
     "ChallengeCompletion",
     "ActivityEvent",
+    "AuditAction",
+    "AuditLog",
 ]
