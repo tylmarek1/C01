@@ -395,6 +395,8 @@ const en = {
   "notificationPrefs.teams.description": "You're added to a team, or an update on a team join request.",
   "notificationPrefs.matches.title": "Match results",
   "notificationPrefs.matches.description": "A match result is reported for one of your games.",
+  "notificationPrefs.payments.title": "Payments",
+  "notificationPrefs.payments.description": "A payment is received or refunded — and, for venue staff, a refund that failed.",
 
   "common.cancel": "Cancel",
   "common.save": "Save",

@@ -4,7 +4,6 @@ reservation into PENDING_APPROVAL, telling the people who have to act."""
 
 from datetime import datetime, timezone
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from reservations import rules
@@ -13,12 +12,10 @@ from reservations.models import (
     NotificationType,
     Reservation,
     ReservationStatus,
-    User,
-    UserRole,
-    VenueManager,
 )
 from reservations.notifications import notify
 from reservations.schemas.reservation import VENUE_TZ
+from reservations.venue_access import venue_staff
 
 
 def approval_deadline(start_time: datetime, now: datetime | None = None) -> datetime:
@@ -40,16 +37,7 @@ def notify_approval_requested(db: Session, reservation: Reservation) -> None:
         "Approval requested",
         f"{court_name} on {when} needs a venue manager's approval — you'll be notified of the decision.",
     )
-    venue_managers = select(VenueManager.user_id).where(
-        VenueManager.venue_id == reservation.court.venue_id
-    )
-    managers = db.scalars(
-        select(User).where(
-            (User.role == UserRole.ADMIN)
-            | ((User.role == UserRole.VENUE_MANAGER) & User.id.in_(venue_managers))
-        )
-    )
-    for manager in managers:
+    for manager in venue_staff(db, reservation.court.venue_id):
         notify(
             db,
             manager.id,

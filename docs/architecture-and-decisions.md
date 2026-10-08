@@ -911,3 +911,11 @@ above stay as they were written, because they record the state on
   - No payment notifications: a new `NotificationType` would need the frontend's hand-maintained type, the drift that already caused a bug once.
   - A real provider would usually confirm asynchronously (redirect + webhook). Then step 3 would move to a webhook handler, with the same row lock and status checks.
   - Like the rest of `worker.py`, refunds assume a single process (AD-1).
+
+#### Amendment (2026-10-08): cash refunds, payment notifications, the payments list
+
+Three of ADR-010's accepted gaps are closed. The rest of the decision stands.
+
+- **Cash refunds:** a released reservation's **cash** payment now also goes to `REFUND_PENDING`. The worker skips it, because only `ONLINE` payments are refunded through the gateway. A manager of the venue confirms the hand-back at the desk (`POST /payments/{id}/cash-refund` → `REFUNDED`).
+- **Notifications:** three new `NotificationType`s, added by migration `0006` (`ALTER TYPE … ADD VALUE`, written by hand). `PAYMENT_RECEIVED` and `PAYMENT_REFUNDED` go to the payer. `REFUND_FAILED` goes to the venue's managers and every admin (`venue_access.venue_staff`, now also used by the approval request). The frontend's hand-maintained `NotificationType` and its categories were updated in the same change.
+- **Payments list:** `GET /payments` (venue-scoped, `?status=`) is where managers find cash to hand back and failed refunds. `POST /payments/{id}/retry-refund` puts a `REFUND_FAILED` payment back in the worker's queue with the attempt count reset. Reservation lists carry `payment_status` (the latest payment's status).

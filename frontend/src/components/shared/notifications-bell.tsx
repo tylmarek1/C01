@@ -15,6 +15,7 @@ import {
   UserPlus,
   Users,
   UsersRound,
+  Wallet,
 } from "lucide-react"
 import { createElement, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
@@ -58,6 +59,9 @@ const NOTIFICATION_DESTINATION: Record<NotificationType, string> = {
   TEAM_JOIN_REQUEST_RECEIVED: "/app/teams",
   TEAM_JOIN_REQUEST_ACCEPTED: "/app/teams",
   TEAM_JOIN_REQUEST_DECLINED: "/app/teams",
+  PAYMENT_RECEIVED: "/app",
+  PAYMENT_REFUNDED: "/app?view=history",
+  REFUND_FAILED: "/app/admin?tab=payments&status=REFUND_FAILED",
 }
 
 const CATEGORY_ICON: Record<string, LucideIcon> = {
@@ -71,6 +75,7 @@ const CATEGORY_ICON: Record<string, LucideIcon> = {
   social: Users,
   teams: UsersRound,
   matches: Swords,
+  payments: Wallet,
 }
 
 function iconFor(type: NotificationType): LucideIcon {

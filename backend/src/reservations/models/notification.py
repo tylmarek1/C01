@@ -31,6 +31,9 @@ class NotificationType(enum.StrEnum):
     TEAM_JOIN_REQUEST_RECEIVED = "TEAM_JOIN_REQUEST_RECEIVED"  # sent to owner/captains
     TEAM_JOIN_REQUEST_ACCEPTED = "TEAM_JOIN_REQUEST_ACCEPTED"
     TEAM_JOIN_REQUEST_DECLINED = "TEAM_JOIN_REQUEST_DECLINED"
+    PAYMENT_RECEIVED = "PAYMENT_RECEIVED"
+    PAYMENT_REFUNDED = "PAYMENT_REFUNDED"
+    REFUND_FAILED = "REFUND_FAILED"  # sent to the venue's managers and admins
 
 
 class Notification(Base):

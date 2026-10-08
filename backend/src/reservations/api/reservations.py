@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from reservations import achievements, approval_service, rules
+from reservations import achievements, approval_service, payments, rules
 from reservations.activity import emit_activity
 from reservations.booking_validation import (
     check_active_reservation_limit,
@@ -63,6 +63,19 @@ from reservations.venue_access import (
 from reservations.waitlist_service import offer_next
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
+
+
+def _attach_payment_status(
+    db: Session, reservations: list[Reservation]
+) -> list[Reservation]:
+    """Same transient-attribute pattern as `_attach_guests`: one query for
+    the whole list (ADR-010)."""
+    by_reservation = payments.latest_status_by_reservation(
+        db, [r.id for r in reservations]
+    )
+    for reservation in reservations:
+        reservation.payment_status = by_reservation.get(reservation.id)
+    return reservations
 
 
 def _attach_guests(db: Session, reservations: list[Reservation]) -> list[Reservation]:
@@ -170,7 +183,7 @@ def list_my_reservations(
         .offset(offset)
         .limit(limit)
     )
-    return list(db.scalars(stmt))
+    return _attach_payment_status(db, list(db.scalars(stmt)))
 
 
 @router.get("/admin", response_model=list[ReservationAdminOut])
@@ -189,7 +202,7 @@ def list_all_reservations(
     if status_filter is not None:
         stmt = stmt.where(Reservation.status == status_filter)
     stmt = stmt.offset(offset).limit(limit)
-    return _attach_guests(db, list(db.scalars(stmt)))
+    return _attach_payment_status(db, _attach_guests(db, list(db.scalars(stmt))))
 
 
 @router.get("/shared-with-me", response_model=list[ReservationOut])

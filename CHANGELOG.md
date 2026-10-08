@@ -10,6 +10,11 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Payments, completed:** cash of a released reservation is handed back at
+  the desk and confirmed by a manager; the payer is notified when a payment is
+  received or refunded; a refund the gateway keeps refusing alerts the venue's
+  managers and admins and can be retried; `GET /payments` lists a venue's
+  payments; reservation lists show each one's payment status.
 - **Payments** (ADR-010), through a mock gateway until a provider is chosen:
   the booker pays a reservation's quoted price
   (`POST /reservations/{id}/payments`, `decline: true` simulates a refusal);

@@ -7,7 +7,7 @@ interface NotificationCategory {
 }
 
 // The backend mutes/unmutes individual NotificationType values, but toggling
-// 22 of them one by one isn't a settings UI anyone wants — these are the
+// 25 of them one by one isn't a settings UI anyone wants — these are the
 // user-facing groups shown instead. Every NotificationType must appear in
 // exactly one group.
 export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
@@ -39,6 +39,7 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
     ],
   },
   { key: "matches", types: ["MATCH_RESULT_REPORTED"] },
+  { key: "payments", types: ["PAYMENT_RECEIVED", "PAYMENT_REFUNDED", "REFUND_FAILED"] },
 ]
 
 export function useNotificationCategoryLabels(): Record<string, { title: string; description: string }> {
@@ -83,6 +84,10 @@ export function useNotificationCategoryLabels(): Record<string, { title: string;
     matches: {
       title: t("notificationPrefs.matches.title"),
       description: t("notificationPrefs.matches.description"),
+    },
+    payments: {
+      title: t("notificationPrefs.payments.title"),
+      description: t("notificationPrefs.payments.description"),
     },
   }
 }

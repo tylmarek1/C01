@@ -47,3 +47,13 @@ def managed_courts_filter(
     if venues is None:
         return true()
     return court_id_column.in_(select(Court.id).where(Court.venue_id.in_(venues)))
+
+
+def venue_staff(db: Session, venue_id: uuid.UUID) -> list[User]:
+    """Who has to act on something at a venue: its managers and every admin."""
+    assigned = select(VenueManager.user_id).where(VenueManager.venue_id == venue_id)
+    stmt = select(User).where(
+        (User.role == UserRole.ADMIN)
+        | ((User.role == UserRole.VENUE_MANAGER) & User.id.in_(assigned))
+    )
+    return list(db.scalars(stmt))

@@ -45,6 +45,9 @@ export type NotificationType =
   | "TEAM_JOIN_REQUEST_RECEIVED"
   | "TEAM_JOIN_REQUEST_ACCEPTED"
   | "TEAM_JOIN_REQUEST_DECLINED"
+  | "PAYMENT_RECEIVED"
+  | "PAYMENT_REFUNDED"
+  | "REFUND_FAILED"
 export type ReservationEventType =
   | "CREATED"
   | "SUBMITTED"
