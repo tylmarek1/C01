@@ -8,6 +8,15 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-10-08
+
+Version 4.0 is the product release of the "Clubhouse programme" redesign.
+The jump from 0.3.0 to 4.0.0 was requested by the project owner to mark
+the redesign as a closed milestone, not derived from semantic-versioning
+rules. Only the frontend changed: `frontend/package.json` moves 0.2.0 ->
+4.0.0, while the backend stays at 0.3.0 (no backend changes since v0.3.0;
+the two deployables are versioned independently).
+
 ### Changed
 
 - **New visual identity — "Clubhouse programme" — replacing the v0.3.0
