@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom"
 
-import { Logo } from "@/components/shared/logo"
 import { useSportLabels } from "@/components/shared/sport-icon"
 import { useAuth } from "@/lib/auth-context"
 import { useTranslation } from "@/lib/i18n"
@@ -43,19 +42,16 @@ function Footer() {
     },
   ]
 
-  const linkClass = "text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+  const linkClass = "text-[14px] text-panel-foreground/80 underline-offset-4 transition-colors hover:text-panel-foreground hover:underline"
 
   return (
-    <footer className="border-t border-border">
-      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+    <footer className="bg-panel text-panel-foreground">
+      <div className="mx-auto max-w-6xl px-4 pt-14 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <div className="flex flex-col gap-3">
-            <Logo />
-            <p className="max-w-60 text-[13px] text-muted-foreground">{t("footer.tagline")}</p>
-          </div>
+          <p className="max-w-64 text-[14px] leading-relaxed text-panel-muted">{t("footer.tagline")}</p>
           {columns.map((column) => (
-            <div key={column.heading} className="flex flex-col gap-3">
-              <h3 className="eyebrow">{column.heading}</h3>
+            <div key={column.heading} className="flex flex-col gap-3 border-t border-panel-foreground/25 pt-3">
+              <h3 className="font-mono text-[11px] tracking-[0.08em] text-panel-muted uppercase">{column.heading}</h3>
               <ul className="flex flex-col gap-2">
                 {column.links.map((link) => (
                   <li key={link.label}>
@@ -74,11 +70,19 @@ function Footer() {
             </div>
           ))}
         </div>
-        <div className="mt-12 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        {/* The sign-off: the wordmark set as big as the page allows. */}
+        <div aria-hidden className="mt-14 overflow-hidden">
+          <span className="display block translate-y-[0.12em] text-[27vw] leading-[0.8] tracking-[-0.01em] text-panel-foreground/95 md:text-[17.5rem]">
+            Courtly
+          </span>
+        </div>
+      </div>
+      <div className="border-t border-panel-foreground/20">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 font-mono text-[11px] tracking-[0.04em] text-panel-muted uppercase sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>
             &copy; {new Date().getFullYear()} Courtly. {t("footer.copyright")}
           </span>
-          <span className="font-mono">{t("footer.venueHours")}</span>
+          <span>{t("footer.venueHours")}</span>
         </div>
       </div>
     </footer>

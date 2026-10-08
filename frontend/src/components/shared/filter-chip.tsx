@@ -23,10 +23,10 @@ function FilterChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-[background-color,border-color,color] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-[background-color,border-color,color] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
         active
           ? "border-primary bg-primary text-primary-foreground"
-          : "border-border-strong bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+          : "border-foreground/25 bg-transparent text-foreground/80 hover:border-foreground hover:text-foreground",
         className,
       )}
     >

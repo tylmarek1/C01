@@ -323,12 +323,12 @@ function TeamDetailPage() {
       </Link>
 
       <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div aria-hidden className="h-20 bg-panel bg-[radial-gradient(70%_140%_at_10%_0%,color-mix(in_oklab,var(--brand)_40%,transparent),transparent_70%)]" />
+        <div aria-hidden className="h-20 bg-panel" />
         <div className="flex flex-col gap-4 px-5 pb-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
           <div className="-mt-10 flex flex-col gap-3 sm:flex-row sm:items-end">
             <TeamAvatarUpload team={team} canManage={isManage} />
             <div className="flex flex-col gap-1.5">
-              <h1 className="text-2xl font-semibold tracking-[-0.025em]">{team.name}</h1>
+              <h1 className="display text-[44px] sm:text-[52px]">{team.name}</h1>
               <div className="flex flex-wrap items-center gap-1.5">
                 {team.sport_type && (
                   <Badge variant="secondary">

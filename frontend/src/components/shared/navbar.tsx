@@ -19,8 +19,9 @@ function NavItem({ to, children, onClick }: { to: string; children: ReactNode; o
       onClick={onClick}
       className={({ isActive }) =>
         cn(
-          "rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-          isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+          "relative flex h-full items-center px-3 text-[14px] font-semibold transition-colors outline-none focus-visible:bg-muted",
+          "after:absolute after:inset-x-3 after:-bottom-px after:h-[3px] after:origin-left after:bg-foreground after:transition-transform after:duration-300",
+          isActive ? "text-foreground after:scale-x-100" : "text-muted-foreground after:scale-x-0 hover:text-foreground",
         )
       }
     >
@@ -52,14 +53,14 @@ function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b transition-[background-color,border-color] duration-200",
-        scrolled ? "border-border bg-background/80 backdrop-blur-xl" : "border-transparent bg-background",
+        "sticky top-0 z-40 border-b bg-background transition-[border-color] duration-200",
+        scrolled ? "border-foreground" : "border-border",
       )}
     >
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
-        <Logo />
+      <div className="mx-auto flex h-16 max-w-6xl items-stretch gap-6 px-4 sm:px-6">
+        <Logo className="self-center" />
 
-        <nav aria-label={t("nav.primary")} className="hidden items-center gap-0.5 md:flex">
+        <nav aria-label={t("nav.primary")} className="hidden items-stretch md:flex">
           {links.map((link) => (
             <NavItem key={link.to} to={link.to}>
               {link.label}
@@ -67,7 +68,7 @@ function Navbar() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5 self-center">
           <div className="hidden items-center gap-1.5 sm:flex">
             <LanguageSwitcher />
             <ThemeToggle />
@@ -108,24 +109,22 @@ function Navbar() {
         <SheetContent side="right" className="w-[18rem] max-w-[85vw] gap-6 p-5" aria-describedby={undefined}>
           <DialogTitle className="sr-only">{t("nav.primary")}</DialogTitle>
           <Logo />
-          <nav className="flex flex-col gap-1">
-            {links.map((link) => (
+          <nav className="flex flex-col border-t-2 border-foreground">
+            {links.map((link, index) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  cn(
-                    "rounded-md px-3 py-2.5 text-[15px] font-medium transition-colors",
-                    isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )
+                  cn("flex items-baseline gap-3 border-b border-border py-2.5 transition-colors", isActive ? "text-brand" : "text-foreground hover:text-brand")
                 }
               >
-                {link.label}
+                <span className="w-6 font-mono text-[11px] text-subtle-foreground tabular">{String(index + 1).padStart(2, "0")}</span>
+                <span className="display text-[32px]">{link.label}</span>
               </NavLink>
             ))}
           </nav>
-          <div className="mt-auto flex flex-col gap-3 border-t border-border pt-5">
+          <div className="mt-auto flex flex-col gap-3 border-t border-foreground pt-5">
             <div className="flex items-center justify-between">
               <LanguageSwitcher />
               <ThemeToggle />

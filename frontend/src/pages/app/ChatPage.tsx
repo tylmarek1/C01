@@ -362,12 +362,12 @@ function ChatPage() {
   const otherInDm = selected?.kind === "DM" ? selected.participants.find((p) => p.id !== user.id) : undefined
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 lg:h-dvh">
+    <div className="flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] min-h-0 lg:h-[calc(100dvh-6rem)]">
       {/* Conversation list */}
       <aside className={cn("flex w-full min-w-0 flex-col border-r border-border bg-background md:w-80 md:shrink-0", selectedId && "hidden md:flex")}>
         <div className="flex flex-col gap-3 border-b border-border p-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold tracking-[-0.02em]">{t("chat.title")}</h1>
+            <h1 className="display text-[30px]">{t("chat.title")}</h1>
             <Tooltip content={t("chat.newMessage")}>
               <Button variant="outline" size="icon-sm" aria-label={t("chat.newMessage")} onClick={() => setNewMessageOpen(true)}>
                 <SquarePen />

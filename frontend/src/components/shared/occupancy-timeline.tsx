@@ -34,7 +34,7 @@ function OccupancyTimeline({ opensAt, closesAt, busy, className, compact = false
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="relative h-9 w-full overflow-hidden rounded-md border border-border bg-card">
+      <div className="relative h-8 w-full overflow-hidden border border-foreground/30 bg-card">
         <div className="absolute inset-0 flex">
           {Array.from({ length: hourMarks }).map((_, index) => (
             <div key={index} className="flex-1 border-r border-border/70 last:border-r-0" />
@@ -59,7 +59,7 @@ function OccupancyTimeline({ opensAt, closesAt, busy, className, compact = false
                 tabIndex={0}
                 aria-label={`${fmt.timeRange(slot.start_time, slot.end_time)} · ${label}`}
                 className={cn(
-                  "absolute top-1 bottom-1 rounded-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  "absolute inset-y-0 outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   isBlocked
                     ? "bg-[repeating-linear-gradient(-45deg,var(--danger)_0_3px,color-mix(in_oklab,var(--danger)_55%,transparent)_3px_6px)]"
                     : isBooked
@@ -83,16 +83,16 @@ function OccupancyTimeline({ opensAt, closesAt, busy, className, compact = false
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="size-2.5 shrink-0 rounded-[3px] bg-primary" /> {t("occupancy.booked")}
+              <span className="size-2.5 shrink-0 bg-primary" /> {t("occupancy.booked")}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="size-2.5 shrink-0 rounded-[3px] bg-warning" /> {t("occupancy.held")}
+              <span className="size-2.5 shrink-0 bg-warning" /> {t("occupancy.held")}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="size-2.5 shrink-0 rounded-[3px] bg-danger" /> {t("occupancy.blockedLegend")}
+              <span className="size-2.5 shrink-0 bg-danger" /> {t("occupancy.blockedLegend")}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="size-2.5 shrink-0 rounded-[3px] border border-border-strong bg-card" /> {t("occupancy.free")}
+              <span className="size-2.5 shrink-0 border border-border-strong bg-card" /> {t("occupancy.free")}
             </span>
           </div>
           <span className="text-xs font-medium text-foreground">

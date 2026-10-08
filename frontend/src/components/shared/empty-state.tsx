@@ -19,22 +19,29 @@ function EmptyState({ title, description, action, icon: Icon, size = "default", 
     <div
       className={cn(
         "flex animate-fade-in flex-col items-center text-center",
-        size === "default" && "gap-3 rounded-xl border border-dashed border-border-strong bg-card/50 px-6 py-14",
-        size === "compact" && "gap-2 rounded-lg border border-dashed border-border px-4 py-8",
+        size === "default" && "gap-3 rounded-md border border-dashed border-foreground/25 px-6 py-14",
+        size === "compact" && "gap-2 rounded-sm border border-dashed border-foreground/20 px-4 py-8",
         className,
       )}
     >
       {Icon && (
         <span
           className={cn(
-            "flex items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-xs",
+            "flex items-center justify-center rounded-sm bg-foreground text-background",
             size === "default" ? "mb-1 size-11" : "size-9",
           )}
         >
           <Icon className={size === "default" ? "size-5" : "size-4"} />
         </span>
       )}
-      <p className={cn("font-medium text-foreground", size === "default" ? "text-[15px]" : "text-[13px]")}>{title}</p>
+      <p
+        className={cn(
+          "text-foreground",
+          size === "default" ? "display text-[26px]" : "text-[13px] font-semibold",
+        )}
+      >
+        {title}
+      </p>
       {description && (
         <p className={cn("max-w-sm text-pretty text-muted-foreground", size === "default" ? "text-[13px]" : "text-xs")}>
           {description}

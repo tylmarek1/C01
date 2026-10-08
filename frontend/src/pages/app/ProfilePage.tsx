@@ -33,7 +33,7 @@ import { CourtCard } from "@/components/shared/court-card"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ErrorState } from "@/components/shared/error-state"
 import { PageContainer } from "@/components/shared/page-header"
-import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
+import { SportIcon, SportTile, useSportLabels } from "@/components/shared/sport-icon"
 import { StarRating } from "@/components/shared/star-rating"
 import { StatTile } from "@/components/shared/stat-tile"
 import { SubsectionHeading } from "@/components/shared/subsection-heading"
@@ -115,7 +115,7 @@ function OverviewTab() {
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <SportIcon sport={entry.sport_type} className="size-3.5" /> {sportLabels[entry.sport_type]}
                   </span>
-                  <span className="text-2xl font-semibold tracking-tight tabular">{Math.round(entry.rating)}</span>
+                  <span className="font-display text-[34px] leading-none font-extrabold tabular">{Math.round(entry.rating)}</span>
                   <span className="text-xs text-muted-foreground">{t("playerProfile.ratings.matchesPlayed", { count: entry.matches_played })}</span>
                 </div>
               ))}
@@ -166,9 +166,7 @@ function OverviewTab() {
           <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-xs">
             {matches.map((match) => (
               <li key={match.reservation_id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <span className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                  <SportIcon sport={match.sport_type} className="size-4" />
-                </span>
+                <SportTile sport={match.sport_type} size="sm" />
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-[13px] font-medium">{match.court_name}</span>
                   <span className="text-xs text-muted-foreground">{fmt.dateMedium(match.played_at)}</span>
@@ -522,7 +520,7 @@ function ProfilePage() {
           <UserAvatar name={user.name} avatarUrl={user.avatar_url} size="xl" className="ring-4 ring-card shadow-sm" />
           <div className="flex min-w-0 flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-[-0.025em]">{user.name}</h1>
+              <h1 className="display text-[44px] sm:text-[52px]">{user.name}</h1>
               <Badge variant={ROLE_VARIANT[user.role]}>{roleLabels[user.role]}</Badge>
               {profile && !profile.profile_public && (
                 <Badge variant="outline">

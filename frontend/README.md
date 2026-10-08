@@ -29,16 +29,20 @@ npm run preview   # serve the production build locally
 
 ## Design system
 
-"Court-side precision": a chalk canvas, ink type, a single optic-lime
-(tennis-ball) accent reserved for the primary booking action and live/active
-state, Geist for UI and Geist Mono for times and numbers, hairline borders
-instead of heavy shadows, and a full light/dark theme. The rules, component
+"Clubhouse programme": a sports club's printed match-day programme and
+court schedule board — warm paper, forest ink, a single clay-court accent
+reserved for the primary booking action and live state, Big Shoulders
+Display for condensed headlines and figures, Schibsted Grotesk for UI and
+IBM Plex Mono for times and numbers, hairline rules instead of cards and
+shadows, courts drawn as painted plans in their real surface colours, and a
+full light/dark theme. The rules, component
 inventory and patterns live in the repo-root [`DESIGN.md`](../DESIGN.md);
 the tokens themselves are CSS custom properties in `src/index.css`, consumed
 through Tailwind's `@theme inline`. Read both before adding a colour, a
 shadow, or a new component.
 
-The signed-in app runs in a sidebar shell (`components/shared/app-layout.tsx`)
+The signed-in app runs in a masthead shell (`components/shared/app-layout.tsx`
++ `app-nav.tsx`: venue strip, top navigation, bottom tab bar on mobile)
 with a ⌘K command menu; public pages (landing, help, about, contact) use the
 marketing navbar and footer, and court browsing adapts to whichever applies.
 
@@ -50,7 +54,7 @@ src/
                         select, dialog, ...), pulled via the shadcn CLI and
                         adapted onto this app's design tokens/variants.
   components/shared/   composite, app-specific pieces built from ui/
-                        (app shell + sidebar, command menu, page header,
+                        (app shell + masthead nav, command menu, page header,
                         empty/error states, court-card, reservation-card,
                         slot picker, charts, ...). Barrel-exported from
                         index.ts alongside ui/.

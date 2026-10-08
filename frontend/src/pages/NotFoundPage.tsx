@@ -9,8 +9,7 @@ function NotFoundPage() {
   const { t } = useTranslation()
 
   return (
-    <div className="relative isolate mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-lg flex-col items-center justify-center gap-5 px-4 py-16 text-center">
-      <div aria-hidden className="absolute inset-0 -z-10 bg-court-grid opacity-60 [mask-image:radial-gradient(50%_50%_at_50%_45%,black,transparent)]" />
+    <div className="relative isolate mx-auto flex min-h-[calc(100dvh-4rem)] max-w-lg flex-col items-center justify-center gap-5 px-4 py-16 text-center">
       <LogoMark className="size-12 animate-fade-up" />
       <span className="font-mono text-[13px] tracking-widest text-muted-foreground">404 · {t("notFound.outOfBounds")}</span>
       <h1 className="text-[32px] leading-tight font-semibold tracking-[-0.035em] text-balance">{t("notFound.title")}</h1>

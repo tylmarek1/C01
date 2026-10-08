@@ -12,7 +12,7 @@ import { AchievementIcon } from "@/components/shared/achievement-icon"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ErrorState } from "@/components/shared/error-state"
 import { PageContainer } from "@/components/shared/page-header"
-import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
+import { SportIcon, SportTile, useSportLabels } from "@/components/shared/sport-icon"
 import { StatTile } from "@/components/shared/stat-tile"
 import { SubsectionHeading } from "@/components/shared/subsection-heading"
 import { UserAvatar } from "@/components/shared/user-avatar"
@@ -139,12 +139,12 @@ function PlayerProfilePage() {
       </Button>
 
       <section className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div aria-hidden className="h-24 bg-panel bg-[radial-gradient(80%_120%_at_90%_0%,color-mix(in_oklab,var(--brand)_45%,transparent),transparent_70%)] sm:h-28" />
+        <div aria-hidden className="h-24 bg-panel sm:h-28" />
         <div className="flex flex-col gap-4 px-5 pb-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
           <div className="-mt-12 flex flex-col gap-3 sm:flex-row sm:items-end">
             <UserAvatar name={profile.user.name} avatarUrl={profile.user.avatar_url} size="2xl" className="ring-4 ring-card" />
             <div className="flex flex-col gap-1.5 sm:pb-1">
-              <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-[-0.025em]">
+              <h1 className="flex items-center gap-2 display text-[44px] sm:text-[52px]">
                 {profile.user.name}
                 {!profile.profile_public && (
                   <Badge variant="outline">
@@ -232,12 +232,10 @@ function PlayerProfilePage() {
               <div className="grid gap-3 sm:grid-cols-3">
                 {stats.ratings.map((entry) => (
                   <div key={entry.sport_type} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-xs">
-                    <span className="flex size-10 items-center justify-center rounded-lg bg-muted">
-                      <SportIcon sport={entry.sport_type} className="size-5" />
-                    </span>
+                    <SportTile sport={entry.sport_type} />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">{sportLabels[entry.sport_type]}</span>
-                      <span className="text-xl font-semibold tracking-tight tabular">{Math.round(entry.rating)}</span>
+                      <span className="font-display text-[28px] leading-none font-extrabold tabular">{Math.round(entry.rating)}</span>
                       <span className="text-[11px] text-muted-foreground">{t("playerProfile.ratings.matchesPlayed", { count: entry.matches_played })}</span>
                     </div>
                   </div>

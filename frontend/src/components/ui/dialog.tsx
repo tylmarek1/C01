@@ -26,7 +26,7 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-[rgba(10,12,9,0.45)] backdrop-blur-[3px] data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0",
+        "fixed inset-0 z-50 bg-panel/60 data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0",
         className,
       )}
       {...props}
@@ -126,7 +126,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-[17px] leading-snug font-semibold tracking-[-0.015em] text-foreground", className)}
+      className={cn("display text-[28px] text-foreground", className)}
       {...props}
     />
   )

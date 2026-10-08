@@ -65,7 +65,7 @@ function greetingKey(hour: number) {
 }
 
 function SideCard({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <section className={cn("flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-xs", className)}>{children}</section>
+  return <section className={cn("flex flex-col gap-3.5 border-t-2 border-foreground pt-3.5", className)}>{children}</section>
 }
 
 function NextUpCard({
@@ -99,43 +99,42 @@ function NextUpCard({
   const isToday = new Date().toDateString() === startsAt.toDateString()
 
   return (
-    <article className="group relative grid animate-fade-up overflow-hidden rounded-2xl border border-border bg-card shadow-sm sm:grid-cols-[minmax(0,15rem)_1fr]">
-      <div className="p-1.5 sm:pr-0">
-        <CourtArt
-          sport={reservation.court.sport_type}
-          imageUrl={reservation.court.image_url}
-          indoor={reservation.court.indoor}
-          className="h-full min-h-36 rounded-xl sm:aspect-auto"
-        />
-      </div>
-      <div className="flex flex-col gap-4 p-5">
+    <article className="group relative grid animate-fade-up overflow-hidden rounded-md bg-panel text-panel-foreground sm:grid-cols-[minmax(0,17rem)_1fr]">
+      <CourtArt
+        sport={reservation.court.sport_type}
+        imageUrl={reservation.court.image_url}
+        indoor={reservation.court.indoor}
+        className="aspect-[16/7] h-full rounded-none sm:aspect-auto sm:min-h-40"
+      />
+      <div className="flex flex-col gap-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-2 py-0.5 font-mono text-[10.5px] font-semibold tracking-wider text-brand-foreground uppercase">
-            <span className="size-1.5 animate-pulse rounded-full bg-brand-foreground" />
+          <span className="inline-flex items-center gap-2 bg-brand px-2 py-1 font-mono text-[10.5px] leading-none font-semibold tracking-[0.1em] text-brand-foreground uppercase">
+            <span className="size-1.5 animate-blink bg-brand-foreground" />
             {inProgress ? t("dashboard.nextUp.now") : t("dashboard.nextUp.eyebrow")}
           </span>
-          <StatusBadge status={reservation.status} />
+          <span className="font-mono text-[11px] tracking-[0.06em] text-panel-muted uppercase">
+            {inProgress ? t("dashboard.nextUp.inProgress") : fmt.relativeTime(reservation.start_time)}
+          </span>
         </div>
-        <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-semibold tracking-[-0.025em]">{reservation.court.name}</h2>
-          <p className="flex flex-wrap items-center gap-x-2 text-[14px] text-muted-foreground">
-            <span className="font-medium text-foreground">{fmt.dayLabel(reservation.start_time)}</span>
-            <span className="font-mono tabular">{fmt.timeRange(reservation.start_time, reservation.end_time)}</span>
-            <span>· {inProgress ? t("dashboard.nextUp.inProgress") : fmt.relativeTime(reservation.start_time)}</span>
+        <div className="flex flex-col gap-2">
+          <h2 className="display text-[40px] sm:text-[52px]">{reservation.court.name}</h2>
+          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="font-mono text-[20px] font-semibold tabular">{fmt.timeRange(reservation.start_time, reservation.end_time)}</span>
+            <span className="text-[14px] text-panel-muted">{fmt.dayLabel(reservation.start_time)}</span>
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 border-t border-dashed border-panel-foreground/25 pt-3">
           {guests && guests.length > 0 ? (
             <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
+              <div className="flex -space-x-1.5">
                 {guests.slice(0, 4).map((guest) => (
-                  <UserAvatar key={guest.id} name={guest.user.name} avatarUrl={guest.user.avatar_url} size="sm" className="ring-2 ring-card" />
+                  <UserAvatar key={guest.id} name={guest.user.name} avatarUrl={guest.user.avatar_url} size="sm" className="ring-2 ring-panel" />
                 ))}
               </div>
-              <span className="text-xs text-muted-foreground">{t("dashboard.nextUp.withGuests", { count: guests.length })}</span>
+              <span className="text-xs text-panel-muted">{t("dashboard.nextUp.withGuests", { count: guests.length })}</span>
             </div>
           ) : (
-            <span className="text-xs text-muted-foreground">{t("dashboard.nextUp.solo")}</span>
+            <span className="text-xs text-panel-muted">{t("dashboard.nextUp.solo")}</span>
           )}
         </div>
         <div className="mt-auto flex flex-wrap gap-2">
@@ -144,10 +143,16 @@ function NextUpCard({
               {!isBusy && <LogIn />} {t("reservationCard.checkIn")}
             </Button>
           )}
-          <Button size="sm" variant="outline" isLoading={chatMutation.isPending} onClick={() => chatMutation.mutate()}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-panel-foreground/30 text-panel-foreground hover:border-panel-foreground hover:bg-panel-foreground/10"
+            isLoading={chatMutation.isPending}
+            onClick={() => chatMutation.mutate()}
+          >
             {!chatMutation.isPending && <MessageCircle />} {t("reservationDetail.chat")}
           </Button>
-          <Button size="sm" variant="ghost" onClick={onOpenDetail}>
+          <Button size="sm" variant="ghost" className="text-panel-foreground hover:bg-panel-foreground/10" onClick={onOpenDetail}>
             {t("reservationCard.viewDetails")} <ArrowRight />
           </Button>
         </div>
@@ -379,7 +384,7 @@ function DashboardPage() {
           upcoming.length > 0 ? t("dashboard.subtitle.upcoming", { count: upcoming.length }) : t("dashboard.subtitle.empty")
         }
         actions={
-          // The sidebar already carries the brand "Book" CTA on desktop.
+          // The masthead already carries the brand "Book" CTA on desktop.
           <Button variant="brand" asChild className="lg:hidden">
             <Link to="/app/book">
               <CalendarPlus /> {t("nav.book")}
@@ -391,7 +396,7 @@ function DashboardPage() {
       {/* Needs attention — time-critical things first, each with its one action. */}
       {attentionCount > 0 && (
         <section aria-label={t("dashboard.attention.title")} className="mb-8 flex flex-col gap-3">
-          <span className="eyebrow flex items-center gap-1.5">
+          <span className="eyebrow flex items-center gap-1.5 text-foreground">
             <AlertTriangle className="size-3.5 text-warning" /> {t("dashboard.attention.title")}
           </span>
           <div className="stagger grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -399,9 +404,9 @@ function DashboardPage() {
               <div
                 key={reservation.id}
                 style={{ "--i": index } as React.CSSProperties}
-                className="flex items-center gap-3 rounded-xl border border-warning/30 bg-warning-soft/60 p-3.5"
+                className="flex items-center gap-3 border-l-4 border-warning bg-warning-soft p-3.5"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-card text-warning shadow-xs">
+                <span className="flex size-9 shrink-0 items-center justify-center text-warning">
                   <Timer className="size-4" />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col">
@@ -428,9 +433,9 @@ function DashboardPage() {
               <div
                 key={entry.id}
                 style={{ "--i": holds.length + index } as React.CSSProperties}
-                className="flex items-center gap-3 rounded-xl border border-success/30 bg-success-soft/60 p-3.5"
+                className="flex items-center gap-3 border-l-4 border-success bg-success-soft p-3.5"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-card text-success shadow-xs">
+                <span className="flex size-9 shrink-0 items-center justify-center text-success">
                   <Sparkles className="size-4" />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col">
@@ -453,9 +458,9 @@ function DashboardPage() {
             {unrated.length > 0 && (
               <div
                 style={{ "--i": holds.length + offers.length } as React.CSSProperties}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 shadow-xs"
+                className="flex items-center gap-3 border-l-4 border-star bg-card p-3.5"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-star">
+                <span className="flex size-9 shrink-0 items-center justify-center text-star">
                   <Star className="size-4 fill-current" />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col">
@@ -494,7 +499,7 @@ function DashboardPage() {
             </div>
           ) : (
             venueStats && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5 lg:grid-cols-4">
                 <StatTile
                   icon={Clock3}
                   label={t("status.PENDING_APPROVAL")}
@@ -516,8 +521,8 @@ function DashboardPage() {
         </section>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="flex min-w-0 flex-col gap-6">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-14">
+        <div className="flex min-w-0 flex-col gap-8">
           {nextUp && view === "upcoming" && (
             <NextUpCard
               reservation={nextUp}
@@ -529,7 +534,7 @@ function DashboardPage() {
 
           <Tabs value={view} onValueChange={(value) => setView(value as View)} className="gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[15px] font-semibold tracking-[-0.01em]">{t("dashboard.reservations.title")}</h2>
+              <h2 className="font-display text-[26px] leading-none font-extrabold uppercase">{t("dashboard.reservations.title")}</h2>
               <TabsList>
                 <TabsTrigger value="upcoming">
                   <CalendarDays /> {t("dashboard.view.upcoming")}
@@ -547,7 +552,7 @@ function DashboardPage() {
             {isError && <ErrorState onRetry={() => refetch()} />}
 
             <TabsContent value="upcoming" className="flex flex-col gap-5">
-              {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-[76px] w-full rounded-xl" />)}
+              {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-[104px] w-full rounded-md" />)}
               {!isLoading && !isError && upcoming.length === 0 && (
                 <EmptyState
                   icon={CalendarPlus}
@@ -569,7 +574,7 @@ function DashboardPage() {
               )}
               {groupByDay(upcoming).map((group) => (
                 <div key={group.key} className="flex flex-col gap-2">
-                  <h3 className="eyebrow sticky top-14 z-10 -mx-1 bg-background/90 px-1 py-1 backdrop-blur lg:top-0">
+                  <h3 className="eyebrow sticky top-14 z-10 -mx-1 border-b border-border bg-background px-1 py-1.5 text-foreground lg:top-16">
                     {fmt.dayLabel(group.date)}
                     {fmt.dayLabel(group.date) !== fmt.date(group.date) && <span className="ml-2 normal-case opacity-70">{fmt.date(group.date)}</span>}
                   </h3>
@@ -585,7 +590,7 @@ function DashboardPage() {
             </TabsContent>
 
             <TabsContent value="history" className="flex flex-col gap-2">
-              {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-[76px] w-full rounded-xl" />)}
+              {isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-[104px] w-full rounded-md" />)}
               {!isLoading && !isError && history.length === 0 && (
                 <EmptyState icon={History} title={t("dashboard.history.empty.title")} description={t("dashboard.history.empty.description")} />
               )}
@@ -609,7 +614,7 @@ function DashboardPage() {
           </Tabs>
         </div>
 
-        <aside className="flex min-w-0 flex-col gap-4">
+        <aside className="flex min-w-0 flex-col gap-8">
           <SideCard>
             <SubsectionHeading
               title={t("dashboard.stats.title")}
@@ -625,7 +630,7 @@ function DashboardPage() {
               <Skeleton className="h-32" />
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border">
+                <div className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border">
                   {[
                     { icon: Clock3, label: t("profile.stat.hoursPlayed"), value: fmt.number(myStats.hours_played) },
                     { icon: ListChecks, label: t("profile.stat.completed"), value: myStats.completed_reservations },
@@ -636,11 +641,11 @@ function DashboardPage() {
                       <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
                         <stat.icon className="size-3.5" /> <span className="inline-block first-letter:uppercase">{stat.label}</span>
                       </span>
-                      <span className="text-xl font-semibold tracking-tight tabular">{stat.value}</span>
+                      <span className="font-display text-[30px] leading-none font-extrabold tabular">{stat.value}</span>
                     </div>
                   ))}
                 </div>
-                <Link to="/app/profile?tab=achievements" className="group flex flex-col gap-2 rounded-lg p-1 transition-colors hover:bg-muted">
+                <Link to="/app/profile?tab=achievements" className="group flex flex-col gap-2 rounded-xs p-1 transition-colors hover:bg-muted">
                   <span className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1.5 font-medium">
                       <Award className="size-3.5" /> {t("profile.stat.achievements")}

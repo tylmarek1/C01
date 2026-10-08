@@ -30,8 +30,9 @@ duplicated inline in a page.
 
 ## Design system — follow DESIGN.md
 
-The design system ("court-side precision": chalk canvas, ink type, one
-optic-lime brand accent, Geist + Geist Mono) is documented in the
+The design system ("Clubhouse programme": warm paper, forest ink, one clay
+accent, Big Shoulders Display + Schibsted Grotesk + IBM Plex Mono, rules
+instead of cards, sharp corners, no resting shadows) is documented in the
 repo-root **`DESIGN.md`** — read it before styling anything. The rules that
 silently break things if ignored:
 
@@ -42,8 +43,14 @@ silently break things if ignored:
   in `src/index.css`, so semantic tokens re-theme automatically — a raw
   colour does not. A genuinely new colour = a new `--c-*` token in both
   `:root` and `.dark` plus a semantic mapping in `@theme inline`.
-- **One `variant="brand"` action per view** (the sidebar's "Book a court"
+- **One `variant="brand"` action per view** (the masthead's "Book a court"
   counts on `lg+`). Everything else is `default`/`outline`/`ghost`.
+- **Don't drift back to the generic SaaS look** — no new sidebar, KPI-card
+  grids, rounded soft cards, gradients/glows, `backdrop-blur` or resting
+  shadows. A ruled section (`border-t-2 border-foreground`) beats a card.
+- **Anything fixed to the bottom on mobile must clear the tab bar**
+  (`bottom-[calc(4rem+env(safe-area-inset-bottom))]`), and a full-height
+  page must subtract it (see `ChatPage`).
 - **Reuse before you write**: `PageContainer`/`PageHeader` for every app
   page, `EmptyState`/`ErrorState`/`Skeleton` for every query state,
   `UserAvatar` for every avatar, `StatusBadge` for reservation status,
@@ -53,7 +60,8 @@ silently break things if ignored:
   from `useNow()` (`lib/use-now.ts`). No `toLocaleString()`, no hardcoded
   `"en-GB"` formatters, no `Date.now()` during render.
 - **Check light and dark mode** for any visual change (theme toggle in the
-  sidebar footer / Settings → Appearance).
+  venue strip above the masthead / Settings → Appearance), and uppercase
+  display text in Czech.
 
 ## Data fetching
 

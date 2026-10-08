@@ -387,7 +387,7 @@ function CourtUtilizationDialog({ court, open, onOpenChange }: { court: Court; o
         {!isLoading && hasAnyBookings && (
           <>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold tracking-tight tabular">{fmt.percent(overall)}</span>
+              <span className="font-display text-[34px] leading-none font-extrabold tabular">{fmt.percent(overall)}</span>
               <span className="text-[13px] text-muted-foreground">{t("admin.utilization.overall")}</span>
             </div>
             <Heatmap

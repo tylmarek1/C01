@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 
 import { Tooltip } from "@/components/ui/tooltip"
 import { CourtArt } from "@/components/shared/court-art"
-import { SportIcon, useSportLabels } from "@/components/shared/sport-icon"
+import { SportTile, useSportLabels } from "@/components/shared/sport-icon"
 import { AMENITY_ICON, useAmenityLabels } from "@/lib/amenities"
 import { formatCurrency } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
@@ -44,7 +44,7 @@ function AmenityIcons({ court, max = 4 }: { court: Court; max?: number }) {
         const Icon = AMENITY_ICON[amenity]
         return (
           <Tooltip key={amenity} content={labels[amenity]}>
-            <span className="flex size-6 items-center justify-center rounded-xs bg-muted text-muted-foreground" aria-label={labels[amenity]}>
+            <span className="flex size-6 items-center justify-center rounded-xs border border-border text-muted-foreground" aria-label={labels[amenity]}>
               <Icon className="size-3.5" />
             </span>
           </Tooltip>
@@ -80,14 +80,14 @@ function CourtCard({ court, selected = false, onSelect, href, compact = false, i
       <Link
         to={href}
         className={cn(
-          "group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs outline-none surface-interactive focus-visible:ring-2 focus-visible:ring-ring/40",
+          "group relative flex flex-col overflow-hidden rounded-md border border-border bg-card outline-none surface-interactive focus-visible:ring-2 focus-visible:ring-ring/40",
           className,
         )}
       >
-        <div className="relative p-1.5 pb-0">
-          <CourtArt sport={court.sport_type} imageUrl={court.image_url} hideMeta className="rounded-lg" />
+        <div className="relative">
+          <CourtArt sport={court.sport_type} imageUrl={court.image_url} hideMeta className="rounded-none" />
           {court.requires_approval && (
-            <span className="absolute bottom-2.5 left-3.5 inline-flex items-center gap-1 rounded-xs bg-card/95 px-1.5 py-0.5 text-[11px] font-medium text-foreground shadow-xs backdrop-blur-sm">
+            <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-xs bg-card px-1.5 py-1 font-mono text-[10px] leading-none font-medium tracking-[0.06em] text-foreground uppercase">
               <ShieldCheck className="size-3" /> {t("courts.requiresApproval")}
             </span>
           )}
@@ -100,23 +100,23 @@ function CourtCard({ court, selected = false, onSelect, href, compact = false, i
                 onToggleFavorite(court)
               }}
               aria-pressed={Boolean(isFavorite)}
-              className="absolute top-3.5 right-3.5 flex size-8 items-center justify-center rounded-full bg-card/90 text-foreground shadow-sm backdrop-blur-sm transition-transform outline-none hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+              className="absolute top-2 right-2 flex size-8 items-center justify-center rounded-xs bg-card text-foreground transition-transform outline-none hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
               aria-label={isFavorite ? t("courts.favorite.remove") : t("courts.favorite.add")}
             >
-              <Heart className={cn("size-4 transition-colors", isFavorite && "fill-danger text-danger")} />
+              <Heart className={cn("size-4 transition-colors", isFavorite && "animate-pop fill-brand text-brand")} />
             </button>
           )}
         </div>
-        <div className="flex flex-1 flex-col gap-3 p-4">
-          <div className="flex flex-col gap-1">
+        <div className="flex flex-1 flex-col gap-3 border-t border-border p-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="eyebrow">{meta}</span>
             <div className="flex items-start justify-between gap-3">
-              <span className="text-[15px] leading-snug font-semibold tracking-[-0.01em] text-foreground">{court.name}</span>
-              <RatingInline court={court} className="mt-0.5 shrink-0" />
+              <span className="display text-[28px] text-foreground decoration-2 underline-offset-4 group-hover:underline">{court.name}</span>
+              <RatingInline court={court} className="mt-1 shrink-0" />
             </div>
-            <span className="text-[13px] text-muted-foreground">{meta}</span>
           </div>
           {court.description && <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{court.description}</p>}
-          <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-3">
+          <div className="mt-auto flex items-center justify-between gap-2 border-t border-dashed border-foreground/20 pt-3">
             <Price court={court} />
             <AmenityIcons court={court} max={3} />
           </div>
@@ -127,17 +127,11 @@ function CourtCard({ court, selected = false, onSelect, href, compact = false, i
 
   const body = (
     <>
-      <span
-        className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-md transition-colors",
-          selected ? "bg-brand text-brand-foreground" : "bg-muted text-foreground",
-        )}
-      >
-        <SportIcon sport={court.sport_type} className="size-[18px]" />
-      </span>
+      {selected && <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-brand" />}
+      <SportTile sport={court.sport_type} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-2">
-          <span className="truncate text-[14px] font-semibold text-foreground">{court.name}</span>
+          <span className="truncate text-[15px] font-bold text-foreground">{court.name}</span>
           {court.requires_approval && (
             <Tooltip content={t("courts.requiresApproval")}>
               <ShieldCheck className="size-3.5 shrink-0 text-info" aria-label={t("courts.requiresApproval")} />
@@ -157,10 +151,8 @@ function CourtCard({ court, selected = false, onSelect, href, compact = false, i
   )
 
   const rowClasses = cn(
-    "group flex w-full items-center gap-3 rounded-lg border p-3 text-left outline-none transition-[border-color,background-color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-ring/40",
-    selected
-      ? "border-foreground/80 bg-card shadow-sm ring-1 ring-foreground/80"
-      : "border-border bg-card hover:border-border-strong hover:shadow-sm",
+    "group relative flex w-full items-center gap-3 overflow-hidden rounded-sm border p-3 text-left outline-none transition-[border-color,background-color] duration-150 focus-visible:ring-2 focus-visible:ring-ring/40",
+    selected ? "border-foreground bg-card pl-4" : "border-border bg-card hover:border-foreground",
     className,
   )
 

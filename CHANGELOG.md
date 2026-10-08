@@ -8,6 +8,54 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+### Changed
+
+- **New visual identity — "Clubhouse programme" — replacing the v0.3.0
+  "court-side precision" look**, which read as a generic AI-generated SaaS
+  dashboard. The direction combines six styles from the Refero library
+  (Kikin, Monocle, Strava, Ballpark, Twitch "Stadium", Champions4good) into a
+  sports club's printed match-day programme: warm paper, forest ink, one
+  clay-court accent, Big Shoulders Display / Schibsted Grotesk / IBM Plex
+  Mono, hairline rules instead of cards, 2–8px corners and no resting
+  shadows. Tokens, fonts, favicon and every primitive (`button`, `badge`,
+  `card`, fields, `tabs`, `dialog`, `switch`, `avatar`, toasts…) were
+  rebuilt; `DESIGN.md` documents the new system.
+- **The app shell is a masthead instead of a sidebar.** On desktop a forest
+  venue strip (today's date, whether the venue is open right now in venue
+  time, language, theme) sits above a sticky masthead with the section
+  links, search, notifications, the "Book a court" action and the account
+  menu. On mobile a top bar plus a bottom tab bar (Overview · Courts ·
+  Book · Games · More) replaces the slide-out sidebar; "More" opens a
+  numbered contents-style menu. Venue staff reach the admin panel through a
+  single "Venue desk" link with the approval count.
+- **Booking was redesigned around clarity.** Numbered steps whose numeral
+  turns clay when done; a fixture-list day strip; the slot picker is now a
+  ruled schedule board grouped by part of day, with the picked slot in clay
+  showing its end time, taken/held/closed slots hatched *and* labelled,
+  per-group free counts and a legend; the summary is a forest "court pass"
+  with a tear-off perforation, sticky on desktop and a pass stub above the
+  tab bar on mobile. The hold dialog stamps the slot "HELD" and shows the
+  countdown as a large figure. "Repeat weekly" is now available on mobile
+  too (it was desktop-only).
+- Reservations render as **tickets** (sport-coloured date stub,
+  perforation, one primary action + menu); the dashboard's next-up card is
+  a forest match card; KPI tiles became scoreboard figures; courts are drawn
+  as **painted court plans** in their real surface colours (tennis clay,
+  volleyball blue, badminton green), and a new `SportTile` carries the same
+  colours wherever a sport icon appears.
+- The landing page was recomposed as a club poster (schedule-board hero
+  with a stamped sticker, a sports ticker band, painted sport tiles,
+  numbered steps, a contents-style feature index, a season-pass pricing
+  ticket); auth screens, navbar, footer (with the giant wordmark), FAQ and
+  CTA band follow the same system.
+
+### Fixed
+
+- The chat page's height now accounts for the shell chrome, so the
+  composer is never pushed below the fold or under the mobile tab bar.
+- After a slot was held, the picker no longer kept showing it as "your
+  pick" while also marking it taken.
+
 ## [0.3.0] - 2026-10-07
 
 ### Added

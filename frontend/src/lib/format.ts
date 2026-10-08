@@ -60,6 +60,7 @@ export function useFormatters() {
     const dateLong = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long" })
     const dayMonth = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" })
     const weekdayShort = new Intl.DateTimeFormat(locale, { weekday: "short" })
+    const monthShort = new Intl.DateTimeFormat(locale, { month: "short" })
     const monthYear = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" })
     const dateTime = new Intl.DateTimeFormat(locale, {
       day: "numeric",
@@ -111,6 +112,7 @@ export function useFormatters() {
       dateLong: (iso: string | Date) => dateLong.format(typeof iso === "string" ? new Date(iso) : iso),
       dayMonth: (iso: string | Date) => dayMonth.format(typeof iso === "string" ? new Date(iso) : iso),
       weekday: (iso: string | Date) => weekdayShort.format(typeof iso === "string" ? new Date(iso) : iso),
+      monthShort: (iso: string | Date) => monthShort.format(typeof iso === "string" ? new Date(iso) : iso).replace(".", ""),
       monthYear: (iso: string | Date) => monthYear.format(typeof iso === "string" ? new Date(iso) : iso),
       dateTime: (iso: string | Date) => dateTime.format(typeof iso === "string" ? new Date(iso) : iso),
       /** "Thu 9 Oct · 18:00–19:30" */

@@ -174,7 +174,7 @@ function CourtsPage() {
       />
 
       {/* Filter bar */}
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xs">
+      <div className="flex flex-col gap-3 border-b border-foreground pb-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <SearchInput
             value={searchInput}
@@ -211,7 +211,7 @@ function CourtsPage() {
             </Select>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-dashed border-foreground/20 pt-3">
           <SlidersHorizontal className="mr-1 size-3.5 text-muted-foreground" />
           <FilterChip active={environment === "indoor"} onClick={() => updateParam("env", environment === "indoor" ? undefined : "indoor")}>
             {t("courts.indoor")}
@@ -291,12 +291,12 @@ function CourtsPage() {
       </section>
 
       {!user && (
-        <div className="mt-14 flex flex-col items-start gap-4 rounded-2xl border border-border bg-card p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <span className="text-[15px] font-semibold">{t("courts.guestCta.title")}</span>
-            <span className="text-[13px] text-muted-foreground">{t("courts.guestCta.description")}</span>
+        <div className="mt-14 flex flex-col items-start gap-5 rounded-md bg-panel p-6 text-panel-foreground sm:flex-row sm:items-end sm:justify-between sm:p-8">
+          <div className="flex flex-col gap-2">
+            <span className="display text-[36px] sm:text-[44px]">{t("courts.guestCta.title")}</span>
+            <span className="text-[14px] text-panel-muted">{t("courts.guestCta.description")}</span>
           </div>
-          <Button asChild>
+          <Button variant="brand" size="lg" asChild>
             <Link to="/register">
               {t("hero.cta.signup")} <ArrowRight />
             </Link>

@@ -14,12 +14,12 @@ interface SubsectionHeadingProps {
 function SubsectionHeading({ title, description, action, count, className }: SubsectionHeadingProps) {
   return (
     <div className={cn("flex items-end justify-between gap-3", className)}>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em] text-foreground">
+      <div className="flex min-w-0 flex-col gap-1">
+        <h2 className="flex items-baseline gap-2 font-display text-[22px] leading-none font-extrabold tracking-[0.01em] text-foreground uppercase">
           {title}
           {count !== undefined && (
-            <span className="rounded-xs bg-muted px-1.5 py-px font-mono text-[11px] font-medium text-muted-foreground tabular">
-              {count}
+            <span className="font-mono text-[12px] font-medium tracking-normal text-muted-foreground tabular">
+              ({String(count).padStart(2, "0")})
             </span>
           )}
         </h2>

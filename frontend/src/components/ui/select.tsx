@@ -25,7 +25,7 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-card px-3 py-1 text-[14px] text-foreground shadow-xs outline-none transition-[border-color,box-shadow] duration-150 hover:border-border-strong data-[placeholder]:text-subtle-foreground focus-visible:border-foreground/40 focus-visible:ring-[3px] focus-visible:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate",
+        "flex h-9 w-full items-center justify-between gap-2 rounded-sm border border-input bg-card px-3 py-1 text-[14px] text-foreground outline-none transition-[border-color,box-shadow] duration-150 hover:border-foreground/50 data-[placeholder]:text-subtle-foreground focus-visible:border-foreground/40 focus-visible:ring-[3px] focus-visible:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate",
         className,
       )}
       {...props}

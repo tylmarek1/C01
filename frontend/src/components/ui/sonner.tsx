@@ -12,7 +12,7 @@ function Toaster(props: ToasterProps) {
       theme={theme}
       className="toaster group"
       offset={16}
-      mobileOffset={{ bottom: "84px" }}
+      mobileOffset={{ bottom: "140px" }}
       gap={8}
       icons={{
         success: <CircleCheck className="size-4 text-success" />,
@@ -26,12 +26,12 @@ function Toaster(props: ToasterProps) {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
-          "--border-radius": "12px",
+          "--border-radius": "4px",
         } as CSSProperties
       }
       toastOptions={{
         classNames: {
-          toast: "shadow-lg! font-sans! text-[13px]! gap-2.5!",
+          toast: "shadow-lg! font-sans! text-[13px]! gap-2.5! rounded-sm! border-foreground/15!",
           description: "text-muted-foreground!",
           actionButton: "bg-primary! text-primary-foreground! rounded-sm! font-medium!",
         },

@@ -1,6 +1,6 @@
 ---
 name: component-design
-description: Where new UI belongs on Courtly's frontend (shared vs page-local), how to follow the existing shadcn-style component pattern, and the design-token discipline from the repo-root DESIGN.md ("court-side precision"). Use before creating any new component or styling a new piece of UI.
+description: Where new UI belongs on Courtly's frontend (shared vs page-local), how to follow the existing shadcn-style component pattern, and the design-token discipline from the repo-root DESIGN.md ("Clubhouse programme"). Use before creating any new component or styling a new piece of UI.
 ---
 
 # Component design (frontend)

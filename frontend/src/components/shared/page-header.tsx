@@ -39,26 +39,32 @@ interface PageHeaderProps {
   children?: ReactNode
 }
 
-/** The top of every app page: optional back link + eyebrow, title, description, actions. */
+/** The top of every app page, set like a programme masthead: mono kicker,
+ * condensed poster title, a heavy ink rule underneath, then the standfirst. */
 function PageHeader({ title, description, eyebrow, actions, back, className, children }: PageHeaderProps) {
   return (
-    <header className={cn("flex flex-col gap-4 pb-6 sm:pb-8", className)}>
+    <header className={cn("flex flex-col gap-4 pb-7 sm:pb-9", className)}>
       {back && (
         <Link
           to={back.to}
-          className="-ml-1 inline-flex w-fit items-center gap-1.5 rounded-sm px-1 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="eyebrow -ml-0.5 inline-flex w-fit items-center gap-1.5 rounded-xs px-0.5 transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" /> {back.label}
         </Link>
       )}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-          <h1 className="text-2xl leading-tight font-semibold tracking-[-0.025em] text-foreground sm:text-[28px]">{title}</h1>
-          {description && <p className="max-w-2xl text-[14px] text-muted-foreground">{description}</p>}
+      <div className="flex flex-col gap-4 border-b-2 border-foreground pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-2">
+          {eyebrow && (
+            <span className="eyebrow flex items-center gap-2">
+              <span aria-hidden className="size-2 bg-brand" />
+              {eyebrow}
+            </span>
+          )}
+          <h1 className="display animate-fade-up text-[42px] text-foreground sm:text-[56px] lg:text-[64px]">{title}</h1>
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
+      {description && <p className="max-w-2xl text-[15px] text-pretty text-muted-foreground">{description}</p>}
       {children}
     </header>
   )
