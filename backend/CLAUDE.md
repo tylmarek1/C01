@@ -51,7 +51,10 @@ change behavior if missed, so they stay here rather than in the map:
   run under the reservation's row lock and could announce a change that
   rolls back). Notifications go through `notify()`, which only queues; Web
   Push is sent by `push_delivery.py` alone — `tests/test_architecture.py`
-  fails if anything else imports `pywebpush` (ADR-005).
+  fails if anything else imports `pywebpush` (ADR-005). The same holds for
+  the payment gateway: only `payments.py` imports `payment_gateway.py`;
+  a charge runs between two commits, and refunds are queued by
+  `lifecycle.transition` and made by the worker (ADR-010).
 
 ## Logging and the audit log (ADR-007)
 

@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from reservations import payments
 from reservations.models import (
     Reservation,
     ReservationEvent,
@@ -186,3 +187,6 @@ def transition(
             note=note,
         )
     )
+    # Every path that releases a reservation passes here, so a refund can't
+    # be forgotten by one of them (ADR-010). It only queues; no I/O.
+    payments.release_for(db, reservation)

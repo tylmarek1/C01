@@ -15,6 +15,12 @@ from reservations.models.message import Message
 from reservations.models.message_reaction import ALLOWED_REACTION_EMOJI, MessageReaction
 from reservations.models.notification import Notification, NotificationType
 from reservations.models.opening_hours import VenueOpeningHours
+from reservations.models.payment import (
+    LIVE_PAYMENT_STATUSES,
+    Payment,
+    PaymentMethod,
+    PaymentStatus,
+)
 from reservations.models.player_follow import PlayerFollow
 from reservations.models.price_rule import CourtPriceRule
 from reservations.models.push_delivery import PushDelivery, PushDeliveryStatus
@@ -44,6 +50,10 @@ __all__ = [
     "VenueManager",
     "VenueOpeningHours",
     "CourtPriceRule",
+    "Payment",
+    "PaymentMethod",
+    "PaymentStatus",
+    "LIVE_PAYMENT_STATUSES",
     "Court",
     "SportType",
     "Amenity",
