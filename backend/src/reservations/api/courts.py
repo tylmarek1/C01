@@ -1,6 +1,7 @@
 import uuid
 from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -551,19 +552,36 @@ def replace_price_rules(
     reservations don't change (`Reservation.price_total`)."""
     court = _get_court(db, court_id)
     require_court_manager(db, manager, court)
+    # Keep the rules that are unchanged, so the audit log records only real
+    # changes (ADR-007); the rest go before the new ones come in, or the
+    # exclusion constraint would see old and new overlap.
+    wanted = {
+        (
+            r.weekday,
+            to_minute(r.starts_at),
+            to_minute(r.ends_at),
+            Decimal(str(r.price_per_hour)).quantize(Decimal("0.01")),
+        )
+        for r in payload.rules
+    }
+    kept = set()
     for rule in db.scalars(
         select(CourtPriceRule).where(CourtPriceRule.court_id == court.id)
     ):
-        db.delete(rule)
-    db.flush()  # old rules out before the exclusion constraint sees the new ones
-    for rule in payload.rules:
+        key = (rule.weekday, rule.start_minute, rule.end_minute, rule.price_per_hour)
+        if key in wanted:
+            kept.add(key)
+        else:
+            db.delete(rule)
+    db.flush()
+    for weekday, start, end, price in wanted - kept:
         db.add(
             CourtPriceRule(
                 court_id=court.id,
-                weekday=rule.weekday,
-                start_minute=to_minute(rule.starts_at),
-                end_minute=to_minute(rule.ends_at),
-                price_per_hour=rule.price_per_hour,
+                weekday=weekday,
+                start_minute=start,
+                end_minute=end,
+                price_per_hour=price,
             )
         )
     try:

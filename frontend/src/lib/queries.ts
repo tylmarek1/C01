@@ -69,3 +69,14 @@ export function useFavorites() {
     enabled: Boolean(token),
   })
 }
+
+/** The venues the current user may manage (ADR-008): every venue for an admin. */
+export function useManagedVenues() {
+  const { token, user } = useAuth()
+  const isAdmin = user?.role === "ADMIN"
+  return useQuery({
+    queryKey: ["admin-venues", isAdmin],
+    queryFn: () => (isAdmin ? api.listVenues(token, true) : api.listMyVenues(token!)),
+    enabled: Boolean(token) && (user?.role === "ADMIN" || user?.role === "VENUE_MANAGER"),
+  })
+}

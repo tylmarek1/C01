@@ -123,7 +123,11 @@ def test_a_rolled_back_change_leaves_no_audit_row(
     session_factory: sessionmaker,
 ) -> None:
     with session_factory() as session:
-        court = Court(venue_id=default_venue_id(session), name="Ghost", sport_type=SportType.TENNIS)
+        court = Court(
+            venue_id=default_venue_id(session),
+            name="Ghost",
+            sport_type=SportType.TENNIS,
+        )
         session.add(court)
         session.flush()
         court_id = court.id
@@ -138,7 +142,9 @@ def test_a_status_change_outside_a_request_is_audited_without_an_actor(
     """The background worker (expiry, auto-complete) has no request and no user."""
     with session_factory() as session:
         user = User(name="P", email="p@example.com", password_hash="x")
-        court = Court(venue_id=default_venue_id(session), name="C", sport_type=SportType.TENNIS)
+        court = Court(
+            venue_id=default_venue_id(session), name="C", sport_type=SportType.TENNIS
+        )
         session.add_all([user, court])
         session.flush()
         start = datetime.now(timezone.utc) + timedelta(days=1)
@@ -186,3 +192,46 @@ def test_only_an_admin_can_read_the_audit_log(session_factory: sessionmaker) -> 
     (entry,) = response.json()
     assert entry["action"] == "CREATE"
     assert entry["actor"]["email"] == "mgr@example.com"
+
+
+def test_saving_unchanged_hours_and_rates_logs_nothing(
+    session_factory: sessionmaker,
+) -> None:
+    """Replace endpoints update in place, so an unchanged save leaves no noise."""
+    client = TestClient(app)
+    token = register(client, "admin@example.com", UserRole.ADMIN, session_factory)
+    headers = {"Authorization": f"Bearer {token}"}
+    with session_factory() as session:
+        venue_id = default_venue_id(session)
+        court = Court(venue_id=venue_id, name="Centre", sport_type=SportType.TENNIS)
+        session.add(court)
+        session.commit()
+        court_id = court.id
+    week = client.get(f"/venues/{venue_id}/opening-hours").json()
+    rules = [
+        {"weekday": 0, "starts_at": "17:00", "ends_at": "22:00", "price_per_hour": 450}
+    ]
+    client.put(
+        f"/courts/{court_id}/price-rules", json={"rules": rules}, headers=headers
+    )
+    with session_factory() as session:
+        before = session.query(AuditLog).count()
+
+    client.put(
+        f"/venues/{venue_id}/opening-hours", json={"days": week}, headers=headers
+    )
+    client.put(
+        f"/courts/{court_id}/price-rules", json={"rules": rules}, headers=headers
+    )
+    changed = client.put(
+        f"/venues/{venue_id}/opening-hours",
+        json={"days": [{**week[0], "closes_at": "20:00"}, *week[1:]]},
+        headers=headers,
+    )
+
+    assert changed.status_code == 200
+    with session_factory() as session:
+        new_rows = session.query(AuditLog).order_by(AuditLog.created_at).all()[before:]
+    assert [(r.entity_type, r.action, r.changes) for r in new_rows] == [
+        ("venue_opening_hours", "UPDATE", {"closes_minute": [1320, 1200]})
+    ]

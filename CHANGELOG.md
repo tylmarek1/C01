@@ -10,6 +10,14 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Venue desk UI for venues, pricing, payments and the audit log:**
+  - **Venues tab:** venue details, a weekly opening-hours editor, and manager assignment (admins).
+  - **Courts tab:** a rate editor per court (the same rate on several weekdays in one row), and venue selection for a new court. A venue manager sees only their own venues' courts.
+  - **Payments tab:** filter by status, hand back cash, retry a failed refund.
+  - **Reservations tab:** payment status badge and "record cash payment".
+  - **Audit log tab (admins only):** readable values.
+  - The utilization heatmap follows the venue's real opening hours.
+  - Saving unchanged opening hours or rates no longer fills the audit log; the backend now updates rows in place.
 - **Payments, completed:** cash of a released reservation is handed back at
   the desk and confirmed by a manager; the payer is notified when a payment is
   received or refunded; a refund the gateway keeps refusing alerts the venue's

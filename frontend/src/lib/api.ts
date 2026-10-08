@@ -3,6 +3,8 @@ import type {
   ActivityEvent,
   AdminStats,
   Amenity,
+  AuditAction,
+  AuditLogEntry,
   AuthResponse,
   CalendarToken,
   Challenge,
@@ -22,9 +24,15 @@ import type {
   Notification,
   NotificationType,
   OpenGame,
+  OpeningHoursDay,
+  Payment,
+  PaymentAdmin,
+  PaymentStatus,
   PlayerProfile,
   PlayerSearchResult,
   PlayerStats,
+  PriceQuote,
+  PriceRule,
   RatingLeaderboardEntry,
   Reservation,
   ReservationAdmin,
@@ -45,6 +53,8 @@ import type {
   User,
   UserAdmin,
   UserRole,
+  Venue,
+  VenueManagerEntry,
   WaitlistEntry,
 } from "@/types"
 
@@ -181,6 +191,7 @@ export const api = {
       image_url?: string
       amenities?: Amenity[]
       price_per_hour?: number
+      venue_id?: string
     },
   ) => request<Court>("/courts", { method: "POST", body: JSON.stringify(payload) }, token),
 
@@ -586,4 +597,67 @@ export const api = {
   // Activity feed
   getActivityFeed: (token: string, limit?: number, offset?: number) =>
     request<ActivityEvent[]>(`/activity/feed${buildQuery({ limit, offset })}`, {}, token),
+
+  // Venues (ADR-008) and their opening hours (ADR-009)
+  listVenues: (token?: string | null, includeInactive = false) =>
+    request<Venue[]>(`/venues${buildQuery({ include_inactive: includeInactive || undefined })}`, {}, token ?? undefined),
+
+  listMyVenues: (token: string) => request<Venue[]>("/venues/mine", {}, token),
+
+  createVenue: (token: string, payload: { name: string; address?: string; description?: string }) =>
+    request<Venue>("/venues", { method: "POST", body: JSON.stringify(payload) }, token),
+
+  updateVenue: (
+    token: string,
+    id: string,
+    payload: Partial<{ name: string; address: string | null; description: string | null; active: boolean }>,
+  ) => request<Venue>(`/venues/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+
+  listVenueManagers: (token: string, venueId: string) =>
+    request<VenueManagerEntry[]>(`/venues/${venueId}/managers`, {}, token),
+
+  assignVenueManager: (token: string, venueId: string, userId: string) =>
+    request<VenueManagerEntry[]>(`/venues/${venueId}/managers/${userId}`, { method: "PUT" }, token),
+
+  unassignVenueManager: (token: string, venueId: string, userId: string) =>
+    request<void>(`/venues/${venueId}/managers/${userId}`, { method: "DELETE" }, token),
+
+  getOpeningHours: (venueId: string) => request<OpeningHoursDay[]>(`/venues/${venueId}/opening-hours`),
+
+  setOpeningHours: (token: string, venueId: string, days: OpeningHoursDay[]) =>
+    request<OpeningHoursDay[]>(`/venues/${venueId}/opening-hours`, { method: "PUT", body: JSON.stringify({ days }) }, token),
+
+  // Court rates (ADR-009)
+  getPriceRules: (courtId: string) => request<PriceRule[]>(`/courts/${courtId}/price-rules`),
+
+  setPriceRules: (token: string, courtId: string, rules: PriceRule[]) =>
+    request<PriceRule[]>(`/courts/${courtId}/price-rules`, { method: "PUT", body: JSON.stringify({ rules }) }, token),
+
+  getPriceQuote: (courtId: string, startTime: string, endTime: string) =>
+    request<PriceQuote>(`/courts/${courtId}/quote${buildQuery({ start_time: startTime, end_time: endTime })}`),
+
+  // Payments (ADR-010)
+  payReservation: (token: string, reservationId: string, decline = false) =>
+    request<Payment>(`/reservations/${reservationId}/payments`, { method: "POST", body: JSON.stringify({ decline }) }, token),
+
+  recordCashPayment: (token: string, reservationId: string) =>
+    request<Payment>(`/reservations/${reservationId}/payments/cash`, { method: "POST" }, token),
+
+  listReservationPayments: (token: string, reservationId: string) =>
+    request<Payment[]>(`/reservations/${reservationId}/payments`, {}, token),
+
+  listPayments: (token: string, status?: PaymentStatus, options: { limit?: number; offset?: number } = {}) =>
+    request<PaymentAdmin[]>(`/payments${buildQuery({ status, ...options })}`, {}, token),
+
+  handBackCash: (token: string, paymentId: string) =>
+    request<PaymentAdmin>(`/payments/${paymentId}/cash-refund`, { method: "POST" }, token),
+
+  retryRefund: (token: string, paymentId: string) =>
+    request<PaymentAdmin>(`/payments/${paymentId}/retry-refund`, { method: "POST" }, token),
+
+  // Audit log (ADR-007)
+  listAuditLog: (
+    token: string,
+    filters: { entity_type?: string; entity_id?: string; actor_id?: string; action?: AuditAction; limit?: number; offset?: number } = {},
+  ) => request<AuditLogEntry[]>(`/admin/audit-log${buildQuery(filters)}`, {}, token),
 }

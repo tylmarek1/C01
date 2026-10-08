@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BarChart3, Camera, Eye, EyeOff, ImagePlus, LayoutGrid, MoreHorizontal, Pencil, Plus, ShieldCheck, Star, Trash2, X } from "lucide-react"
+import { BarChart3, Camera, Eye, EyeOff, ImagePlus, LayoutGrid, MoreHorizontal, Pencil, Plus, ShieldCheck, Star, Tags, Trash2, X } from "lucide-react"
 import { useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
@@ -34,8 +34,10 @@ import { useAuth } from "@/lib/auth-context"
 import { formatCurrency, useFormatters } from "@/lib/format"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
 import { compressImageFile } from "@/lib/image"
+import { useManagedVenues } from "@/lib/queries"
 import { cn } from "@/lib/utils"
-import type { Amenity, Court, SportType } from "@/types"
+import { PriceRulesDialog } from "@/pages/app/admin/PriceRulesDialog"
+import type { Amenity, Court, SportType, Venue } from "@/types"
 
 const SPORTS: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
 const MAX_GALLERY = 8
@@ -48,6 +50,7 @@ interface CourtFormValues {
   description: string
   amenities: Amenity[]
   price_per_hour: string
+  venue_id: string
 }
 
 const EMPTY_FORM: CourtFormValues = {
@@ -58,11 +61,14 @@ const EMPTY_FORM: CourtFormValues = {
   description: "",
   amenities: [],
   price_per_hour: "",
+  venue_id: "",
 }
 
-function formValuesFromCourt(court?: Court): CourtFormValues {
-  if (!court) return EMPTY_FORM
+function formValuesFromCourt(court?: Court, venues: Venue[] = []): CourtFormValues {
+  // A new court goes to the first venue the user manages unless they pick another.
+  if (!court) return { ...EMPTY_FORM, venue_id: venues[0]?.id ?? "" }
   return {
+    venue_id: court.venue_id,
     name: court.name,
     sport_type: court.sport_type,
     indoor: court.indoor,
@@ -79,8 +85,10 @@ function CourtFormDialog({
   onOpenChange,
   onSaved,
   onImageUploaded,
+  venues = [],
 }: {
   court?: Court
+  venues?: Venue[]
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaved: (values: CourtFormValues) => Promise<void>
@@ -90,7 +98,7 @@ function CourtFormDialog({
   const { t } = useTranslation()
   const sportLabels = useSportLabels()
   const amenityLabels = useAmenityLabels()
-  const [values, setValues] = useState<CourtFormValues>(() => formValuesFromCourt(court))
+  const [values, setValues] = useState<CourtFormValues>(() => formValuesFromCourt(court, venues))
   const [isSaving, setIsSaving] = useState(false)
   const [touched, setTouched] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -100,7 +108,7 @@ function CourtFormDialog({
   if (open !== lastOpen) {
     setLastOpen(open)
     if (open) {
-      setValues(formValuesFromCourt(court))
+      setValues(formValuesFromCourt(court, venues))
       setTouched(false)
     }
   }
@@ -218,6 +226,24 @@ function CourtFormDialog({
                 </div>
                 <span className="text-xs text-muted-foreground">{t("admin.court.gallery.hint")}</span>
               </div>
+            </div>
+          )}
+
+          {!court && venues.length > 1 && (
+            <div className="flex flex-col gap-2">
+              <Label>{t("admin.court.venue")}</Label>
+              <Select value={values.venue_id} onValueChange={(value) => setValues((v) => ({ ...v, venue_id: value }))}>
+                <SelectTrigger aria-label={t("admin.court.venue")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {venues.map((venue) => (
+                    <SelectItem key={venue.id} value={venue.id}>
+                      {venue.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -357,7 +383,6 @@ function CourtFormDialog({
 }
 
 const UTILIZATION_DAYS = 30
-const UTILIZATION_HOURS = Array.from({ length: 15 }, (_, i) => 7 + i)
 const UTILIZATION_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]
 
 function CourtUtilizationDialog({ court, open, onOpenChange }: { court: Court; open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -370,6 +395,8 @@ function CourtUtilizationDialog({ court, open, onOpenChange }: { court: Court; o
     enabled: open,
   })
   const cellByKey = new Map(data?.cells.map((cell) => [`${cell.day_of_week}-${cell.hour}`, cell]) ?? [])
+  // The venue's opening hours decide the grid's columns (ADR-009).
+  const hours = [...new Set(data?.cells.map((cell) => cell.hour) ?? [])].sort((a, b) => a - b)
   const hasAnyBookings = (data?.cells ?? []).some((cell) => cell.booked_count > 0)
   const overall = data
     ? data.cells.reduce((sum, c) => sum + c.booked_count, 0) / Math.max(1, data.cells.reduce((sum, c) => sum + c.possible_count, 0))
@@ -393,7 +420,7 @@ function CourtUtilizationDialog({ court, open, onOpenChange }: { court: Court; o
             <Heatmap
               ariaLabel={t("admin.utilization.dialog.title", { court: court.name })}
               rows={UTILIZATION_WEEKDAYS.map((day) => ({ key: day, label: t(`weekday.${day}` as TranslationKey) }))}
-              columns={UTILIZATION_HOURS.map((hour) => ({ key: hour, label: String(hour) }))}
+              columns={hours.map((hour) => ({ key: hour, label: String(hour) }))}
               value={(day, hour) => cellByKey.get(`${day}-${hour}`)?.occupancy ?? 0}
               tooltip={(day, hour, v) => {
                 const cell = cellByKey.get(`${day}-${hour}`)
@@ -416,14 +443,19 @@ function CourtsTab() {
   const [editTarget, setEditTarget] = useState<Court | null>(null)
   const [creating, setCreating] = useState(false)
   const [utilizationTarget, setUtilizationTarget] = useState<Court | null>(null)
+  const [pricingTarget, setPricingTarget] = useState<Court | null>(null)
   const [query, setQuery] = useState("")
   const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">("all")
   const isAdmin = currentUser?.role === "ADMIN"
+  const { data: venues } = useManagedVenues()
+  const venueName = new Map(venues?.map((venue) => [venue.id, venue.name]))
 
-  const { data: courts, isLoading, isError, refetch } = useQuery({
+  const { data: allCourts, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-courts"],
     queryFn: () => api.listCourts({ includeInactive: true }, token),
   })
+  // A venue manager only manages their own venues' courts (ADR-008); an admin sees every venue.
+  const courts = isAdmin || !venues ? allCourts : allCourts?.filter((court) => venueName.has(court.venue_id))
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-courts"] })
@@ -449,6 +481,7 @@ function CourtsTab() {
         description: values.description || undefined,
         amenities: values.amenities,
         price_per_hour: values.price_per_hour === "" ? undefined : Number(values.price_per_hour),
+        venue_id: values.venue_id || undefined,
       }),
     onSuccess: () => {
       toast.success(t("admin.toast.courtCreated"))
@@ -531,6 +564,7 @@ function CourtsTab() {
                   </Link>
                   <span className="text-xs text-muted-foreground">
                     {sportLabels[court.sport_type]} · {court.indoor ? t("courts.indoor") : t("courts.outdoor")}
+                    {(venues?.length ?? 0) > 1 && ` · ${venueName.get(court.venue_id) ?? ""}`}
                   </span>
                 </div>
                 <DropdownMenu>
@@ -542,6 +576,9 @@ function CourtsTab() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onSelect={() => setEditTarget(court)}>
                       <Pencil /> {t("admin.court.editAria")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setPricingTarget(court)}>
+                      <Tags /> {t("admin.court.pricing")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setUtilizationTarget(court)}>
                       <BarChart3 /> {t("admin.court.utilizationAria")}
@@ -616,6 +653,7 @@ function CourtsTab() {
       </div>
 
       <CourtFormDialog
+        venues={venues}
         open={creating}
         onOpenChange={setCreating}
         onSaved={async (values) => {
@@ -645,6 +683,7 @@ function CourtsTab() {
           }}
         />
       )}
+      {pricingTarget && <PriceRulesDialog court={pricingTarget} open onOpenChange={(open) => !open && setPricingTarget(null)} />}
       {utilizationTarget && (
         <CourtUtilizationDialog court={utilizationTarget} open onOpenChange={(open) => !open && setUtilizationTarget(null)} />
       )}
