@@ -83,7 +83,7 @@ function OverviewTab() {
         <StatTile icon={CalendarClock} label={t("profile.stat.hoursPlayed")} value={stats ? fmt.number(stats.hours_played) : "–"} />
         <StatTile icon={MapPinned} label={t("profile.stat.courtsPlayed")} value={stats?.distinct_courts_played ?? "–"} />
         <StatTile icon={Trophy} label={t("profile.stat.sportsPlayed")} value={stats?.sports_played ?? "–"} />
-        <StatTile icon={Flame} label={t("profile.stat.streak")} value={stats?.current_streak_weeks ?? "–"} hint={t("profile.stat.streakHint")} />
+        <StatTile icon={Flame} label={t("profile.stat.streak")} value={stats?.current_streak_weeks ?? "–"} hint={t("profile.stat.streakHint", { count: stats?.current_streak_weeks ?? 0 })} />
         <StatTile
           icon={Award}
           label={t("profile.stat.achievements")}
