@@ -69,10 +69,6 @@ function Navbar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5 self-center">
-          <div className="hidden items-center gap-1.5 sm:flex">
-            <LanguageSwitcher />
-            <ThemeToggle />
-          </div>
           {isLoading ? null : user ? (
             <>
               <Button size="sm" asChild className="hidden sm:inline-flex">
@@ -92,6 +88,10 @@ function Navbar() {
               </Button>
             </div>
           )}
+          <div className="hidden items-center gap-1.5 border-l border-border pl-3 sm:ml-1.5 sm:flex">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
 
           <Button
             variant="ghost"

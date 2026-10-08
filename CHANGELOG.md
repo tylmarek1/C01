@@ -8,6 +8,28 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+### Added
+
+- **Demo-account picker on the login page (dev builds only):** clicking a
+  seeded account (player, teammate, venue manager, admin) fills in the form.
+  Production builds don't ship the credentials.
+- **Plural forms in translations:** `t()` understands an ICU-style
+  `{count, plural, one {…} few {…} other {…}}` subset backed by
+  `Intl.PluralRules`, so Czech counts decline correctly ("2 místa", "5 míst").
+
+### Changed
+
+- **Czech copy reviewed page by page:** literal translations reworded into
+  natural Czech, check-in no longer translated as "přihlásit se" (it clashed
+  with login; now "potvrdit příchod" / "Na místě"), one term each for the
+  waitlist ("pořadník"), no-shows ("neúčast") and skill rating.
+- The public navbar's language and theme switches now sit at the far right.
+
+### Fixed
+
+- The help FAQ named a "Private profile" switch that doesn't exist; it now
+  points at the real "Show my profile to other players" setting.
+
 ## [4.0.2] - 2026-10-08
 
 Backend-only patch: backend 0.3.1 -> 0.3.2, frontend stays 4.0.0.

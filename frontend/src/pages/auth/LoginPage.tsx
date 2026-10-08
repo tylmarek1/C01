@@ -1,4 +1,4 @@
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, ArrowUpLeft } from "lucide-react"
 import { useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 
@@ -9,7 +9,18 @@ import { Label } from "@/components/ui/label"
 import { PasswordInput } from "@/components/shared/password-input"
 import { ApiError } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { useTranslation } from "@/lib/i18n"
+import { useTranslation, type TranslationKey } from "@/lib/i18n"
+
+/** Mirrors the accounts `backend/src/reservations/seed.py` creates. Dev builds
+ * only — a production bundle must not advertise working credentials. */
+const DEMO_ACCOUNTS: { email: string; password: string; role: TranslationKey; hint: TranslationKey }[] = import.meta.env.DEV
+  ? [
+      { email: "player@courtly.app", password: "playerplayer", role: "role.PLAYER", hint: "auth.demo.hint.player" },
+      { email: "teammate@courtly.app", password: "teammate1", role: "role.PLAYER", hint: "auth.demo.hint.teammate" },
+      { email: "manager@courtly.app", password: "managermanager", role: "role.VENUE_MANAGER", hint: "auth.demo.hint.manager" },
+      { email: "admin@courtly.app", password: "adminadmin", role: "role.ADMIN", hint: "auth.demo.hint.admin" },
+    ]
+  : []
 
 function LoginPage() {
   const { login } = useAuth()
@@ -20,6 +31,12 @@ function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  function fillDemoAccount(demoEmail: string, demoPassword: string) {
+    setEmail(demoEmail)
+    setPassword(demoPassword)
+    setError(null)
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -87,6 +104,44 @@ function LoginPage() {
           {isSubmitting ? t("auth.login.submitting") : t("auth.login.submit")}
         </Button>
       </form>
+
+      {DEMO_ACCOUNTS.length > 0 && (
+        <section aria-labelledby="demo-accounts-title" className="mt-8 border-t-2 border-foreground pt-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 id="demo-accounts-title" className="font-mono text-[11px] tracking-[0.08em] uppercase">
+              {t("auth.demo.title")}
+            </h2>
+            <span className="text-[12px] text-subtle-foreground">{t("auth.demo.description")}</span>
+          </div>
+          <ul className="mt-2 flex flex-col">
+            {DEMO_ACCOUNTS.map((account) => {
+              const selected = email === account.email && password === account.password
+              return (
+                <li key={account.email}>
+                  <button
+                    type="button"
+                    onClick={() => fillDemoAccount(account.email, account.password)}
+                    aria-pressed={selected}
+                    className="group flex w-full items-center gap-3 border-b border-border py-2 text-left transition-colors outline-none hover:bg-muted focus-visible:bg-muted aria-pressed:bg-muted"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="flex items-baseline gap-2">
+                        <span className="text-[14px] font-semibold">{t(account.role)}</span>
+                        <span className="truncate text-[12px] text-muted-foreground">{t(account.hint)}</span>
+                      </span>
+                      <span className="truncate font-mono text-[11.5px] text-subtle-foreground">{account.email}</span>
+                    </span>
+                    <ArrowUpLeft
+                      aria-hidden
+                      className="size-4 shrink-0 text-subtle-foreground transition-colors group-hover:text-brand group-aria-pressed:text-brand"
+                    />
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
     </AuthLayout>
   )
 }
