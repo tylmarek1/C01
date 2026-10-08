@@ -21,7 +21,11 @@ def make_engine(url: str | None = None) -> Engine:
 
 
 def make_session_factory(engine: Engine) -> sessionmaker:
-    return sessionmaker(bind=engine, expire_on_commit=False)
+    from reservations import audit  # imports the models, so not at module top
+
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+    audit.install(factory)
+    return factory
 
 
 def alembic_config() -> Config:

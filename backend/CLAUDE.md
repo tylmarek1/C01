@@ -53,6 +53,18 @@ change behavior if missed, so they stay here rather than in the map:
   Push is sent by `push_delivery.py` alone — `tests/test_architecture.py`
   fails if anything else imports `pywebpush` (ADR-005).
 
+## Logging and the audit log (ADR-007)
+
+- Log through `logging.getLogger("reservations.<area>")`. The request id
+  and user id are attached automatically (`observability.py`); pass
+  anything else as `extra={...}`, not baked into the message string. Never
+  log a token, password, hash, or full URL with its query string.
+- The audit log is written by `audit.py`'s flush listener, not by routes.
+  A new model or field that matters for "who changed what" gets added to
+  `AUDITED_FIELDS` (an allowlist — secrets stay out). A Core-level bulk
+  `update()`/`delete()` bypasses the listener; use ORM changes for audited
+  models.
+
 ## Business rule values — read the code, don't trust a restated number
 
 `rules.py` and `schemas/reservation.py` are the two canonical, single-source
