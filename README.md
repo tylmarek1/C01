@@ -6,7 +6,7 @@ both sides always see the same, accurate schedule.
 
 <p align="center">
   <img src="docs/screenshots/landing.png" alt="Courtly landing page" width="49%" />
-  <img src="docs/screenshots/dashboard.png" alt="Courtly dashboard with the next confirmed game" width="49%" />
+  <img src="docs/screenshots/booking.png" alt="Courtly booking: the schedule board with a picked slot and the court pass" width="49%" />
 </p>
 
 - **Repository:** https://github.com/tylmarek1/C01
