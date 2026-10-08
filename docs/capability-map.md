@@ -58,7 +58,7 @@ here just because it exists, only ones worth tracking status on.
 | Backend test coverage | Strong | 269 tests against real Postgres (177 from the C02-baseline era + 92 added across the "Courtly Communities" PRs #38–#44). Feature areas without an identically-named test file (`achievements.py`, `approval_service.py`, `waitlist_service.py`, `images.py`, `challenges.py`, `activity.py`) are well-exercised indirectly — verified, not a gap | 2026-09-22 |
 | Concurrency/regression testing | Strong | `test_persistence_spike.py` pattern, timezone regression test | 2026-09-22 |
 | Frontend automated testing | **Missing** (deliberate) | `accessibility-responsive`'s manual checklist is the current substitute; documented and monitored, not silently accepted | 2026-09-22 |
-| Schema-change safety net | Adequate | No Alembic, no codegen — `schema-change-sweep`'s grep-based sweep mitigates, doesn't automate | 2026-09-22 |
+| Schema-change safety net | Strong | Alembic migrations (ADR-006); `tests/test_migrations.py` fails on model↔migration drift, a missing enum value, or a broken downgrade. Frontend types are still hand-maintained (`schema-change-sweep`) | 2026-10-08 |
 
 ## Backend / architecture
 
@@ -69,7 +69,7 @@ here just because it exists, only ones worth tracking status on.
 | Background worker reliability | Strong | Each of the 5 housekeeping sub-tasks now runs in its own session/transaction (`worker.py`'s `_SUB_TASKS` loop) — one failing task is logged and skipped, the other 4 still commit. All 5 now consistently use `with_for_update(skip_locked=True)`. Regression-tested (`test_worker_tick_survives_one_failing_sub_task`) | 2026-09-22 |
 | API pagination | Adequate | `GET /courts`, `/reservations`, `/reservations/admin`, `/admin/users` now take bounded `limit`/`offset` query params (defaults preserve today's response size, so no caller had to change) — closes the unbounded-read risk. Adequate not Strong: no frontend "load more"/page UI yet, deliberately — none of today's data volumes need it | 2026-09-22 |
 | Observability / logging | Adequate | A global FastAPI exception handler (`main.py`) now logs any unhandled (non-`HTTPException`) exception with request context before returning a generic 500 — the minimal level `production-readiness` calls for, still deliberately not a platform. Tested (`test_error_handling.py`) | 2026-09-22 |
-| Migrations | **Missing** (deliberate) | No Alembic — known, documented gap (root `CLAUDE.md`) | 2026-09-22 |
+| Migrations | Strong | Alembic since 2026-10-08 (ADR-006); the pre-Alembic dev database is adopted by stamping the `0001` baseline, not rebuilt | 2026-10-08 |
 | CI/CD | **Missing** (deliberate) | Known, documented gap | 2026-09-22 |
 
 ## Frontend / UX

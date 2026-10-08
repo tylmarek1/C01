@@ -10,6 +10,11 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Alembic migrations** (ADR-006): the schema is built by
+  `uv run alembic upgrade head` (the seed and the tests do it too) instead of
+  `create_all`. An existing dev database is adopted by stamping the `0001`
+  baseline — no data is touched. `tests/test_migrations.py` fails on
+  model↔migration drift, a missing enum value, or a broken downgrade.
 - **Click a time straight on the day's timeline** (booking page, court
   detail, reschedule dialog): hovering previews the nearest free slot for the
   chosen duration, a click selects it, a click on a taken stretch offers the

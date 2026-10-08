@@ -102,9 +102,9 @@ rule under concurrency, instead of relying on application-level locking
 server-side sessions (ADR-003). Full rationale and every other decision:
 [`docs/architecture-and-decisions.md`](docs/architecture-and-decisions.md).
 
-There is no CI pipeline and no Alembic migrations yet — a backend schema
-change needs a manual reseed (see `backend/CLAUDE.md`). Both are known,
-deliberate gaps rather than oversights.
+Schema changes go through Alembic migrations (ADR-006,
+`uv run alembic upgrade head`). There is no CI pipeline yet — a known,
+deliberate gap rather than an oversight.
 
 ## Prerequisites
 

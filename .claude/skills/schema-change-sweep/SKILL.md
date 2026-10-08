@@ -1,6 +1,6 @@
 ---
 name: schema-change-sweep
-description: Grep-based impact sweep for adding, renaming, retyping, or removing a SQLAlchemy model field/table, a Pydantic schema field, or a hand-maintained frontend type in Courtly (C01). Use whenever a backend model or schema changes shape — this project has no Alembic and no generated API-type client, so nothing else in the toolchain will catch a missed call site.
+description: Grep-based impact sweep for adding, renaming, retyping, or removing a SQLAlchemy model field/table, a Pydantic schema field, or a hand-maintained frontend type in Courtly (C01). Use whenever a backend model or schema changes shape — Alembic migrations catch schema drift but nothing (no generated API-type client) catches a missed call site.
 ---
 
 # Schema/model change impact sweep
@@ -37,14 +37,12 @@ A rename can silently orphan a call site the compiler stayed quiet about
 `any`-ish boundary). Look at the whole list before deciding the change is
 as small as it first appeared.
 
-## Step 4 — Handle the schema-recreation gap
+## Step 4 — Write the migration
 
-For a change to a column/enum on an **already-existing** table: there's no
-migration to write. You're editing the SQLAlchemy model, and then the dev
-database needs the manual cycle from `backend/CLAUDE.md`
-(`drop_schema` + `create_schema` + reseed) — `create_all` will not alter an
-existing table or enum type. A pure code-side rename with no schema
-recreation leaves the dev DB holding the old column name.
+Every model change needs an Alembic migration in the same commit
+(`database-evolution`). A rename needs `op.alter_column(..., new_column_name=...)`
+— autogenerate drafts it as drop + add, which loses the data. Run
+`uv run alembic upgrade head` so the dev DB catches up.
 
 ## Step 5 — Re-grep after editing
 

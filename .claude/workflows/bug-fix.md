@@ -23,8 +23,8 @@ onto a genuine small fix, but don't skip root-causing it either.
    code's fault, sometimes it's the doc's, per root `CLAUDE.md` §0).
 2. **Check `docs/project-state.md`'s "Known pitfalls" style traps** (root
    `CLAUDE.md`'s "Known pitfalls" section) — venue-timezone comparisons,
-   the exclusion constraint's status list, `create_all` not altering
-   existing tables, frontend-only rule enforcement, incomplete i18n. A
+   the exclusion constraint's status list, a schema change the
+   migration doesn't carry, frontend-only rule enforcement, incomplete i18n. A
    surprising number of real bugs in this codebase are instances of one of
    these five.
 3. **Add a regression test that reproduces the bug** *before* fixing it,

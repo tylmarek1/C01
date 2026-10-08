@@ -8,10 +8,10 @@ from sqlalchemy.orm import sessionmaker
 
 from reservations.config import settings
 from reservations.db import (
-    create_schema,
     drop_schema,
     make_engine,
     make_session_factory,
+    upgrade_schema,
 )
 from reservations.rate_limit import reset_all as reset_rate_limits
 
@@ -49,7 +49,8 @@ def _ensure_database_exists(url_string: str) -> None:
     try:
         with admin.connect() as conn:
             exists = conn.scalar(
-                text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": url.database}
+                text("SELECT 1 FROM pg_database WHERE datname = :name"),
+                {"name": url.database},
             )
             if not exists:
                 conn.execute(text(f'CREATE DATABASE "{url.database}"'))
@@ -68,7 +69,7 @@ def engine() -> Iterator[Engine]:
     _ensure_database_exists(settings.database_url)
     engine = make_engine()
     drop_schema(engine)
-    create_schema(engine)
+    upgrade_schema(engine)
     yield engine
     engine.dispose()
 

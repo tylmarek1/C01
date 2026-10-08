@@ -45,7 +45,7 @@ substitute for a CHANGELOG entry.
 ## What counts as "breaking" in this codebase
 
 Matters more here than in a typical project, because there's no tooling
-(no Alembic, no generated client) to catch a breaking change for you.
+(no generated client; migrations catch schema drift, not API drift) to catch a breaking change for you.
 
 - **A column/enum change on an existing table** is breaking for the dev
   database specifically — see `database-evolution` (backend). It's not

@@ -44,8 +44,8 @@ the refactor in the first place — don't skip straight from "understand" to
 
 Use `schema-change-sweep` for any refactor that renames or reshapes a
 model/schema/type — the grep-based impact sweep is exactly for this, since
-nothing in this stack (no Alembic, no generated types) will catch a missed
-call site for you.
+nothing in this stack (no generated types) will catch a missed
+call site for you — and a rename needs a migration that preserves the data.
 
 ## If the refactor moves, renames, or splits a module
 

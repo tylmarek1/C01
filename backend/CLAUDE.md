@@ -70,35 +70,35 @@ already independently define `VENUE_TZ` instead of one importing it from
 the other — a small, real instance of this drift; see the `consistency`
 skill.)
 
-## No Alembic — the sharpest trap in this codebase
+## Schema changes go through Alembic migrations (ADR-006)
 
-`db.py` only has `create_schema`/`drop_schema`
-(`Base.metadata.create_all`/`drop_all`). This means:
+The schema's source of truth is `src/reservations/migrations/versions/`,
+not `create_all`. `db.upgrade_schema()` (used by `seed.py` and the test
+suite) runs `alembic upgrade head`; a database still built by the old
+`create_all` is stamped at the `0001` baseline first, never rebuilt. (Bare
+`uv run alembic upgrade head` doesn't do that adoption step — on a
+pre-Alembic database run the seed once instead.)
 
-- Adding a **new table** (a new model file) is safe with just a reseed —
-  `create_all` will create it.
-- Adding a new **column to an existing table**, or a new **value to an
-  existing Postgres enum type** (e.g. a new `ReservationStatus` member), is
-  **not** picked up by `create_all` — it only creates what doesn't exist
-  yet, it never alters what does. If you make this kind of change, the dev
-  database needs a full manual cycle after you're done:
+Any change in `models/` needs a migration in the same commit:
 
-  ```bash
-  cd backend
-  uv run python -c "from reservations.db import make_engine, drop_schema; drop_schema(make_engine())"
-  uv run python -c "from reservations.db import make_engine, create_schema; create_schema(make_engine())"
-  uv run python -m reservations.seed
-  ```
+```bash
+cd backend
+uv run alembic revision --autogenerate -m "add venue_id to courts"   # draft
+# review the draft by hand — see what autogenerate misses below
+uv run alembic upgrade head                                         # apply to the dev DB
+```
 
-  (pytest's `conftest.py` already does this drop+create per test session,
-  which is why the test suite doesn't need this — but it means running the
-  tests does **not** validate that the *dev* database has caught up to a
-  schema change; you still owe it the manual cycle above if you want to
-  browse/demo afterward.)
+Autogenerate does **not** see, so you write these by hand:
+- a new value on an existing Postgres enum (`ALTER TYPE … ADD VALUE`) —
+  `test_every_postgres_enum_has_exactly_the_model_values` fails if you forget;
+- changes to an `ExcludeConstraint` (its `WHERE` status list included) or a
+  `CHECK` constraint;
+- extensions (`btree_gist`) and data backfills.
 
-This is a deliberate, known, already-flagged gap (root `CLAUDE.md`'s
-"Known gaps") — don't introduce Alembic unprompted as a fix; if a task
-would genuinely benefit from it, say so and let the user decide.
+Every migration has a working `downgrade()`. `tests/test_migrations.py`
+checks that the migrated schema matches the models and that the whole chain
+downgrades to `base` and back up. Don't edit a migration that has been
+merged to `main` — add a new one.
 
 ## Concurrency correctness — don't touch this without extra care
 
@@ -174,14 +174,14 @@ doesn't know how to parse it yet.
   `settings.database_url` to `TEST_DATABASE_URL`, or else to the dev
   database's name plus `_test` (`reservations_test` by default), and
   creates that database on first run. The session-scoped `engine` fixture
-  then runs `drop_schema` + `create_schema` there, and it refuses to run
+  then runs `drop_schema` + `upgrade_schema` there, and it refuses to run
   against a database whose name doesn't end in `_test`. As a result,
   `uv run pytest` leaves the seeded dev database alone and can run while
   `fastapi dev` is up. Keep both properties: never point the suite back at
   `DATABASE_URL` itself.
 - When you add or change a model/schema, run the `schema-change-sweep`
-  skill — nothing in this stack (no Alembic, no generated types) will catch
-  a missed call site for you.
+  skill — the migration tests catch schema drift, but nothing (no generated
+  types) catches a missed call site in the code for you.
 
 ## Backend-specific skills
 
@@ -193,5 +193,5 @@ working here; see root `CLAUDE.md` for the project-wide ones (
 | Skill | Use it when |
 |---|---|
 | `api-design` | Adding a new endpoint, or changing a request/response shape |
-| `database-evolution` | Before and after changing anything in `models/` — is this safe with just a reseed, or does it need the manual recreation cycle? |
+| `database-evolution` | Before and after changing anything in `models/` — writing and checking the Alembic migration |
 | `backend-testing` | Adding backend functionality that needs coverage, or fixing a backend bug |
