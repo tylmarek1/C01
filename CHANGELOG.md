@@ -8,6 +8,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-10-08
+
+A backend-only patch release. The backend moves 0.3.0 -> 0.3.1 and the
+frontend stays at 4.0.0. Separately, the C03 architecture milestone is
+now tagged `c03-architecture` (PR #71's merge commit `da3158d`).
+
 ### Changed
 
 - **Backend tests no longer wipe the dev database.** `uv run pytest` now

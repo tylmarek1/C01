@@ -26,7 +26,7 @@ itself — see "Pending / open gates"). **C03: engineering complete** — Part A
 | C01 | **DONE** — all 15 `docs/course/C01.md` §10 items evidence-backed complete |
 | C02 | Baseline v0.1 and the "approval process" change (v0.2) are both engineering-complete and evidenced; **team approval of both specification baselines is the one item still open** |
 | Specification baseline | v0.2 — `docs/specification.md` (v0.1 frozen in `docs/specification-v0.1.md`) |
-| C03 | **Engineering complete** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Waitlist accept, the one path that bypassed the Lifecycle, was routed through it on 2026-10-08 (Amendment below ADR-005's C03 section). Open: tag `c03-architecture` to be placed on the commit that lands in `main` |
+| C03 | **Engineering complete** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Commit/tag: implementation merged to `main` in PR #71 (`da3158d`), tag `c03-architecture`. Follow-up 2026-10-08 (PR #76): waitlist accept, the one path that bypassed the Lifecycle, now goes through it (amendment at the end of `docs/architecture-and-decisions.md`). No C03 item open |
 
 ## Completed gates
 
@@ -104,31 +104,31 @@ where, so a session doesn't have to search for them.
 
 ## Latest verification
 
-- `cd backend && uv run pytest -v` — **177 passed** (176 baseline + one
-  test added closing a spec↔test coverage gap, VE-06.2) against real
-  PostgreSQL. Last run: 2026-09-21. This remains the C02-baseline
-  evidence figure — **the suite has since grown to 269 passed** via
-  seven product-feature PRs (#38–#44: player profiles/follow, review
-  comments, real-time chat, teams, skill rating, seasonal challenges,
-  activity feed — see `docs/capability-map.md`), none of which are C02
-  spec/VE-xx tests or change C02's phase status. Running the full suite
-  today legitimately returns 269, not 177 — that's this addition, not a
-  regression.
-- `cd frontend && npm run build && npm run lint` — build and lint pass;
-  re-run and green after every one of PRs #38–#44 (each changed frontend
-  code).
+- `cd backend && uv run pytest -v` — **309 passed** against real
+  PostgreSQL 16 (its own `reservations_test` database since PR #77). Last
+  run: 2026-10-08.
+  - The C02-baseline evidence figure stays **177 passed** (2026-09-21).
+  - The suite later grew through product features (PRs #38–#44), the C03
+    outbox (PR #71, 305) and the waitlist-lifecycle follow-up (PR #76, 309).
+    None of these are C02 VE-xx tests or change C02's phase status.
+- `cd frontend && npm run build && npm run lint` — build passes; lint shows
+  only the 6 known `only-export-components` warnings. Last run: 2026-10-08
+  (v4.0.0 redesign, PR #74).
 
 ## Latest evidence
 
-`docs/evidence-and-evolution.md` — both the C01 spike section and the
-"Evidence C02" section. That file is the durable evidence record; this
+`docs/evidence-and-evolution.md` — the C01 spike section, the
+"Evidence C02" section and "C03 — Architecture Evidence" (with its
+2026-10-08 follow-up). That file is the durable evidence record; this
 section just points to it.
 
 ## Latest relevant commit
 
-`cf5df74` — `fix: make review scale with risk, not with how many skills
-exist (#12)`, merged to `main`. The C02 engineering work itself landed via
-PR [#9](https://github.com/tylmarek1/C01/pull/9) (merge commit `ede421d`).
+Release v4.0.1 (2026-10-08): frontend 4.0.0, backend 0.3.1 — see
+`CHANGELOG.md`. Course milestones:
+- C02 engineering: PR [#9](https://github.com/tylmarek1/C01/pull/9) (`ede421d`).
+- C03 architecture: PR [#71](https://github.com/tylmarek1/C01/pull/71)
+  (`da3158d`), tag `c03-architecture`.
 
 ---
 
