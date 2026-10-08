@@ -38,7 +38,6 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Countdown } from "@/components/shared/countdown"
 import { PlayerSearch } from "@/components/shared/player-search"
-import { SportIcon } from "@/components/shared/sport-icon"
 import { StarRatingInput } from "@/components/shared/star-rating"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { UserAvatar } from "@/components/shared/user-avatar"
@@ -93,7 +92,7 @@ function SplitCostDialog({
             <div className="flex items-end justify-between rounded-lg border border-border p-4">
               <div className="flex flex-col gap-1">
                 <span className="eyebrow">{t("split.perPersonLabel")}</span>
-                <span className="text-2xl font-semibold tracking-tight tabular">
+                <span className="font-display text-[34px] leading-none font-extrabold tabular">
                   {data.per_person !== null ? formatCurrency(data.per_person) : "—"}
                 </span>
               </div>
@@ -454,14 +453,20 @@ function DateBlock({ iso, muted = false }: { iso: string; muted?: boolean }) {
   return (
     <span
       className={cn(
-        "flex size-12 shrink-0 flex-col items-center justify-center rounded-md border leading-none",
-        muted ? "border-border bg-muted text-muted-foreground" : "border-border bg-card text-foreground shadow-xs",
+        "flex size-12 shrink-0 flex-col items-center justify-center rounded-xs border leading-none",
+        muted ? "border-border bg-muted text-muted-foreground" : "border-foreground bg-card text-foreground",
       )}
     >
       <span className="font-mono text-[9.5px] font-medium tracking-wider uppercase opacity-70">{fmt.weekday(date)}</span>
-      <span className="mt-1 text-[17px] font-semibold tracking-tight tabular">{date.getDate()}</span>
+      <span className="mt-0.5 font-display text-[22px] font-extrabold tabular">{date.getDate()}</span>
     </span>
   )
+}
+
+const STUB_SURFACE: Record<string, string> = {
+  TENNIS: "bg-court-tennis",
+  VOLLEYBALL: "bg-court-volleyball",
+  BADMINTON: "bg-court-badminton",
 }
 
 interface ReservationCardProps {
@@ -561,64 +566,78 @@ function ReservationCard({
   return (
     <article
       className={cn(
-        "group/res relative flex flex-col gap-3 rounded-xl border bg-card p-3.5 shadow-xs transition-[border-color,box-shadow] duration-150 sm:flex-row sm:items-center sm:gap-4",
-        status === "PENDING" ? "border-warning/40 ring-1 ring-warning/20" : "border-border hover:border-border-strong",
+        // A ticket: a sport-coloured date stub, a perforation, then the booking.
+        "group/res ticket relative grid grid-cols-[5.25rem_minmax(0,1fr)] rounded-md border bg-card transition-colors duration-150 [--perf:5.25rem] sm:grid-cols-[6.5rem_minmax(0,1fr)_auto] sm:[--perf:6.5rem]",
+        status === "PENDING" ? "border-warning" : "border-border hover:border-foreground",
       )}
     >
+      <div
+        aria-hidden
+        onClick={() => onOpenDetail?.(reservation)}
+        className={cn(
+          "row-span-2 flex flex-col items-center justify-center gap-1 rounded-l-[inherit] border-r-2 border-dashed border-card px-2 py-4 leading-none sm:row-span-1",
+          ended || isPast ? "bg-muted text-muted-foreground" : cn(STUB_SURFACE[court.sport_type], "text-court-line"),
+          onOpenDetail && "cursor-pointer",
+        )}
+      >
+        <span className="font-mono text-[10px] font-medium tracking-[0.1em] uppercase opacity-85">{fmt.weekday(start)}</span>
+        <span className="font-display text-[40px] font-extrabold tabular">{start.getDate()}</span>
+        <span className="font-mono text-[10px] font-medium tracking-[0.1em] uppercase opacity-85">{fmt.monthShort(start)}</span>
+      </div>
       <button
         type="button"
         disabled={!onOpenDetail}
         onClick={() => onOpenDetail?.(reservation)}
-        className="flex min-w-0 flex-1 items-center gap-3.5 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-default"
+        className="flex min-w-0 flex-col justify-center gap-1.5 px-4 pt-3.5 pb-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset disabled:cursor-default sm:py-4"
         aria-label={onOpenDetail ? t("reservationCard.openDetail", { court: court.name }) : undefined}
       >
-        <DateBlock iso={reservation.start_time} muted={ended || isPast} />
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <span className={cn("truncate text-[14px] font-semibold tracking-[-0.01em]", ended ? "text-muted-foreground" : "text-foreground")}>
-              {court.name}
-            </span>
-            <StatusBadge status={status} />
-            {reservation.series_id && (
-              <Badge variant="outline">
-                <Repeat /> {t("reservationCard.recurring")}
-              </Badge>
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          <span
+            className={cn(
+              "truncate font-display text-[23px] leading-none font-extrabold uppercase decoration-2 underline-offset-4",
+              ended ? "text-muted-foreground" : "text-foreground",
+              onOpenDetail && "group-hover/res:underline",
             )}
-            {reservation.open_to_join && (
-              <Badge variant="brand">
-                <Sparkles /> {t("reservationCard.openBadge")}
-              </Badge>
-            )}
+          >
+            {court.name}
           </span>
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <SportIcon sport={court.sport_type} className="size-3.5" />
-              <span className="font-mono text-[12.5px] text-foreground/85 tabular">{fmt.timeRange(reservation.start_time, reservation.end_time)}</span>
-            </span>
-            <span>{fmt.dayLabel(reservation.start_time)}</span>
-            <span className="hidden sm:inline">{fmt.durationBetween(reservation.start_time, reservation.end_time)}</span>
-            {court.requires_approval && status !== "COMPLETED" && (
-              <span className="inline-flex items-center gap-1">
-                <ShieldCheck className="size-3.5" /> {t("courts.requiresApproval")}
-              </span>
-            )}
-          </span>
-          {status === "PENDING" && reservation.hold_expires_at && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warning">
-              <Clock3 className="size-3.5" />
-              {t("reservationCard.holdCountdown")} <Countdown to={reservation.hold_expires_at} onExpire={onHoldExpired} />
-            </span>
+          <StatusBadge status={status} />
+          {reservation.series_id && (
+            <Badge variant="outline">
+              <Repeat /> {t("reservationCard.recurring")}
+            </Badge>
           )}
-          {status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-info">
-              <Clock3 className="size-3.5" />
-              {t("reservationCard.approvalExpires", { time: fmt.dateTime(reservation.approval_expires_at) })}
+          {reservation.open_to_join && (
+            <Badge variant="brand">
+              <Sparkles /> {t("reservationCard.openBadge")}
+            </Badge>
+          )}
+        </span>
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+          <span className="font-mono text-[15px] font-semibold text-foreground tabular">{fmt.timeRange(reservation.start_time, reservation.end_time)}</span>
+          <span>{fmt.dayLabel(reservation.start_time)}</span>
+          <span className="hidden sm:inline">{fmt.durationBetween(reservation.start_time, reservation.end_time)}</span>
+          {court.requires_approval && status !== "COMPLETED" && (
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck className="size-3.5" /> {t("courts.requiresApproval")}
             </span>
           )}
         </span>
+        {status === "PENDING" && reservation.hold_expires_at && (
+          <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-warning uppercase">
+            <Clock3 className="size-3.5" />
+            {t("reservationCard.holdCountdown")} <Countdown to={reservation.hold_expires_at} onExpire={onHoldExpired} />
+          </span>
+        )}
+        {status === "PENDING_APPROVAL" && reservation.approval_expires_at && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-info">
+            <Clock3 className="size-3.5" />
+            {t("reservationCard.approvalExpires", { time: fmt.dateTime(reservation.approval_expires_at) })}
+          </span>
+        )}
       </button>
 
-      <div className="flex shrink-0 items-center justify-end gap-1.5 border-t border-border pt-3 sm:border-0 sm:pt-0">
+      <div className="col-start-2 flex shrink-0 items-center justify-end gap-1.5 px-3 pb-3 sm:col-start-3 sm:px-4 sm:pb-0">
         {primary}
         {hasMenu && (
           <DropdownMenu>

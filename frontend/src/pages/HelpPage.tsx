@@ -193,7 +193,6 @@ function HelpPage() {
   return (
     <div>
       <section className="relative isolate overflow-hidden border-b border-border">
-        <div aria-hidden className="absolute inset-0 -z-10 bg-court-grid opacity-50 [mask-image:radial-gradient(50%_80%_at_50%_0%,black,transparent)]" />
         <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20">
           <SectionHeader eyebrow={t("help.hero.eyebrow")} title={t("help.hero.title")} description={t("help.hero.description")} />
         </div>

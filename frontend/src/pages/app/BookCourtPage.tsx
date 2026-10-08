@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CalendarCheck2, CalendarClock, Clock3, Hourglass, Info, Repeat, ShieldCheck, Sparkles, Timer } from "lucide-react"
+import { Check, Hourglass, Info, Repeat, ShieldCheck, Sparkles } from "lucide-react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -13,7 +13,6 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Countdown } from "@/components/shared/countdown"
-import { CourtArt } from "@/components/shared/court-art"
 import { CourtCard } from "@/components/shared/court-card"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ErrorState } from "@/components/shared/error-state"
@@ -36,22 +35,42 @@ const DURATIONS = [60, 90, 120]
 const SERIES_WEEK_OPTIONS = [2, 4, 6, 8, 10, 12]
 const SPORTS: SportType[] = ["TENNIS", "VOLLEYBALL", "BADMINTON"]
 
-function Step({ index, title, done, children }: { index: number; title: string; done?: boolean; children: React.ReactNode }) {
+/** A numbered section of the booking form, set like a programme chapter:
+ * heavy rule, a big condensed numeral that turns clay once the step is done. */
+function Step({ index, title, done, aside, children }: { index: number; title: string; done?: boolean; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-xs sm:p-5">
-      <h2 className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.01em]">
-        <span
-          className={cn(
-            "flex size-6 items-center justify-center rounded-full font-mono text-[11px] font-semibold transition-colors",
-            done ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground",
-          )}
-        >
-          {index}
-        </span>
-        {title}
-      </h2>
-      {children}
+    <section className="grid gap-4 border-t-2 border-foreground pt-4 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:gap-6">
+      <span
+        aria-hidden
+        className={cn("display hidden text-[56px] transition-colors duration-300 sm:block", done ? "text-brand" : "text-foreground/25")}
+      >
+        {String(index).padStart(2, "0")}
+      </span>
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-h-9 items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 font-display text-[26px] leading-none font-extrabold uppercase">
+            <span aria-hidden className={cn("tabular sm:hidden", done ? "text-brand" : "text-foreground/30")}>
+              {String(index).padStart(2, "0")}
+            </span>
+            <span className="sr-only">{index}.</span>
+            {title}
+            {done && <Check className="size-5 animate-pop text-brand" aria-hidden />}
+          </h2>
+          {aside}
+        </div>
+        {children}
+      </div>
     </section>
+  )
+}
+
+/** One label/value line on the court pass. */
+function PassRow({ label, children, muted }: { label: string; children: React.ReactNode; muted?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-dashed border-panel-foreground/20 py-2 last:border-b-0">
+      <dt className="font-mono text-[10.5px] tracking-[0.08em] text-panel-muted uppercase">{label}</dt>
+      <dd className={cn("font-mono text-[14px] font-medium tabular", muted && "text-panel-muted")}>{children}</dd>
+    </div>
   )
 }
 
@@ -206,19 +225,25 @@ function BookCourtPage() {
 
   return (
     <PageContainer size="wide">
-      <PageHeader title={t("book.title")} description={t("book.description")} />
+      <PageHeader eyebrow={t("book.eyebrow")} title={t("book.title")} description={t("book.description")} />
 
-      <div className="grid gap-6 pb-24 lg:grid-cols-[minmax(0,1fr)_340px] lg:pb-0">
-        <div className="flex min-w-0 flex-col gap-4">
-          <Step index={1} title={t("book.step1")} done={Boolean(selectedCourt)}>
-            {selectedCourt && !courtPickerOpen ? (
-              <div className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <CourtCard court={selectedCourt} selected />
-                </div>
+      <div className="grid gap-10 pb-24 lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-0">
+        <div className="flex min-w-0 flex-col gap-10">
+          <Step
+            index={1}
+            title={t("book.step1")}
+            done={Boolean(selectedCourt) && !courtPickerOpen}
+            aside={
+              selectedCourt && !courtPickerOpen ? (
                 <Button variant="outline" size="sm" onClick={() => setCourtPickerOpen(true)}>
                   {t("book.changeCourt")}
                 </Button>
+              ) : null
+            }
+          >
+            {selectedCourt && !courtPickerOpen ? (
+              <div className="animate-fade-in">
+                <CourtCard court={selectedCourt} selected />
               </div>
             ) : (
               <>
@@ -242,13 +267,13 @@ function BookCourtPage() {
                 {!isLoading && visibleCourts.length === 0 && (
                   <EmptyState size="compact" title={t("courts.empty.title")} description={t("courts.empty.description")} />
                 )}
-                <div className="stagger grid gap-2 sm:grid-cols-2">
+                <div className="stagger grid gap-2 pt-1 sm:grid-cols-2">
                   {visibleCourts.map((court, index) => (
                     <div key={court.id} style={{ "--i": index } as React.CSSProperties} className="relative">
                       <CourtCard court={court} selected={selectedCourt?.id === court.id} onSelect={chooseCourt} />
                       {(favoriteIds.has(court.id) || recommendedIds.has(court.id)) && (
                         <span className="pointer-events-none absolute -top-2 right-3">
-                          <Badge variant={favoriteIds.has(court.id) ? "solid" : "brand"} className="shadow-xs">
+                          <Badge variant={favoriteIds.has(court.id) ? "solid" : "brand"}>
                             {favoriteIds.has(court.id) ? t("book.badge.favorite") : t("book.suggestions.recommended")}
                           </Badge>
                         </span>
@@ -262,7 +287,7 @@ function BookCourtPage() {
 
           <Step index={2} title={t("book.step2")} done={Boolean(start)}>
             {!selectedCourt ? (
-              <p className="flex items-center gap-2 rounded-lg bg-muted px-3 py-3 text-[13px] text-muted-foreground">
+              <p className="flex items-center gap-2 border border-dashed border-foreground/25 px-3 py-4 text-[13px] text-muted-foreground">
                 <Info className="size-4 shrink-0" /> {t("book.pickCourtFirst")}
               </p>
             ) : (
@@ -275,7 +300,7 @@ function BookCourtPage() {
                   }}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-[13px] font-medium">{t("book.duration")}</span>
+                  <span className="eyebrow">{t("book.duration")}</span>
                   <Tabs
                     value={String(duration)}
                     onValueChange={(value) => {
@@ -296,9 +321,9 @@ function BookCourtPage() {
                 {isLoadingAvailability && (
                   <div className="flex flex-col gap-3">
                     <Skeleton className="h-9 w-full" />
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-1.5">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(4.75rem,1fr))] gap-px">
                       {Array.from({ length: 16 }).map((_, i) => (
-                        <Skeleton key={i} className="h-9" />
+                        <Skeleton key={i} className="h-12 rounded-none" />
                       ))}
                     </div>
                   </div>
@@ -320,56 +345,76 @@ function BookCourtPage() {
           </Step>
         </div>
 
-        {/* Summary — sticky on desktop, a bottom bar on mobile. */}
-        <aside className="lg:sticky lg:top-6 lg:self-start">
-          <div className="hidden flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm lg:flex">
-            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">{t("book.summary.title")}</h2>
-            {selectedCourt ? (
-              <div className="flex items-center gap-3">
-                <CourtArt sport={selectedCourt.sport_type} imageUrl={selectedCourt.image_url} compact className="size-12 shrink-0 rounded-md" />
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-[14px] font-semibold">{selectedCourt.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {sportLabels[selectedCourt.sport_type]} · {selectedCourt.indoor ? t("courts.indoor") : t("courts.outdoor")}
-                  </span>
-                </div>
+        {/* Summary — the court pass: sticky on desktop, a bottom bar on mobile. */}
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="ticket-h hidden flex-col rounded-md bg-panel text-panel-foreground lg:flex" style={{ "--perf-y": "calc(100% - 13.5rem)" } as React.CSSProperties}>
+            <div className="flex flex-col gap-4 p-6 pb-5">
+              <div className="flex items-center justify-between font-mono text-[10.5px] tracking-[0.1em] text-panel-muted uppercase">
+                <span>{t("book.summary.pass")}</span>
+                <span>Courtly</span>
               </div>
-            ) : (
-              <p className="text-[13px] text-muted-foreground">{t("book.summary.empty")}</p>
-            )}
+              <div className="flex min-h-[4.5rem] flex-col justify-end gap-1.5">
+                {selectedCourt ? (
+                  <>
+                    <span key={selectedCourt.id} className="display animate-fade-up text-[38px]">
+                      {selectedCourt.name}
+                    </span>
+                    <span className="font-mono text-[11px] tracking-[0.06em] text-panel-muted uppercase">
+                      {sportLabels[selectedCourt.sport_type]} · {selectedCourt.indoor ? t("courts.indoor") : t("courts.outdoor")}
+                    </span>
+                  </>
+                ) : (
+                  <span className="display text-[38px] text-panel-foreground/30">{t("book.summary.empty")}</span>
+                )}
+              </div>
+              <dl className="flex flex-col">
+                <PassRow label={t("book.date")}>{fmt.date(new Date(`${date}T12:00:00`))}</PassRow>
+                <PassRow label={t("book.time")} muted={!start}>
+                  {start && end ? (
+                    <span key={selectedStart} className="inline-block animate-fade-in">
+                      {fmt.timeRange(start.toISOString(), end.toISOString())}
+                    </span>
+                  ) : (
+                    "--:--"
+                  )}
+                </PassRow>
+                <PassRow label={t("book.duration")}>{fmt.duration(duration)}</PassRow>
+              </dl>
+              {selectedCourt?.requires_approval && (
+                <p className="flex gap-2 border border-panel-foreground/20 px-3 py-2.5 text-xs leading-relaxed text-panel-foreground">
+                  <ShieldCheck className="mt-px size-4 shrink-0" /> {t("book.requiresApprovalNote")}
+                </p>
+              )}
+            </div>
 
-            <dl className="flex flex-col divide-y divide-border rounded-lg border border-border text-[13px]">
-              <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-                <dt className="flex items-center gap-2 text-muted-foreground">
-                  <CalendarClock className="size-3.5" /> {t("book.date")}
-                </dt>
-                <dd className="font-medium">{fmt.date(new Date(`${date}T12:00:00`))}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-                <dt className="flex items-center gap-2 text-muted-foreground">
-                  <Clock3 className="size-3.5" /> {t("book.time")}
-                </dt>
-                <dd className={cn("font-mono font-medium tabular", !start && "text-subtle-foreground")}>
-                  {start && end ? fmt.timeRange(start.toISOString(), end.toISOString()) : "—"}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-                <dt className="flex items-center gap-2 text-muted-foreground">
-                  <Timer className="size-3.5" /> {t("book.duration")}
-                </dt>
-                <dd className="font-medium">{fmt.duration(duration)}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 bg-muted/50 px-3 py-2.5">
-                <dt className="font-medium">{t("book.summary.estimate")}</dt>
-                <dd className="text-[15px] font-semibold tabular">
+            {/* below the perforation */}
+            <div className="flex h-[13.5rem] flex-col gap-3 border-t-2 border-dashed border-panel-foreground/25 px-6 pt-5 pb-6">
+              <div className="flex items-end justify-between gap-3">
+                <span className="font-mono text-[10.5px] tracking-[0.08em] text-panel-muted uppercase">{t("book.summary.estimate")}</span>
+                <span className="display text-[40px] normal-case! tabular">
                   {estimatedCost !== null ? formatCurrency(estimatedCost * (repeatWeekly ? Number(weeks) : 1)) : t("courts.priceUnset")}
-                </dd>
+                </span>
               </div>
-            </dl>
+              <Button
+                variant="brand"
+                size="lg"
+                className="w-full"
+                disabled={!canSubmit}
+                isLoading={bookMutation.isPending}
+                onClick={() => bookMutation.mutate()}
+              >
+                {bookMutation.isPending ? t("book.submitting") : start ? t("book.submit") : t("book.summary.pickTime")}
+              </Button>
+              <p className="flex items-center gap-1.5 text-xs text-panel-muted">
+                <Hourglass className="size-3.5 shrink-0" /> {t("book.holdHint")}
+              </p>
+            </div>
+          </div>
 
-            <label className="flex cursor-pointer items-start justify-between gap-3 rounded-lg border border-border p-3">
+          <div className="mt-4 flex flex-col gap-3 border-t border-foreground pt-4">
+            <label className="flex cursor-pointer items-start justify-between gap-3">
               <span className="flex flex-col gap-0.5">
-                <span className="flex items-center gap-1.5 text-[13px] font-medium">
+                <span className="flex items-center gap-1.5 text-[13px] font-semibold">
                   <Repeat className="size-3.5" /> {t("book.repeatWeekly.label")}
                 </span>
                 <span className="text-xs text-muted-foreground">{t("book.repeatWeekly.description")}</span>
@@ -395,25 +440,15 @@ function BookCourtPage() {
                 )}
               </div>
             )}
-
-            {selectedCourt?.requires_approval && (
-              <p className="flex gap-2 rounded-lg bg-info-soft px-3 py-2.5 text-xs leading-relaxed text-info">
-                <ShieldCheck className="mt-px size-4 shrink-0" /> {t("book.requiresApprovalNote")}
-              </p>
-            )}
-
-            <Button variant="brand" size="lg" className="w-full" disabled={!canSubmit} isLoading={bookMutation.isPending} onClick={() => bookMutation.mutate()}>
-              {bookMutation.isPending ? t("book.submitting") : t("book.submit")}
-            </Button>
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Hourglass className="size-3.5 shrink-0" /> {t("book.holdHint")}
-            </p>
           </div>
 
-          <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t border-border bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[13px] font-semibold">{selectedCourt?.name ?? t("book.summary.empty")}</span>
-              <span className="truncate font-mono text-xs text-muted-foreground tabular">
+          {/* Mobile: a pass stub pinned above the tab bar. */}
+          <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 bg-panel px-4 py-3 text-panel-foreground lg:hidden">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate font-display text-[19px] leading-none font-extrabold uppercase">
+                {selectedCourt?.name ?? t("book.summary.empty")}
+              </span>
+              <span className="truncate font-mono text-[11px] text-panel-muted tabular">
                 {start && end ? `${fmt.date(start)} · ${fmt.timeRange(start.toISOString(), end.toISOString())}` : t("book.summary.pickTime")}
                 {estimatedCost !== null && start ? ` · ${formatCurrency(estimatedCost)}` : ""}
               </span>
@@ -434,9 +469,13 @@ function BookCourtPage() {
         <DialogContent className="sm:max-w-sm">
           {heldReservation && (
             <>
-              <div className="flex size-11 items-center justify-center rounded-xl bg-brand text-brand-foreground">
-                <CalendarCheck2 className="size-5" />
-              </div>
+              <span
+                aria-hidden
+                className="absolute top-5 right-12 animate-stamp border-[3px] border-brand px-2.5 py-1 font-display text-[22px] leading-none font-black tracking-[0.06em] text-brand uppercase"
+                style={{ "--stamp-rotate": "-8deg" } as React.CSSProperties}
+              >
+                {t("book.held.stamp")}
+              </span>
               <DialogHeader>
                 <DialogTitle>{t("book.held.title")}</DialogTitle>
                 <DialogDescription>
@@ -447,11 +486,11 @@ function BookCourtPage() {
                 </DialogDescription>
               </DialogHeader>
               {heldReservation.hold_expires_at && (
-                <div className="flex items-center justify-between rounded-lg border border-warning/30 bg-warning-soft px-4 py-3">
-                  <span className="text-[13px] font-medium text-warning">{t("book.held.expiresIn")}</span>
+                <div className="flex items-end justify-between border-y-2 border-foreground py-3">
+                  <span className="eyebrow pb-1">{t("book.held.expiresIn")}</span>
                   <Countdown
                     to={heldReservation.hold_expires_at}
-                    className="text-xl font-semibold text-warning"
+                    className="display text-[44px] text-foreground"
                     onExpire={() => {
                       toast.error(t("book.held.expired"))
                       setHeldReservation(null)
@@ -496,7 +535,7 @@ function BookCourtPage() {
       />
 
       {!selectedCourt && !isLoading && courts && courts.length > 0 && (
-        <p className="mt-2 hidden items-center gap-1.5 text-xs text-muted-foreground lg:flex">
+        <p className="mt-8 hidden items-center gap-1.5 text-xs text-muted-foreground lg:flex">
           <Sparkles className="size-3.5" /> {t("book.tip")}{" "}
           <Link to="/courts" className="font-medium text-foreground underline underline-offset-2">
             {t("book.tipLink")}

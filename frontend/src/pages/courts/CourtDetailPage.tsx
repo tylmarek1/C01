@@ -267,7 +267,7 @@ function CourtDetailPage() {
     return (
       <PageContainer size="narrow" className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <span className="font-mono text-sm text-muted-foreground">404</span>
-        <h1 className="text-3xl font-semibold tracking-[-0.03em]">{t("courtDetail.notFound.title")}</h1>
+        <h1 className="display text-[52px]">{t("courtDetail.notFound.title")}</h1>
         <p className="max-w-sm text-muted-foreground">{t("courtDetail.notFound.description")}</p>
         <Button asChild className="mt-2">
           <Link to="/courts">{t("courtDetail.notFound.browse")}</Link>
@@ -309,7 +309,7 @@ function CourtDetailPage() {
       {/* Title row */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2">
-          <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] sm:text-[32px]">{court.name}</h1>
+          <h1 className="display text-[52px] sm:text-[72px]">{court.name}</h1>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-muted-foreground">
             {court.review_count > 0 && court.average_rating !== null ? (
               <a href="#reviews" className="inline-flex items-center gap-1 font-medium text-foreground hover:underline">
@@ -354,7 +354,7 @@ function CourtDetailPage() {
         >
           <CourtArt sport={court.sport_type} indoor={court.indoor} imageUrl={court.image_url} loading="eager" className={cn("rounded-xl", court.image_url ? "aspect-[16/9] md:aspect-[16/10]" : "aspect-[16/9] md:aspect-[21/8]")} />
           {photos.length > 1 && (
-            <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-sm bg-card/95 px-2 py-1 text-xs font-medium shadow-sm backdrop-blur md:hidden">
+            <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-sm bg-card px-2 py-1 text-xs font-medium md:hidden">
               <Images className="size-3.5" /> {photos.length}
             </span>
           )}
@@ -384,7 +384,7 @@ function CourtDetailPage() {
       <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-w-0 flex-col gap-10">
           <section className="flex flex-col gap-3">
-            <h2 className="text-[17px] font-semibold tracking-[-0.015em]">{t("courtDetail.about")}</h2>
+            <h2 className="font-display text-[26px] leading-none font-extrabold uppercase">{t("courtDetail.about")}</h2>
             <p className="max-w-prose text-[15px] leading-relaxed text-foreground/85">{court.description ?? t("courtDetail.noDescription")}</p>
             <dl className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-4">
               {[
@@ -406,7 +406,7 @@ function CourtDetailPage() {
 
           {court.amenities.length > 0 && (
             <section className="flex flex-col gap-3">
-              <h2 className="text-[17px] font-semibold tracking-[-0.015em]">{t("courtDetail.amenities")}</h2>
+              <h2 className="font-display text-[26px] leading-none font-extrabold uppercase">{t("courtDetail.amenities")}</h2>
               <ul className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
                 {court.amenities.map((amenity) => {
                   const Icon = AMENITY_ICON[amenity]
@@ -441,7 +441,7 @@ function CourtDetailPage() {
 
           <section id="reviews" className="flex scroll-mt-20 flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[17px] font-semibold tracking-[-0.015em]">{t("courtDetail.reviews.title")}</h2>
+              <h2 className="font-display text-[26px] leading-none font-extrabold uppercase">{t("courtDetail.reviews.title")}</h2>
               {(reviews?.length ?? 0) > 1 && (
                 <Tabs value={reviewSort} onValueChange={(value) => setReviewSort(value as "recent" | "helpful")} className="gap-0">
                   <TabsList>
@@ -587,7 +587,7 @@ function CourtDetailPage() {
               <span className="text-[13px] text-muted-foreground">
                 {court.price_per_hour !== null ? (
                   <>
-                    <span className="text-[22px] font-semibold tracking-[-0.02em] text-foreground tabular">{formatCurrency(court.price_per_hour)}</span>
+                    <span className="font-display text-[34px] leading-none font-extrabold text-foreground tabular">{formatCurrency(court.price_per_hour)}</span>
                     {t("courts.perHourSuffix")}
                   </>
                 ) : (

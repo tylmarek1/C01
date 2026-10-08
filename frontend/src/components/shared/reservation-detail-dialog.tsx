@@ -180,7 +180,7 @@ function ReservationDetailDialog({ reservation, onClose }: ReservationDetailDial
                     className="aspect-square size-14 shrink-0 rounded-lg"
                   />
                   <div className="flex min-w-0 flex-col gap-1">
-                    <DialogTitle className="truncate text-[17px] font-semibold tracking-[-0.015em]">{reservation.court.name}</DialogTitle>
+                    <DialogTitle className="truncate font-display text-[26px] leading-none font-extrabold uppercase">{reservation.court.name}</DialogTitle>
                     <DialogDescription className="text-[13px] text-muted-foreground">
                       {fmt.dateLong(reservation.start_time)}
                     </DialogDescription>

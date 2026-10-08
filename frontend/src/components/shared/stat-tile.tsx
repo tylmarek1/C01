@@ -9,37 +9,32 @@ interface StatTileProps {
   value: ReactNode
   icon?: LucideIcon
   hint?: ReactNode
-  /** Highlights the tile (e.g. a non-zero approval queue). */
+  /** Highlights the figure (e.g. a non-zero approval queue). */
   tone?: "default" | "attention"
   to?: string
   className?: string
 }
 
-/** A KPI: label on top, big tabular number, optional hint underneath. */
+/** A figure from the programme's "by the numbers" box: a heavy rule on top,
+ * mono label, a big condensed numeral, an optional note. No card around it —
+ * put several in a grid and the rules line up into a scoreboard. */
 function StatTile({ label, value, icon: Icon, hint, tone = "default", to, className }: StatTileProps) {
   const body = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[13px] font-medium text-muted-foreground inline-block first-letter:uppercase">{label}</span>
-        {Icon && (
-          <span
-            className={cn(
-              "flex size-7 shrink-0 items-center justify-center rounded-sm",
-              tone === "attention" ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground",
-            )}
-          >
-            <Icon className="size-3.5" />
-          </span>
-        )}
+        <span className="eyebrow group-hover/stat:text-foreground">{label}</span>
+        {Icon && <Icon className={cn("size-4 shrink-0", tone === "attention" ? "text-brand" : "text-subtle-foreground")} />}
       </div>
-      <span className="text-[26px] leading-none font-semibold tracking-[-0.03em] text-foreground tabular">{value}</span>
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      <span className={cn("display text-[44px] sm:text-[52px]", tone === "attention" ? "text-brand" : "text-foreground")}>
+        {value}
+      </span>
+      {hint && <span className="text-[13px] text-muted-foreground">{hint}</span>}
     </>
   )
   const classes = cn(
-    "flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-xs",
-    tone === "attention" && "border-brand/60 ring-1 ring-brand/40",
-    to && "surface-interactive",
+    "group/stat flex min-w-0 flex-col gap-2 border-t-2 pt-3",
+    tone === "attention" ? "border-brand" : "border-foreground",
+    to && "transition-colors hover:border-brand",
     className,
   )
   if (to) {

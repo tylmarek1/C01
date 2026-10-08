@@ -9,8 +9,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ==========================================================================
-   Courtly design tokens — "court-side precision".
-   See DESIGN.md (repo root) for the rationale and the rules for using them.
+   Courtly design tokens — "Clubhouse programme".
+   A sports club's printed match-day programme and court schedule board:
+   warm paper, forest ink, one clay-court accent, condensed display type,
+   hairline rules, sharp corners, almost no shadow. See DESIGN.md (repo root)
+   for the rationale and the rules for using them.
 
    Only the *base* palette is redefined under `.dark`; every semantic token
    below resolves through var() at use time, so it re-themes automatically.
@@ -23,32 +26,33 @@
      the date-input calendar glyph, native scrollbars, select arrows — none
      of which `dark:` utility classes can reach. */
   color-scheme: light;
-  --radius: 0.625rem; /* 10px — buttons & inputs; cards use radius-xl */
+  --radius: 4px; /* buttons & inputs; the whole system stays between 2 and 8px */
 
-  /* Base palette — chalk canvas, ink type, optic (tennis-ball) accent */
-  --c-canvas: #f5f6f3;
-  --c-surface: #ffffff;
-  --c-wash: #eef0ec;
-  --c-wash-strong: #e4e7e1;
-  --c-line: #e2e5de;
-  --c-line-strong: #cdd2c7;
-  --c-ink: #12150f;
-  --c-ink-hover: #2a2f26;
-  --c-ink-muted: #5b6257;
-  --c-ink-subtle: #8a9185;
-  --c-optic: #d4f34a;
-  --c-optic-hover: #c5e536;
-  --c-optic-soft: #f0f9cc;
-  --c-optic-ink: #4d6b00; /* text-safe brand green on light surfaces */
+  /* Base palette — programme paper, forest ink, clay-court accent */
+  --c-canvas: #f2eee5;
+  --c-surface: #faf8f3;
+  --c-wash: #e9e4d8;
+  --c-wash-strong: #ded8c9;
+  --c-line: #d6cfbf;
+  --c-line-strong: #b3aa96;
+  --c-ink: #17201a;
+  --c-ink-hover: #2b372f;
+  --c-ink-muted: #545a50;
+  --c-ink-subtle: #7a7465;
+  --c-clay: #c4481a;
+  --c-clay-hover: #ad3e14;
+  --c-clay-soft: #f5dfd0;
+  --c-clay-ink: #a63c10; /* text-safe clay on paper */
+  --c-forest: #1e3a2b;
 
-  --c-success: #15803d;
-  --c-success-soft: #e6f4ea;
-  --c-warning: #b45309;
-  --c-warning-soft: #fcf1df;
-  --c-danger: #d92d20;
-  --c-danger-soft: #fdebe9;
-  --c-info: #2563eb;
-  --c-info-soft: #e8eefc;
+  --c-success: #2a7034;
+  --c-success-soft: #dfecd9;
+  --c-warning: #8c5204;
+  --c-warning-soft: #f4e6c8;
+  --c-danger: #b0241b;
+  --c-danger-soft: #f6dcd6;
+  --c-info: #2b4f94;
+  --c-info-soft: #dde4f1;
 
   /* shadcn semantic tokens */
   --background: var(--c-canvas);
@@ -58,7 +62,7 @@
   --popover: var(--c-surface);
   --popover-foreground: var(--c-ink);
   --primary: var(--c-ink);
-  --primary-foreground: var(--c-surface);
+  --primary-foreground: var(--c-canvas);
   --primary-hover: var(--c-ink-hover);
   --secondary: var(--c-wash);
   --secondary-foreground: var(--c-ink);
@@ -68,22 +72,32 @@
   --accent: var(--c-wash);
   --accent-foreground: var(--c-ink);
   --destructive: var(--c-danger);
-  --destructive-foreground: #ffffff;
+  --destructive-foreground: #fffaf2;
   --border: var(--c-line);
   --border-strong: var(--c-line-strong);
   --input: var(--c-line-strong);
   --ring: var(--c-ink);
 
-  /* Brand accent — one per view, for the primary booking action and active state */
-  --brand: var(--c-optic);
-  --brand-hover: var(--c-optic-hover);
-  --brand-foreground: #12150f;
-  --brand-soft: var(--c-optic-soft);
-  --brand-ink: var(--c-optic-ink);
+  /* Brand accent — clay. One per view: the primary booking action, the
+     selected slot, the live marker. Never decoration. */
+  --brand: var(--c-clay);
+  --brand-hover: var(--c-clay-hover);
+  --brand-foreground: #fffaf2;
+  --brand-soft: var(--c-clay-soft);
+  --brand-ink: var(--c-clay-ink);
 
-  /* Inverted "ink panel" — stays dark in both themes (auth art, landing CTA band). */
-  --panel: #12150f;
-  --panel-foreground: #f5f6f3;
+  /* Forest "programme cover" panel — stays dark in both themes (auth art,
+     landing ticker, CTA band, the booking ticket stub). */
+  --panel: var(--c-forest);
+  --panel-foreground: #f2eee5;
+  --panel-muted: #a9b8a8;
+
+  /* Court surfaces for the painted court illustrations (CourtArt) — one per
+     sport, so a list of courts scans by colour; lines are always chalk. */
+  --court-tennis: #b9542a;
+  --court-volleyball: #2f5596;
+  --court-badminton: #2d5b42;
+  --court-line: #f7f3ea;
 
   /* Status — text/icon colour + a soft background, always used as a pair */
   --success: var(--c-success);
@@ -95,67 +109,69 @@
   --info: var(--c-info);
   --info-soft: var(--c-info-soft);
 
-  /* Data viz — sequential ramp is the ink/optic hue, categorical is muted */
+  /* Data viz — ink for the measure, clay to highlight one mark */
   --chart-1: var(--c-ink);
-  --chart-2: #7c8a3a;
-  --chart-3: #a7b47a;
+  --chart-2: var(--c-clay);
+  --chart-3: var(--c-line-strong);
   --chart-track: var(--c-wash);
-  --heat: #4d6b00;
-  --star: #f2b01e;
+  --heat: var(--c-clay);
+  --star: #c98a0c;
 
-  /* Elevation — borders do the separating; shadows only lift what floats */
-  --shadow-xs: 0 1px 2px rgba(18, 21, 15, 0.05);
-  --shadow-sm: 0 1px 2px rgba(18, 21, 15, 0.04), 0 2px 6px -2px rgba(18, 21, 15, 0.06);
-  --shadow-md: 0 1px 2px rgba(18, 21, 15, 0.04), 0 8px 20px -8px rgba(18, 21, 15, 0.14);
-  --shadow-lg: 0 2px 6px rgba(18, 21, 15, 0.05), 0 24px 48px -16px rgba(18, 21, 15, 0.22);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  /* Elevation — rules do the separating; shadow only for what floats
+     above the page (menus, dialogs, toasts). */
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 14px 32px -16px rgba(23, 32, 26, 0.32);
+  --shadow-lg: 0 28px 64px -24px rgba(23, 32, 26, 0.45);
+  --shadow-inset: 0 0 #0000;
 
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
-  --duration-slow: 320ms;
+  --duration-slow: 360ms;
 }
 
 .dark {
   color-scheme: dark;
-  --c-canvas: #0b0d0a;
-  --c-surface: #131611;
-  --c-wash: #1a1e17;
-  --c-wash-strong: #23281f;
-  --c-line: #252a21;
-  --c-line-strong: #343a2f;
-  --c-ink: #eef1ea;
+  --c-canvas: #0f1310;
+  --c-surface: #151a16;
+  --c-wash: #1c221d;
+  --c-wash-strong: #252c26;
+  --c-line: #29302a;
+  --c-line-strong: #3d463e;
+  --c-ink: #ede7d9;
   --c-ink-hover: #ffffff;
-  --c-ink-muted: #a1a89b;
-  --c-ink-subtle: #737a6d;
-  --c-optic: #d4f34a;
-  --c-optic-hover: #e0fa66;
-  --c-optic-soft: #242c10;
-  --c-optic-ink: #d4f34a;
+  --c-ink-muted: #a9a493;
+  --c-ink-subtle: #7f7b6c;
+  --c-clay: #e4632f;
+  --c-clay-hover: #ee7442;
+  --c-clay-soft: #36190d;
+  --c-clay-ink: #f08655;
+  --c-forest: #173024;
 
-  --c-success: #4ade80;
-  --c-success-soft: #11251a;
-  --c-warning: #fbbf24;
-  --c-warning-soft: #2a2110;
-  --c-danger: #f87171;
-  --c-danger-soft: #2c1513;
-  --c-info: #7aa7ff;
-  --c-info-soft: #131f36;
+  --c-success: #6fbf73;
+  --c-success-soft: #15261a;
+  --c-warning: #e0a54a;
+  --c-warning-soft: #2b2111;
+  --c-danger: #f0776b;
+  --c-danger-soft: #311815;
+  --c-info: #8fb0ee;
+  --c-info-soft: #172238;
 
-  --primary-foreground: #0b0d0a;
+  --primary-foreground: #0f1310;
   --destructive-foreground: #1b0605;
-  --ring: var(--c-optic);
-  --chart-2: #9fb34a;
-  --chart-3: #5f6d33;
-  --heat: #d4f34a;
+  --brand-foreground: #140c07;
+  --star: #e5ac35;
+  --court-tennis: #9a4220;
+  --court-volleyball: #26457a;
+  --court-badminton: #23483a;
+  --court-line: #e9e3d4;
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px -8px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 24px 48px -16px rgba(0, 0, 0, 0.7);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-md: 0 14px 32px -16px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 28px 64px -24px rgba(0, 0, 0, 0.8);
 }
 
 @theme inline {
@@ -191,6 +207,11 @@
   --color-brand-ink: var(--brand-ink);
   --color-panel: var(--panel);
   --color-panel-foreground: var(--panel-foreground);
+  --color-panel-muted: var(--panel-muted);
+  --color-court-tennis: var(--court-tennis);
+  --color-court-volleyball: var(--court-volleyball);
+  --color-court-badminton: var(--court-badminton);
+  --color-court-line: var(--court-line);
 
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
@@ -208,16 +229,19 @@
   --color-heat: var(--heat);
   --color-star: var(--star);
 
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans: "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Big Shoulders Display", "Oswald", "Arial Narrow", ui-sans-serif, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --radius-xs: 6px;
-  --radius-sm: 8px;
+  /* Sharp, printed corners. The old scale names are kept so every
+     `rounded-xl` call site re-maps instead of needing an edit. */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
   --radius-md: var(--radius);
-  --radius-lg: 12px;
-  --radius-xl: 14px;
-  --radius-2xl: 20px;
-  --radius-3xl: 28px;
+  --radius-lg: 5px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+  --radius-3xl: 12px;
 
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);
@@ -232,6 +256,10 @@
   --animate-scale-in: scale-in var(--duration-base) var(--ease-out) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
   --animate-pulse-ring: pulse-ring 2s var(--ease-out) infinite;
+  --animate-stamp: stamp var(--duration-slow) var(--ease-spring) both;
+  --animate-ticker: ticker 40s linear infinite;
+  --animate-blink: blink 1.4s steps(2, jump-none) infinite;
+  --animate-pop: pop 260ms var(--ease-spring) both;
 
   @keyframes fade-up {
     from {
@@ -285,6 +313,41 @@
       transform: none;
     }
   }
+  @keyframes stamp {
+    from {
+      opacity: 0;
+      transform: scale(1.35) rotate(var(--stamp-rotate, -6deg));
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) rotate(var(--stamp-rotate, -6deg));
+    }
+  }
+  @keyframes ticker {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.25;
+    }
+  }
+  @keyframes pop {
+    0% {
+      transform: scale(0.92);
+    }
+    100% {
+      transform: none;
+    }
+  }
   @keyframes pulse-ring {
     0% {
       box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand) 70%, transparent);
@@ -313,22 +376,42 @@
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.5;
-    font-feature-settings: "ss01", "cv11";
     transition:
       background-color var(--duration-base) ease,
       color var(--duration-base) ease;
+  }
+
+  /* Printed-paper grain over the whole canvas. A fixed, static layer — it
+     never repaints on scroll — and too faint to affect text contrast. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.32;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .22 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .dark body::before {
+    mix-blend-mode: screen;
+    opacity: 0.18;
+  }
+  #root {
+    position: relative;
+    z-index: 1;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
     text-wrap: balance;
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--brand) 55%, transparent);
+    background: color-mix(in oklab, var(--brand) 35%, transparent);
     color: var(--foreground);
   }
 
@@ -360,13 +443,25 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* 11px uppercase micro-label (eyebrows, table heads, section kickers). */
+  /* Condensed poster headline — page titles, big numerals, section heads.
+     Uppercase by design; line-height is tight but leaves room for Czech
+     capital diacritics (Ř, Č, Ů) above the cap height. */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 0.92;
+    letter-spacing: 0.002em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Mono uppercase micro-label (eyebrows, table heads, section kickers). */
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 11px;
     line-height: 1.4;
     font-weight: 500;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted-foreground);
   }
@@ -374,19 +469,18 @@
   .surface {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-md);
   }
 
-  /* A surface that responds to hover — lifts subtly; for clickable cards. */
+  /* A surface that responds to hover — the rule darkens to ink, nothing
+     lifts (printed paper doesn't float). */
   .surface-interactive {
     transition:
       border-color var(--duration-base) var(--ease-out),
-      box-shadow var(--duration-base) var(--ease-out),
-      transform var(--duration-base) var(--ease-out);
+      background-color var(--duration-base) var(--ease-out);
   }
   .surface-interactive:hover {
-    border-color: var(--border-strong);
-    box-shadow: var(--shadow-md);
+    border-color: var(--foreground);
   }
 
   /* Staggered entrance for lists: set --i on each child. */
@@ -395,12 +489,55 @@
     animation-delay: calc(min(var(--i, 0), 12) * 35ms);
   }
 
-  /* Dotted "court" grid used behind hero/auth art. */
+  /* Ruled "court lines" behind hero/auth art. */
   .bg-court-grid {
     background-image:
       linear-gradient(to right, var(--border) 1px, transparent 1px),
       linear-gradient(to bottom, var(--border) 1px, transparent 1px);
-    background-size: 32px 32px;
+    background-size: 40px 40px;
+  }
+
+  /* Diagonal hatch — "taken" on the schedule board, closed hours. */
+  .bg-hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      color-mix(in oklab, var(--foreground) 14%, transparent) 0 1px,
+      transparent 1px 7px
+    );
+  }
+
+  .dark .bg-hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      color-mix(in oklab, var(--foreground) 22%, transparent) 0 1px,
+      transparent 1px 7px
+    );
+  }
+
+  /* A ticket: two semicircle notches punched at --perf (distance from the
+     left edge), so a dashed rule there reads as a tear-off perforation. */
+  .ticket {
+    --perf: 6.5rem;
+    --notch: 9px;
+    -webkit-mask:
+      radial-gradient(circle var(--notch) at var(--perf) 0, #0000 98%, #000) top / 100% 51% no-repeat,
+      radial-gradient(circle var(--notch) at var(--perf) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+    mask:
+      radial-gradient(circle var(--notch) at var(--perf) 0, #0000 98%, #000) top / 100% 51% no-repeat,
+      radial-gradient(circle var(--notch) at var(--perf) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+  }
+
+  /* The same punch, turned 90°: notches on the left and right edges at
+     --perf-y, for a ticket that tears off horizontally (the booking pass). */
+  .ticket-h {
+    --perf-y: 70%;
+    --notch: 10px;
+    -webkit-mask:
+      radial-gradient(circle var(--notch) at 0 var(--perf-y), #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch) at 100% var(--perf-y), #0000 98%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle var(--notch) at 0 var(--perf-y), #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch) at 100% var(--perf-y), #0000 98%, #000) right / 51% 100% no-repeat;
   }
 
   .scrollbar-none {

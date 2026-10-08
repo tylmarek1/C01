@@ -1,4 +1,4 @@
-import { CalendarDays, Moon, Sun, Sunrise } from "lucide-react"
+import { CalendarDays } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
 
 import { Tooltip } from "@/components/ui/tooltip"
@@ -35,10 +35,10 @@ function DayStrip({
   const inRange = list.some((day) => toDateString(day) === value)
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("flex flex-col gap-2.5", className)}>
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium">{fmt.monthYear(selected)}</span>
-        <label className="relative inline-flex cursor-pointer items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+        <span className="eyebrow">{fmt.monthYear(selected)}</span>
+        <label className="relative inline-flex cursor-pointer items-center gap-1.5 rounded-xs px-1.5 py-0.5 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
           <CalendarDays className="size-3.5" /> {t("book.pickDate")}
           <input
             type="date"
@@ -51,7 +51,13 @@ function DayStrip({
           />
         </label>
       </div>
-      <div ref={scrollRef} className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-none" role="group" aria-label={t("book.date")}>
+      {/* A fixture list: cells share their rules (gap-px over a line-coloured track). */}
+      <div
+        ref={scrollRef}
+        className="flex w-fit max-w-full gap-px overflow-x-auto border border-border bg-border scrollbar-none"
+        role="group"
+        aria-label={t("book.date")}
+      >
         {list.map((day, index) => {
           const key = toDateString(day)
           const active = key === value
@@ -63,22 +69,25 @@ function DayStrip({
               aria-pressed={active}
               onClick={() => onChange(key)}
               className={cn(
-                "flex h-16 w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-md border text-center transition-[background-color,border-color,color,transform] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-95",
-                active
-                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                  : "border-border bg-card text-foreground hover:border-border-strong",
+                "relative flex h-[4.5rem] w-14 shrink-0 flex-col items-center justify-center gap-1 text-center transition-colors duration-150 outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                active ? "bg-primary text-primary-foreground" : "bg-card text-foreground hover:bg-muted",
               )}
             >
-              <span className={cn("font-mono text-[10px] uppercase", active ? "opacity-80" : weekend ? "text-foreground" : "text-muted-foreground")}>
+              <span
+                className={cn(
+                  "font-mono text-[10px] tracking-[0.06em] uppercase",
+                  active ? "opacity-75" : weekend ? "text-brand-ink" : "text-muted-foreground",
+                )}
+              >
                 {index === 0 ? t("time.todayShort") : fmt.weekday(day)}
               </span>
-              <span className="text-[16px] leading-none font-semibold tabular">{day.getDate()}</span>
-              {active && <span className="size-1 rounded-full bg-brand" />}
+              <span className="font-display text-[26px] leading-none font-extrabold tabular">{day.getDate()}</span>
+              {active && <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] bg-brand" />}
             </button>
           )
         })}
         {!inRange && (
-          <span className="flex h-16 shrink-0 items-center rounded-md border border-primary bg-primary px-3 text-[13px] font-medium text-primary-foreground">
+          <span className="flex h-[4.5rem] shrink-0 items-center bg-primary px-4 font-display text-[20px] font-extrabold text-primary-foreground uppercase">
             {fmt.date(selected)}
           </span>
         )}
@@ -110,9 +119,9 @@ function SlotGrid({
   const freeCount = slots.filter((slot) => slot.state === "free").length
 
   const groups = [
-    { key: "morning", label: t("book.slots.morning"), icon: Sunrise, test: (h: number) => h < 12 },
-    { key: "afternoon", label: t("book.slots.afternoon"), icon: Sun, test: (h: number) => h >= 12 && h < 17 },
-    { key: "evening", label: t("book.slots.evening"), icon: Moon, test: (h: number) => h >= 17 },
+    { key: "morning", label: t("book.slots.morning"), test: (h: number) => h < 12 },
+    { key: "afternoon", label: t("book.slots.afternoon"), test: (h: number) => h >= 12 && h < 17 },
+    { key: "evening", label: t("book.slots.evening"), test: (h: number) => h >= 17 },
   ]
 
   const stateLabel: Record<SlotState, string> = {
@@ -127,7 +136,7 @@ function SlotGrid({
     const allPast = slots.every((slot) => slot.state === "past")
     return (
       <div className={cn("flex flex-col gap-3", className)}>
-        <p className="rounded-lg border border-dashed border-border-strong px-4 py-6 text-center text-[13px] text-muted-foreground">
+        <p className="border border-dashed border-foreground/25 px-4 py-6 text-center text-[13px] text-muted-foreground">
           {allPast ? t("book.slots.dayOver") : t("book.slots.noneFree")}
         </p>
         {!allPast && onTakenSelect && slots.length > 0 && renderSlotButtons()}
@@ -139,19 +148,24 @@ function SlotGrid({
   // whole grid (and drop keyboard focus) on every parent render.
   function renderSlotButtons() {
     return (
-      <>
+      <div className="@container flex flex-col">
         {groups.map((group) => {
           const items = slots.filter((slot) => group.test(slot.start.getHours()))
           if (items.length === 0) return null
+          const groupFree = items.filter((slot) => slot.state === "free").length
           return (
-            <div key={group.key} className="flex flex-col gap-2">
-              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <group.icon className="size-3.5" /> {group.label}
-              </span>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-1.5">
+            <div key={group.key} className="grid gap-2 border-t border-foreground/80 py-3 @lg:grid-cols-[7.5rem_minmax(0,1fr)] @lg:gap-4">
+              <div className="flex items-baseline justify-between gap-2 @lg:flex-col @lg:justify-start @lg:gap-1">
+                <span className="font-display text-[20px] leading-none font-extrabold uppercase">{group.label}</span>
+                <span className="font-mono text-[10.5px] text-muted-foreground tabular">
+                  {t("book.slots.groupFree", { count: groupFree })}
+                </span>
+              </div>
+              {/* The board: one ruled grid, cells share their borders. */}
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(4.75rem,1fr))] border-t border-l border-border">
                 {items.map((slot) => {
                   const iso = slot.start.toISOString()
-                  const active = selected === iso
+                  const active = selected === iso && slot.state === "free"
                   const taken = slot.state === "booked" || slot.state === "held"
                   const clickable = slot.state === "free" || (taken && Boolean(onTakenSelect))
                   const button = (
@@ -163,18 +177,27 @@ function SlotGrid({
                       aria-label={`${fmt.time(slot.start)} · ${stateLabel[slot.state]}`}
                       onClick={() => (slot.state === "free" ? onSelect(slot) : onTakenSelect?.(slot))}
                       className={cn(
-                        "h-9 rounded-sm border font-mono text-[12.5px] font-medium tabular transition-[background-color,border-color,color,transform] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-95",
+                        "relative flex h-12 flex-col items-center justify-center gap-0.5 border-r border-b border-border font-mono tabular transition-colors duration-150 outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                         slot.state === "free" &&
                           (active
-                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                            : "border-border bg-card text-foreground hover:border-foreground/50 hover:bg-muted"),
-                        taken && "border-transparent bg-muted text-subtle-foreground line-through decoration-subtle-foreground/60 hover:bg-wash-strong",
-                        slot.state === "blocked" &&
-                          "cursor-not-allowed border-transparent bg-[repeating-linear-gradient(-45deg,var(--muted)_0_4px,transparent_4px_8px)] text-subtle-foreground",
-                        slot.state === "past" && "cursor-not-allowed border-transparent text-subtle-foreground/60",
+                            ? "animate-pop bg-brand text-brand-foreground"
+                            : "bg-card text-foreground hover:bg-primary hover:text-primary-foreground"),
+                        taken && "bg-hatch bg-muted text-subtle-foreground hover:text-foreground",
+                        slot.state === "blocked" && "bg-hatch cursor-not-allowed bg-danger-soft text-danger/70",
+                        slot.state === "past" && "cursor-not-allowed bg-background text-subtle-foreground/50",
                       )}
                     >
-                      {fmt.time(slot.start)}
+                      <span className={cn("text-[13.5px] font-semibold", taken && "line-through decoration-1")}>{fmt.time(slot.start)}</span>
+                      {active && (
+                        <span className="text-[9.5px] leading-none opacity-85">
+                          –{fmt.time(slot.end)}
+                        </span>
+                      )}
+                      {!active && slot.state !== "free" && slot.state !== "past" && (
+                        <span className="text-[8.5px] leading-none tracking-[0.06em] uppercase">
+                          {slot.state === "held" ? t("book.slot.heldShort") : stateLabel[slot.state]}
+                        </span>
+                      )}
                     </button>
                   )
                   return slot.state === "free" ? (
@@ -194,14 +217,25 @@ function SlotGrid({
             </div>
           )
         })}
-      </>
+      </div>
     )
   }
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div className={cn("flex flex-col gap-3", className)}>
       {renderSlotButtons()}
-      <p className="text-xs text-muted-foreground">{t("book.slots.freeCount", { count: freeCount })}</p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-foreground/80 pt-3 font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground uppercase">
+        <span className="flex items-center gap-1.5">
+          <span aria-hidden className="size-3 border border-border bg-card" /> {t("book.slot.free")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span aria-hidden className="size-3 bg-brand" /> {t("book.slot.selected")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span aria-hidden className="bg-hatch size-3 bg-muted" /> {t("book.slot.booked")} / {t("book.slot.held")}
+        </span>
+        <span className="ml-auto text-foreground">{t("book.slots.freeCount", { count: freeCount })}</span>
+      </div>
     </div>
   )
 }

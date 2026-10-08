@@ -20,7 +20,6 @@ function AboutPage() {
   return (
     <div>
       <section className="relative isolate overflow-hidden border-b border-border">
-        <div aria-hidden className="absolute inset-0 -z-10 bg-court-grid opacity-50 [mask-image:radial-gradient(50%_80%_at_50%_0%,black,transparent)]" />
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
           <SectionHeader eyebrow={t("about.eyebrow")} title={t("about.title")} description={t("about.description")} />
         </div>
@@ -39,7 +38,7 @@ function AboutPage() {
       <MarketingSection size="narrow" className="pt-0 sm:pt-0">
         <div className="rounded-2xl border border-border bg-card p-6 shadow-xs sm:p-10">
           <span className="eyebrow">{t("about.team.eyebrow")}</span>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.025em]">{t("about.team.title")}</h2>
+          <h2 className="mt-2 display text-[44px] sm:text-[52px]">{t("about.team.title")}</h2>
           <p className="mt-2 text-[14px] text-muted-foreground">{t("about.team.description")}</p>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2">
             {TEAM.map((member) => (

@@ -5,14 +5,15 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex w-fit shrink-0 items-center gap-1 overflow-hidden rounded-xs border border-transparent px-1.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors [&>svg]:pointer-events-none [&>svg]:size-3!",
+  // Scoreboard chip: mono, uppercase, square-cut — reads as a printed label, not a pill.
+  "group/badge inline-flex w-fit shrink-0 items-center gap-1.5 overflow-hidden rounded-xs border border-transparent px-1.5 py-[3px] font-mono text-[10.5px] leading-none font-medium tracking-[0.06em] uppercase whitespace-nowrap transition-colors [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
         /** Neutral metadata chip. */
         default: "bg-muted text-foreground",
         secondary: "bg-muted text-muted-foreground",
-        outline: "border-border-strong text-muted-foreground",
+        outline: "border-foreground/25 text-muted-foreground",
         brand: "bg-brand-soft text-brand-ink",
         solid: "bg-primary text-primary-foreground",
         success: "bg-success-soft text-success",
@@ -38,7 +39,7 @@ function Badge({ className, variant, asChild = false, dot = false, children, ...
 
   return (
     <Comp data-slot="badge" data-variant={variant} className={cn(badgeVariants({ variant, className }))} {...props}>
-      {dot && <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />}
+      {dot && <span aria-hidden className="size-1.5 shrink-0 bg-current" />}
       {children}
     </Comp>
   )

@@ -29,55 +29,60 @@ function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
   ]
 
   return (
-    <div className="grid min-h-[calc(100dvh-3.5rem)] lg:grid-cols-[1fr_1.05fr]">
+    <div className="grid min-h-[calc(100dvh-4rem)] lg:grid-cols-[1fr_1.05fr]">
       <div className="flex items-center justify-center px-4 py-12 sm:px-6">
-        <div className="w-full max-w-sm animate-fade-up">
+        <div className="w-full max-w-sm">
           <LogoMark className="mb-8 size-10" />
-          <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em]">{title}</h1>
-          <p className="mt-2 text-[14px] text-muted-foreground">{description}</p>
+          <h1 className="display animate-fade-up text-[52px]">{title}</h1>
+          <p className="mt-3 border-t-2 border-foreground pt-3 text-[14px] text-muted-foreground">{description}</p>
           <div className="mt-8">{children}</div>
           <div className="mt-6 border-t border-border pt-6 text-[13px] text-muted-foreground">{footer}</div>
         </div>
       </div>
 
-      <div className="relative m-3 hidden overflow-hidden rounded-2xl bg-panel lg:flex lg:flex-col lg:justify-between lg:p-12 dark:bg-card dark:ring-1 dark:ring-border">
-        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(70%_60%_at_85%_10%,color-mix(in_oklab,var(--brand)_35%,transparent),transparent_70%)]" />
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(to_right,var(--panel-foreground)_1px,transparent_1px),linear-gradient(to_bottom,var(--panel-foreground)_1px,transparent_1px)] [background-size:40px_40px]"
-        />
+      <div className="relative m-3 hidden overflow-hidden rounded-md bg-panel text-panel-foreground lg:flex lg:flex-col lg:justify-between lg:p-12">
+        <svg aria-hidden viewBox="0 0 100 80" className="absolute -top-16 -right-28 h-[70%] stroke-panel-foreground/12">
+          <g fill="none" strokeWidth="0.6">
+            <rect x="12" y="14" width="76" height="52" />
+            <line x1="50" y1="8" x2="50" y2="72" strokeWidth="1.2" />
+            <line x1="37" y1="14" x2="37" y2="66" />
+            <line x1="63" y1="14" x2="63" y2="66" />
+          </g>
+        </svg>
 
-        <div className="relative flex flex-col gap-4">
-          <span className="font-mono text-[11px] tracking-[0.08em] text-brand uppercase">{t("authLayout.eyebrow")}</span>
-          <p className="max-w-md text-[32px] leading-[1.1] font-semibold tracking-[-0.035em] text-panel-foreground">{t("authLayout.headline")}</p>
-          <ul className="mt-2 flex flex-col gap-2.5">
+        <div className="relative flex flex-col gap-5">
+          <span className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-panel-muted uppercase">
+            <span aria-hidden className="size-2 bg-brand" /> {t("authLayout.eyebrow")}
+          </span>
+          <p className="display max-w-md text-[56px]">{t("authLayout.headline")}</p>
+          <ul className="mt-1 flex flex-col gap-2.5 border-t border-panel-foreground/25 pt-4">
             {points.map((point) => (
-              <li key={point.label} className="flex items-center gap-2.5 text-[14px] text-panel-foreground/75">
+              <li key={point.label} className="flex items-center gap-2.5 text-[14px] text-panel-foreground/85">
                 <point.icon className="size-4 text-brand" /> {point.label}
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="relative rounded-xl border border-panel-foreground/10 bg-panel-foreground/[0.04] p-4 backdrop-blur-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[13px] font-medium text-panel-foreground">{t("authLayout.availabilityTitle")}</span>
-            <span className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-wider text-brand uppercase">
-              <span className="size-1.5 animate-pulse rounded-full bg-brand" /> {t("common.live")}
+        <div className="relative">
+          <div className="mb-2 flex items-center justify-between border-b-2 border-panel-foreground pb-2">
+            <span className="font-display text-[22px] leading-none font-extrabold uppercase">{t("authLayout.availabilityTitle")}</span>
+            <span className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.08em] uppercase">
+              <span className="size-1.5 animate-blink bg-brand" /> {t("common.live")}
             </span>
           </div>
-          <div className="flex flex-col gap-2">
-            {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full opacity-20" />)}
-            {courts?.map((court) => (
-              <div key={court.id} className="flex items-center gap-3 rounded-lg bg-panel-foreground/[0.06] p-2.5 [&_*]:text-panel-foreground/80">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand [&_svg]:text-brand-foreground!">
-                  <SportIcon sport={court.sport_type} className="size-4" />
+          <div className="flex flex-col">
+            {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="my-1 h-12 w-full opacity-20" />)}
+            {courts?.map((court, index) => (
+              <div key={court.id} className="flex items-center gap-4 border-b border-panel-foreground/20 py-3">
+                <span className="w-6 font-mono text-[11px] text-panel-muted tabular">{String(index + 1).padStart(2, "0")}</span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate font-display text-[22px] leading-none font-extrabold uppercase">{court.name}</span>
+                  <span className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.06em] text-panel-muted uppercase">
+                    <SportIcon sport={court.sport_type} className="size-3" /> {sportLabels[court.sport_type]}
+                  </span>
                 </span>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-[13px] font-medium text-panel-foreground!">{court.name}</span>
-                  <span className="text-xs">{sportLabels[court.sport_type]}</span>
-                </div>
-                <RatingInline court={court} />
+                <RatingInline court={court} className="[&_span]:text-panel-foreground!" />
               </div>
             ))}
           </div>

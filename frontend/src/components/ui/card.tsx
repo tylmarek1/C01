@@ -2,14 +2,15 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-/** Surface container. Hairline border does the separating; no drop shadow at
- * rest (DESIGN.md "Elevation"). Pass `interactive` for a clickable card. */
+/** Surface container — a sheet of programme paper: hairline rule, sharp
+ * corners, no shadow (DESIGN.md "Elevation"). Pass `interactive` for a
+ * clickable card; its rule darkens to ink on hover. */
 function Card({ className, interactive = false, ...props }: React.ComponentProps<"div"> & { interactive?: boolean }) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-5 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-xs sm:p-6",
+        "flex flex-col gap-5 rounded-md border border-border bg-card p-5 text-card-foreground sm:p-6",
         interactive && "surface-interactive",
         className,
       )}
@@ -35,7 +36,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("text-[15px] leading-snug font-semibold tracking-[-0.01em] text-foreground", className)}
+      className={cn("text-[15px] leading-snug font-bold tracking-[-0.005em] text-foreground", className)}
       {...props}
     />
   )
