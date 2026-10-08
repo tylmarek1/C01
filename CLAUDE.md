@@ -142,9 +142,9 @@ docker-compose.yml                  single `db` service (Postgres 16) shared by 
 | Tests | pytest + httpx, against real Postgres | none exist yet (see frontend/CLAUDE.md) |
 | Lint | not configured (a stray `.ruff_cache` is the only trace of ruff) | `oxlint`, default rules |
 
-There is **no CI/CD and no Alembic migrations** anywhere in this repo.
-That's the real current state, not an oversight for you to silently fix —
-see "Known gaps" below. There is one narrow pre-commit hook (blocks commits
+There is **no CI/CD** anywhere in this repo. That's the real current
+state, not an oversight for you to silently fix — see "Known gaps" below.
+Schema changes go through Alembic migrations (ADR-006, `backend/CLAUDE.md`). There is one narrow pre-commit hook (blocks commits
 on `main`, see "Git workflow" below) plus the existing ruff-format
 post-edit hook — neither is a substitute for CI.
 
@@ -162,10 +162,9 @@ post-edit hook — neither is a substitute for CI.
   faster" — that would silently remove the actual concurrency guarantee
   ADR-001 exists to provide. Tests run against real Postgres for the same
   reason; that's deliberate, not a gap.
-- **No migrations.** `backend/src/reservations/db.py` only has
-  `create_all`/`drop_all`. This has a specific, easy-to-miss failure mode —
-  full details and the exact recovery command are in `backend/CLAUDE.md`;
-  read it before changing an existing model.
+- **Every model change ships with an Alembic migration** (ADR-006).
+  Autogenerate misses enum values and exclusion/check constraints — the
+  details are in `backend/CLAUDE.md`; read it before changing a model.
 - **C01–C03 boundary.** C01/C02 own requirements, domain behavior,
   evidence, and a working (not necessarily well-architected) walking
   skeleton; C03 owns architecture — `docs/course/C02.md`'s introduction
@@ -293,10 +292,11 @@ link here instead.
    (`test_the_exclusion_constraint_blocks_exactly_the_active_statuses`) now
    fails if the constraint and `ACTIVE_RESERVATION_STATUSES` disagree.
    (`database-evolution`)
-5. **`create_all` doesn't alter existing tables.** A column/enum change on
-   an existing table looks like it worked (no error) but the dev database
-   silently doesn't have it until the manual drop/recreate/reseed cycle
-   runs. (`database-evolution`)
+5. **A schema change the migration doesn't carry.** Before Alembic,
+   `create_all` silently skipped column/enum changes on existing tables.
+   Autogenerate still skips enum values and exclusion/check constraints;
+   `tests/test_migrations.py` fails on model↔migration drift and on a
+   missing enum value. (`database-evolution`)
 
 If you discover a new one of these while working, decide where it belongs
 using the next section, and add it here only if it's genuinely a durable
@@ -411,7 +411,7 @@ tokens, passwords, or password hashes.
 
 ## Known gaps — flag, don't silently fix
 
-No CI, no Alembic, no generated frontend API types, no frontend test suite.
+No CI, no generated frontend API types, no frontend test suite.
 These are real, current, and known. If closing one of these would
 genuinely help the task you're doing, propose it and say why — don't
 silently add a new dependency, config file, or pipeline as a side effect of

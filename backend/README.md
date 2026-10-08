@@ -15,7 +15,7 @@ domain model and team info.
 cp .env.example .env             # optional: the app falls back to the same defaults
 docker compose up -d --wait db   # from the repo root — starts PostgreSQL on localhost:5432
 uv sync                          # create .venv and install dependencies
-uv run python -m reservations.seed   # optional: insert a few demo courts
+uv run python -m reservations.seed   # migrates the schema to head (adopting a pre-Alembic DB), then demo courts
 uv run fastapi dev src/reservations/main.py   # API at http://localhost:8000 (docs: /docs)
 curl localhost:8000/health       # -> {"status":"ok"}
 ```

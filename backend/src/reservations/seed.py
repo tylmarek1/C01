@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from reservations.achievements import evaluate_and_award
-from reservations.db import create_schema, make_engine, make_session_factory
+from reservations.db import make_engine, make_session_factory, upgrade_schema
 from reservations.models import (
     Court,
     Favorite,
@@ -121,7 +121,7 @@ def _slot(
 
 def main() -> None:
     engine = make_engine()
-    create_schema(engine)
+    upgrade_schema(engine)
     session_factory = make_session_factory(engine)
 
     with session_factory() as session:

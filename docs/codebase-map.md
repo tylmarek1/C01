@@ -51,7 +51,8 @@ mixed (ADR-002).
 | `models/` | One SQLAlchemy model per file. Booking domain: `Court`, `CourtImage`, `User`, `Reservation`, `ReservationEvent`, `ReservationGuest`, `ReservationSeries`, `Favorite`, `Review`, `ReviewImage`, `ReviewVote`, `ReviewComment`, `Notification`, `PushSubscription`, `FacilityBlock`, `Waitlist`, `Achievement`, `JoinRequest`. Community domain: `PlayerFollow`, `Conversation`, `ConversationParticipant`, `Message`, `MessageReaction`, `Team`, `TeamMember`, `TeamJoinRequest`, `SkillRating`, `MatchResult`, `Challenge`, `ChallengeCompletion`, `ActivityEvent` |
 | `schemas/` | Pydantic request/response models, mirroring `models/` roughly 1:1 |
 | `deps.py`, `security.py` | Current-user/DB-session dependencies; password hashing + JWT |
-| `db.py` | Engine/session factory, schema create/drop (**no Alembic** — see `backend/CLAUDE.md`) |
+| `db.py` | Engine/session factory; `upgrade_schema`/`downgrade_schema`/`drop_schema` over the Alembic migrations (ADR-006) |
+| `migrations/` | Alembic environment and `versions/` — the schema's source of truth; `0001_baseline` is the pre-Alembic `create_all` schema |
 | `seed.py` | Idempotent demo-data seeder — booking domain only; the community-domain tables above start empty for every fresh seed (no demo teams/chats/challenges/follows) |
 
 The no-double-booking guarantee lives in `models/reservation.py`'s
@@ -97,8 +98,8 @@ single source of tokens, never a hardcoded color in a component (see
   remove/delete flows across the app — reuse it rather than inventing a
   second one.
 - Deeper traps that have actually caused a bug here (timezone comparisons,
-  the exclusion constraint's status list, `create_all` not altering
-  existing tables) are tracked in root `CLAUDE.md`'s "Known pitfalls" —
+  the exclusion constraint's status list, a schema change the
+  migration doesn't carry) are tracked in root `CLAUDE.md`'s "Known pitfalls" —
   not repeated here.
 
 ## Keeping this current

@@ -86,7 +86,7 @@ duplicated across 4 pages" is one finding with one fix, not four.
   don't repeat it as a finding on every audit.
 - Docs: is `README.md`'s Definition-of-Done/test-count/endpoint list still
   accurate, or has it drifted further since the last check?
-- Tooling: still no CI, no committed lint config, no Alembic — these are
+- Tooling: still no CI, no committed lint config — these are
   known (see root `CLAUDE.md`'s "Known gaps"), only re-surface them if
   something you found makes one of them newly costly.
 

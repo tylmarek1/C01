@@ -82,9 +82,9 @@ before any edit to code.
    inconsistency a first-draft baseline can.
 9. **Implement the change** — `feature-development`'s Step 4 discipline
    for the vertical slice; `schema-change-sweep` if the change adds/renames
-   a model or schema field; `database-evolution` if it needs the manual
-   schema-recreation cycle (a new state/enum value almost always does —
-   see backend `CLAUDE.md`'s "No Alembic" trap). Update the exclusion
+   a model or schema field; `database-evolution` for the migration
+   (a new state/enum value needs a hand-written `ALTER TYPE … ADD VALUE` —
+   see backend `CLAUDE.md`'s migrations section). Update the exclusion
    constraint's blocking-state list if the change adds a state that should
    still hold the resource — this codebase has a regression test for
    exactly that drift (`test_the_exclusion_constraint_blocks_exactly_the_
