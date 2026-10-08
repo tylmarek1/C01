@@ -4,16 +4,17 @@ import {
   CalendarPlus,
   Clock3,
   Coins,
+  CreditCard,
   ImagePlus,
   LogIn,
   MoreHorizontal,
+  PanelRightOpen,
   Repeat,
   ShieldCheck,
   Sparkles,
   Star,
   Trophy,
   UserPlus,
-  PanelRightOpen,
   X,
   XCircle,
 } from "lucide-react"
@@ -41,12 +42,14 @@ import { OccupancyTimeline } from "@/components/shared/occupancy-timeline"
 import { PlayerSearch } from "@/components/shared/player-search"
 import { DayStrip, SlotGrid } from "@/components/shared/slot-picker"
 import { StarRatingInput } from "@/components/shared/star-rating"
-import { StatusBadge } from "@/components/shared/status-badge"
+import { PayDialog } from "@/components/shared/pay-dialog"
+import { PaymentBadge, StatusBadge } from "@/components/shared/status-badge"
 import { UserAvatar } from "@/components/shared/user-avatar"
 import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { formatCurrency, toDateString, useFormatters } from "@/lib/format"
 import { useTranslation } from "@/lib/i18n"
+import { ONLINE_PAYABLE, SETTLED } from "@/lib/payment-status"
 import { useNow } from "@/lib/use-now"
 import { cn } from "@/lib/utils"
 import type { PlayerSearchResult, Reservation } from "@/types"
@@ -518,6 +521,8 @@ interface ReservationCardProps {
   isSettingOpen?: boolean
   hasReview?: boolean
   onSubmitReview?: (reservation: Reservation, rating: number, comment: string, photos: File[]) => void
+  /** The booker's own card — they can pay it online (ADR-010). */
+  canPay?: boolean
   isBusy?: boolean
 }
 
@@ -534,13 +539,14 @@ function ReservationCard({
   isSettingOpen = false,
   hasReview = false,
   onSubmitReview,
+  canPay = false,
   isBusy = false,
 }: ReservationCardProps) {
   const { token } = useAuth()
   const { t } = useTranslation()
   const fmt = useFormatters()
   const { court, status } = reservation
-  const [dialog, setDialog] = useState<null | "reschedule" | "guest" | "review" | "split" | "result" | "open">(null)
+  const [dialog, setDialog] = useState<null | "reschedule" | "guest" | "review" | "split" | "result" | "open" | "pay">(null)
   const start = new Date(reservation.start_time)
   const now = useNow(30_000)
   const isPast = new Date(reservation.end_time).getTime() < now
@@ -565,6 +571,11 @@ function ReservationCard({
   const canReportResult = status === "COMPLETED"
   const canExportCalendar = status === "CONFIRMED" || status === "CHECKED_IN" || status === "COMPLETED"
   const isToday = new Date().toDateString() === start.toDateString()
+  const isPayable =
+    canPay &&
+    reservation.price_total !== null &&
+    ONLINE_PAYABLE.includes(status) &&
+    !(reservation.payment_status && SETTLED.includes(reservation.payment_status))
 
   const primary = (() => {
     if (status === "PENDING" && onConfirm)
@@ -597,7 +608,7 @@ function ReservationCard({
   })()
 
   const hasMenu =
-    canExportCalendar || canSplit || canOpenToJoin || canInviteGuest || canReschedule || canReportResult || canCancel || Boolean(onOpenDetail)
+    isPayable || canExportCalendar || canSplit || canOpenToJoin || canInviteGuest || canReschedule || canReportResult || canCancel || Boolean(onOpenDetail)
 
   return (
     <article
@@ -638,6 +649,7 @@ function ReservationCard({
             {court.name}
           </span>
           <StatusBadge status={status} />
+          {reservation.payment_status && reservation.payment_status !== "FAILED" && <PaymentBadge status={reservation.payment_status} />}
           {reservation.series_id && (
             <Badge variant="outline">
               <Repeat /> {t("reservationCard.recurring")}
@@ -653,6 +665,7 @@ function ReservationCard({
           <span className="font-mono text-[15px] font-semibold text-foreground tabular">{fmt.timeRange(reservation.start_time, reservation.end_time)}</span>
           <span>{fmt.dayLabel(reservation.start_time)}</span>
           <span className="hidden sm:inline">{fmt.durationBetween(reservation.start_time, reservation.end_time)}</span>
+          {reservation.price_total !== null && <span className="font-mono tabular">{formatCurrency(reservation.price_total)}</span>}
           {court.requires_approval && status !== "COMPLETED" && (
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="size-3.5" /> {t("courts.requiresApproval")}
@@ -686,6 +699,11 @@ function ReservationCard({
               {onOpenDetail && (
                 <DropdownMenuItem onSelect={() => onOpenDetail(reservation)}>
                   <PanelRightOpen /> {t("reservationCard.viewDetails")}
+                </DropdownMenuItem>
+              )}
+              {isPayable && (
+                <DropdownMenuItem onSelect={() => setDialog("pay")}>
+                  <CreditCard /> {t("reservationCard.pay", { amount: formatCurrency(reservation.price_total!) })}
                 </DropdownMenuItem>
               )}
               {status === "CONFIRMED" && onCheckIn && !isToday && (
@@ -743,6 +761,7 @@ function ReservationCard({
         )}
       </div>
 
+      {isPayable && dialog === "pay" && <PayDialog reservation={reservation} open onOpenChange={(o) => setDialog(o ? "pay" : null)} />}
       {canSplit && <SplitCostDialog reservation={reservation} open={dialog === "split"} onOpenChange={(o) => setDialog(o ? "split" : null)} />}
       {canReportResult && (
         <ReportResultDialog reservation={reservation} open={dialog === "result"} onOpenChange={(o) => setDialog(o ? "result" : null)} />

@@ -75,8 +75,9 @@ PostgreSQL exclusion constraint, not in application code (ADR-001) — see
 | `lib/chat-socket.ts` | The one WebSocket client — a module-level singleton connection, opened/closed by `auth-context.tsx` alongside the JWT session; not per-component |
 | `lib/auth-context.tsx` | `AuthProvider`/`useAuth` — JWT held client-side |
 | `lib/i18n.tsx` | `t()` + the EN/CS language switcher |
+| `lib/payment-status.ts`, `lib/time-of-day.ts` | Payment status labels/badge tones and which reservation states can be paid online or in cash (display mirror of `payments.py`); half-hour "HH:MM" times for hours and rates |
 | `lib/format.ts`, `lib/use-now.ts` | `useFormatters()` — every date/time/number on screen, following the UI language; `useNow()` — the render-safe "current time" |
-| `lib/slots.ts`, `lib/venue.ts` | Booking-picker hints mirrored from the backend (lead time, advance window, slot classification) and the venue's default opening hours/time zone for the "open now" strip (the backend's per-venue hours from ADR-009 aren't read here yet) — display only; the backend enforces the rules |
+| `lib/slots.ts`, `lib/venue.ts` | Booking-picker hints mirrored from the backend (lead time, advance window, slot classification) and the venue clock/status for the "open now" strip, computed from each venue's real opening hours (ADR-009) in venue-local time — display only; the backend enforces the rules |
 | `lib/queries.ts` | Shared TanStack Query hooks for resources read from more than one place (conversations, admin stats, my reservations, courts) |
 | `lib/theme.tsx` | `ThemeProvider`/`useTheme` — light/dark, persisted to `localStorage`, toggled via `components/shared/theme-toggle.tsx` |
 | `locales/en.ts` / `cs.ts` | `en.ts` defines `TranslationKey`; `cs.ts` is typed against it, so a *missing* translation is a compile error — a hardcoded string that never became a key is not (see `i18n-check`) |

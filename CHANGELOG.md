@@ -10,6 +10,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Prices and payments for players:**
+  - **Booking page:** quotes the picked slot from the court's rates.
+  - **Closed days:** a closed day says so on the booking page, the court page and the reschedule dialog.
+  - **Reservation cards:** show the booked price, the payment status, and a "Pay" action. The payment dialog is honest about the test gateway and can simulate a declined card.
+  - **Reservation detail:** shows the payment history.
+  - **"Open now" strip:** follows the venue's real hours for today (or counts open venues when there are several).
 - **Venue desk UI for venues, pricing, payments and the audit log:**
   - **Venues tab:** venue details, a weekly opening-hours editor, and manager assignment (admins).
   - **Courts tab:** a rate editor per court (the same rate on several weekdays in one row), and venue selection for a new court. A venue manager sees only their own venues' courts.

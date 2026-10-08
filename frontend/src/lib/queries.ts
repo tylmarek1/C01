@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 
 import { api } from "@/lib/api"
@@ -79,4 +79,19 @@ export function useManagedVenues() {
     queryFn: () => (isAdmin ? api.listVenues(token, true) : api.listMyVenues(token!)),
     enabled: Boolean(token) && (user?.role === "ADMIN" || user?.role === "VENUE_MANAGER"),
   })
+}
+
+/** Every active venue with its weekly opening hours (ADR-009) — public, for
+ * the "open now" strip. */
+export function useVenuesWithHours() {
+  const { data: venues } = useQuery({ queryKey: ["venues"], queryFn: () => api.listVenues(), staleTime: 5 * 60_000 })
+  const hours = useQueries({
+    queries: (venues ?? []).map((venue) => ({
+      queryKey: ["opening-hours", venue.id],
+      queryFn: () => api.getOpeningHours(venue.id),
+      staleTime: 5 * 60_000,
+    })),
+  })
+  if (!venues || hours.some((query) => !query.data)) return null
+  return venues.map((venue, index) => ({ venue, hours: hours[index].data! }))
 }

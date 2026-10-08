@@ -394,7 +394,10 @@ function CourtDetailPage() {
                   label: t("courtDetail.facts.price"),
                   value: court.price_per_hour !== null ? `${formatCurrency(court.price_per_hour)}${t("courts.perHourSuffix")}` : t("courts.priceUnset"),
                 },
-                { label: t("courtDetail.facts.hours"), value: availability ? fmt.timeRange(availability.opens_at, availability.closes_at) : "—" },
+                {
+                  label: t("courtDetail.facts.hours"),
+                  value: availability ? (availability.closed ? t("courtDetail.closedThatDay") : fmt.timeRange(availability.opens_at, availability.closes_at)) : "—",
+                },
               ].map((fact) => (
                 <div key={fact.label} className="flex flex-col gap-1 bg-card p-3.5">
                   <dt className="eyebrow text-[10px]">{fact.label}</dt>
