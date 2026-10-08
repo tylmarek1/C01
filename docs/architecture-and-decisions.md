@@ -883,3 +883,31 @@ above stay as they were written, because they record the state on
   - Specification v0.3 changes BR-04 (VE-01.11, VE-01.12, VE-02.8). Every older example is unchanged because of the default hours.
   - The frontend still shows the default hours in its "open now" strip. It does use the day's real hours from the availability endpoint.
   - New endpoints: `GET/PUT /venues/{id}/opening-hours`, `GET/PUT /courts/{id}/price-rules`, `GET /courts/{id}/quote`. `ReservationOut.price_total`, `CourtAvailability.closed`.
+
+### ADR-010: Payments behind a gateway boundary, charged between two commits, refunded by the worker
+
+- **Status:** accepted (2026-10-08). No real payment provider yet.
+- **Context:** reservations had a price (ADR-009) but no way to pay it. The team hasn't chosen a provider. The architecture rules of ADR-005 apply to payments just as much as to Web Push: no external call inside a business transaction, no vendor SDK outside one module, and retries for failures.
+- **Decision:**
+  - **Data:** `payments` table. Method `ONLINE` or `CASH`. Statuses `PENDING → PAID | FAILED`, and for refunds `PAID → REFUND_PENDING → REFUNDED | REFUND_FAILED`. A partial unique index allows at most one *live* payment (PENDING, PAID, REFUND_PENDING) per reservation. The amount is the reservation's `price_total` snapshot.
+  - **Gateway boundary:** `payment_gateway.py` defines the `PaymentGateway` protocol (`charge`, `refund`) and a `MockGateway`. Only `payments.py` imports it, which `tests/test_architecture.py` checks.
+  - **Online payment** (`POST /reservations/{id}/payments`, booker only) runs in three steps:
+    1. Lock the reservation, write a PENDING payment, commit.
+    2. Call the gateway with no transaction open.
+    3. Re-read the payment and the reservation (`populate_existing`: the session caches objects across commits) and record the result.
+  - **Release during a charge:** if the reservation was released while the charge ran, the money that was taken goes straight to `REFUND_PENDING`. A declined charge is 402 with a FAILED row, and can be retried.
+  - **Refunds:** `lifecycle.transition` calls `payments.release_for()` on every move to CANCELLED, REJECTED or EXPIRED. That covers the owner's cancel, a facility block, rejection and both expiries. It only queues (`REFUND_PENDING`) and does no I/O.
+  - **Worker:** a `worker.py` sub-task makes the refunds. It locks only payment rows (SKIP LOCKED) and gives up after 5 attempts (`REFUND_FAILED`). The same sub-task fails PENDING payments abandoned for more than 15 minutes.
+  - **Cash:** `POST /reservations/{id}/payments/cash`, for managers of the court's venue.
+- **Not done (decided with the user up front):** paying is optional and never changes the reservation's state. Confirm/Approve stay exactly as specified. Making payment a condition of Confirm would change OP-03, the hold expiry and the VE suites.
+- **Alternatives considered:**
+  - Charging inside the Confirm transaction. It would hold the reservation's row lock across a network call (DR-1).
+  - Refunding synchronously in the Cancel request. A provider outage would fail the cancel, or lose the refund.
+  - Calling a refund hook in each cancel path. That's the "several doors" problem AD-4 already had; the Lifecycle is the one door.
+- **Consequences:**
+  - A NO_SHOW keeps the payment. COMPLETED is not refunded.
+  - Cash payments are not refunded online: a released reservation's cash payment stays PAID, to be settled at the desk.
+  - `REFUND_FAILED` rows are only visible in the payment list and the audit log. Nobody is notified yet.
+  - No payment notifications: a new `NotificationType` would need the frontend's hand-maintained type, the drift that already caused a bug once.
+  - A real provider would usually confirm asynchronously (redirect + webhook). Then step 3 would move to a webhook handler, with the same row lock and status checks.
+  - Like the rest of `worker.py`, refunds assume a single process (AD-1).

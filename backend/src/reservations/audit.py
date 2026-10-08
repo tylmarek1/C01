@@ -24,6 +24,7 @@ from reservations.models import (
     Court,
     CourtPriceRule,
     FacilityBlock,
+    Payment,
     Reservation,
     User,
     Venue,
@@ -35,8 +36,23 @@ from reservations.observability import current_context
 AUDITED_FIELDS: dict[type, tuple[str, ...]] = {
     Venue: ("name", "address", "description", "active"),
     VenueManager: ("venue_id", "user_id"),
+    Payment: (
+        "reservation_id",
+        "user_id",
+        "amount",
+        "method",
+        "status",
+        "provider_ref",
+        "failure_reason",
+    ),
     VenueOpeningHours: ("venue_id", "weekday", "opens_minute", "closes_minute"),
-    CourtPriceRule: ("court_id", "weekday", "start_minute", "end_minute", "price_per_hour"),
+    CourtPriceRule: (
+        "court_id",
+        "weekday",
+        "start_minute",
+        "end_minute",
+        "price_per_hour",
+    ),
     Court: (
         "name",
         "venue_id",
@@ -50,7 +66,14 @@ AUDITED_FIELDS: dict[type, tuple[str, ...]] = {
         "price_per_hour",
     ),
     User: ("name", "email", "role", "profile_public"),
-    Reservation: ("court_id", "user_id", "start_time", "end_time", "status", "price_total"),
+    Reservation: (
+        "court_id",
+        "user_id",
+        "start_time",
+        "end_time",
+        "status",
+        "price_total",
+    ),
     FacilityBlock: ("court_id", "start_time", "end_time", "reason", "series_id"),
 }
 

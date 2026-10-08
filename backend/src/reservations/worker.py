@@ -7,6 +7,7 @@ reservation engine needs on its own:
 - send a one-time reminder ~2h before a confirmed slot starts
 - auto-complete reservations whose slot has passed
 - expire unanswered waitlist offers and cascade to the next person
+- refund payments of released reservations through the gateway (ADR-010)
 
 A second, faster loop drains the Web Push outbox (ADR-005). Both loops run
 their synchronous DB/HTTP work in a thread, so a slow push service or a
@@ -20,7 +21,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from reservations import achievements, push_delivery, rules, waitlist_service
+from reservations import achievements, payments, push_delivery, rules, waitlist_service
 from reservations.lifecycle import transition
 from reservations.models import (
     NotificationType,
@@ -177,6 +178,7 @@ _SUB_TASKS = (
     _send_reminders,
     _auto_complete,
     _expire_waitlist_offers,
+    payments.process_refunds,
 )
 
 

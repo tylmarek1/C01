@@ -10,6 +10,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
 
 ### Added
 
+- **Payments** (ADR-010), through a mock gateway until a provider is chosen:
+  the booker pays a reservation's quoted price
+  (`POST /reservations/{id}/payments`, `decline: true` simulates a refusal);
+  a venue manager records cash; cancelling, rejecting or expiring a paid
+  reservation queues a refund that the background worker makes. Paying
+  doesn't change a reservation's state.
 - **Opening hours and court rates in the database** (ADR-009, specification
   v0.3 BR-04): opening hours per venue and weekday (a day can be closed) instead of
   a fixed 07:00–22:00; court rates by weekday and time on top of the base

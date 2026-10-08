@@ -19,6 +19,7 @@ from reservations.api import (
     facility_blocks,
     favorites,
     notifications,
+    payments,
     push,
     ratings,
     reservations,
@@ -91,6 +92,7 @@ app.include_router(auth.router)
 app.include_router(venues.router)
 app.include_router(courts.router)
 app.include_router(reservations.router)
+app.include_router(payments.router)
 app.include_router(waitlist.router)
 app.include_router(notifications.router)
 app.include_router(facility_blocks.router)

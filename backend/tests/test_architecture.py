@@ -45,6 +45,30 @@ def test_the_rule_actually_sees_the_allowed_module() -> None:
     assert VENDOR_MODULE in _imported_modules(SRC / "push_delivery.py")
 
 
+# --------------------------------------------------------------------------- Payment gateway
+#
+# Rule (ADR-010): only payments.py talks to the payment gateway, so a vendor
+# call can't end up in a route or inside a reservation's transaction.
+
+GATEWAY_MODULE = "reservations.payment_gateway"
+GATEWAY_ALLOWED = {SRC / "payments.py", SRC / "payment_gateway.py"}
+
+
+def test_only_the_payments_module_uses_the_payment_gateway() -> None:
+    offenders = sorted(
+        str(path.relative_to(SRC))
+        for path in SRC.rglob("*.py")
+        if path not in GATEWAY_ALLOWED and GATEWAY_MODULE in _imported_modules(path)
+    )
+    assert offenders == [], (
+        f"payment_gateway imported outside payments.py: {offenders} (ADR-010)"
+    )
+
+
+def test_the_gateway_rule_actually_sees_the_allowed_module() -> None:
+    assert GATEWAY_MODULE in _imported_modules(SRC / "payments.py")
+
+
 # --------------------------------------------------------------------------- Lifecycle ownership
 #
 # Rule (C03 G3, backend/CLAUDE.md): only `lifecycle.transition()` changes a
@@ -79,11 +103,15 @@ def _lifecycle_violations(path: Path, root: Path = SRC) -> list[str]:
                 if kw.arg == "status" and not (
                     _is_reservation_status(kw.value) and kw.value.attr == "PENDING"
                 ):
-                    found.append(f"{path.relative_to(root)}:{node.lineno} Reservation(status=...) not PENDING")
+                    found.append(
+                        f"{path.relative_to(root)}:{node.lineno} Reservation(status=...) not PENDING"
+                    )
         elif isinstance(node, ast.Assign) and _is_reservation_status(node.value):
             for target in node.targets:
                 if isinstance(target, ast.Attribute) and target.attr == "status":
-                    found.append(f"{path.relative_to(root)}:{node.lineno} .status = ReservationStatus.*")
+                    found.append(
+                        f"{path.relative_to(root)}:{node.lineno} .status = ReservationStatus.*"
+                    )
     return found
 
 
