@@ -104,12 +104,12 @@ where, so a session doesn't have to search for them.
 
 ## Latest verification
 
-- `cd backend && uv run pytest -v` — **309 passed** against real
+- `cd backend && uv run pytest -v` — **311 passed** against real
   PostgreSQL 16 (its own `reservations_test` database since PR #77). Last
   run: 2026-10-08.
   - The C02-baseline evidence figure stays **177 passed** (2026-09-21).
   - The suite later grew through product features (PRs #38–#44), the C03
-    outbox (PR #71, 305) and the waitlist-lifecycle follow-up (PR #76, 309).
+    outbox (PR #71, 305) and the waitlist-lifecycle follow-up (PR #76, 309) and waitlist booking limits (311).
     None of these are C02 VE-xx tests or change C02's phase status.
 - `cd frontend && npm run build && npm run lint` — build passes; lint shows
   only the 6 known `only-export-components` warnings. Last run: 2026-10-08
@@ -124,7 +124,7 @@ section just points to it.
 
 ## Latest relevant commit
 
-Release v4.0.1 (2026-10-08): frontend 4.0.0, backend 0.3.1 — see
+Release v4.0.2 (2026-10-08): frontend 4.0.0, backend 0.3.2 — see
 `CHANGELOG.md`. Course milestones:
 - C02 engineering: PR [#9](https://github.com/tylmarek1/C01/pull/9) (`ede421d`).
 - C03 architecture: PR [#71](https://github.com/tylmarek1/C01/pull/71)

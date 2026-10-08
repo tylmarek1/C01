@@ -7,12 +7,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from reservations.main import app
+from reservations import rules
 from reservations.models import (
     Court,
+    Reservation,
     ReservationEvent,
     ReservationEventType,
+    ReservationStatus,
     SportType,
     User,
+    UserRole,
     WaitlistEntry,
     WaitlistStatus,
 )
@@ -185,3 +189,53 @@ def test_offer_on_a_court_deactivated_meanwhile_cannot_be_accepted(session_facto
     assert response.status_code == 409
     with session_factory() as session:
         assert session.get(WaitlistEntry, uuid.UUID(entry_id)).status == WaitlistStatus.OFFERED
+
+
+def _add_reservations(
+    session_factory: sessionmaker, email: str, count: int, status: ReservationStatus, days_ago: int = -1
+) -> None:
+    """`count` one-hour reservations on a separate court; days_ago < 0 is the future."""
+    with session_factory() as session:
+        user = session.scalar(select(User).where(User.email == email))
+        court = Court(name="Other court", sport_type=SportType.TENNIS, indoor=False)
+        session.add(court)
+        session.flush()
+        base = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) - timedelta(days=days_ago)
+        for i in range(count):
+            start = base + timedelta(hours=i)
+            session.add(
+                Reservation(
+                    court_id=court.id, user_id=user.id, start_time=start, end_time=start + timedelta(hours=1), status=status
+                )
+            )
+        session.commit()
+
+
+def test_offer_cannot_be_accepted_over_the_active_reservation_limit(session_factory: sessionmaker) -> None:
+    """Accepting is booking — the per-player active limit applies, and the
+    refused offer stays open so the player can free a slot and retry."""
+    client = TestClient(app)
+    court_id = seed_court(session_factory)
+    token = register_and_login(client, "jana@example.com")
+    entry_id = _offer(session_factory, court_id, "jana@example.com")
+    _add_reservations(session_factory, "jana@example.com", rules.max_active_reservations(UserRole.PLAYER), ReservationStatus.CONFIRMED)
+
+    response = client.post(f"/waitlist/{entry_id}/accept", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 409
+    assert "active reservations" in response.json()["detail"]
+    with session_factory() as session:
+        assert session.get(WaitlistEntry, uuid.UUID(entry_id)).status == WaitlistStatus.OFFERED
+
+
+def test_offer_cannot_be_accepted_during_a_no_show_penalty(session_factory: sessionmaker) -> None:
+    client = TestClient(app)
+    court_id = seed_court(session_factory)
+    token = register_and_login(client, "karel@example.com")
+    entry_id = _offer(session_factory, court_id, "karel@example.com")
+    _add_reservations(session_factory, "karel@example.com", rules.NO_SHOW_LIMIT, ReservationStatus.NO_SHOW, days_ago=2)
+
+    response = client.post(f"/waitlist/{entry_id}/accept", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 409
+    assert "missed" in response.json()["detail"]
