@@ -36,13 +36,8 @@ it's slow if it's actually relevant:
 ```bash
 cd backend && uv run pytest -v
 ```
-This **wipes the dev database** (`conftest.py` drops+recreates the schema).
-Reseed afterward if you want to browse/demo the app:
-```bash
-uv run python -m reservations.seed
-```
-Don't run this while `fastapi dev` is also up against the same DB (deadlock
-risk) — stop the dev server first.
+The suite runs in its own `<db>_test` database (`tests/conftest.py`), so it
+leaves the seeded dev data alone and can run while `fastapi dev` is up.
 
 ## Step 3 — Fix failures
 

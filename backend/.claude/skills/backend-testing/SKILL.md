@@ -17,9 +17,9 @@ description: Conventions for writing and running backend tests on Courtly — re
   rather than being appended to an unrelated one.
 - `conftest.py`'s session-scoped `engine` fixture drops and recreates the
   whole schema once per test session; a per-test fixture truncates tables
-  between tests. This means tests don't need to clean up after themselves,
-  but it also means **there is no separate test database** — running the
-  suite wipes the dev database (see root `CLAUDE.md`/`finish-task`).
+  between tests. This means tests don't need to clean up after themselves.
+  All of this happens in a separate `<db>_test` database (or
+  `TEST_DATABASE_URL`), never in the seeded dev database.
 
 ## What needs a test
 
@@ -49,10 +49,8 @@ existing test file rather than spawning a new one.
 ```bash
 cd backend && uv run pytest -v
 ```
-Wipes the dev DB — reseed after if you want to browse the app
-(`uv run python -m reservations.seed`). Don't run this while `fastapi dev`
-is also up against the same DB (deadlock risk from the worker's tick
-colliding with the test fixture's `TRUNCATE`).
+Runs in the separate test database, so the dev data and a running
+`fastapi dev` are unaffected.
 
 ## What this project doesn't have (don't pretend otherwise)
 

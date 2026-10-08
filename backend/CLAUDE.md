@@ -12,7 +12,7 @@ here, extend it if something there goes stale.
 docker compose up -d --wait db          # from repo root — Postgres 16 on :5432
 cd backend
 uv sync                                 # install deps into backend/.venv
-uv run pytest -v                        # 269+ tests, real Postgres — see "Tests wipe the dev DB" below
+uv run pytest -v                        # 300+ tests, real Postgres, own `<db>_test` database — see "Tests" below
 uv run python -m reservations.seed      # idempotent demo data
 uv run fastapi dev src/reservations/main.py   # dev server w/ reload, :8000, Swagger at /docs
 curl localhost:8000/health
@@ -170,15 +170,15 @@ doesn't know how to parse it yet.
   with the id of the verification example (`VE-xx.y`) it runs. Change
   behaviour those examples describe → change the specification and the VE
   together, not one of them.
-- `conftest.py`'s session-scoped `engine` fixture runs `drop_schema` +
-  `create_schema` against `DATABASE_URL` — **there is no separate test
-  database**. Running `uv run pytest` wipes whatever is in the dev database.
-  Reseed afterward (`uv run python -m reservations.seed`) if you want to
-  browse or demo the app.
-- Don't run `uv run pytest` while `fastapi dev` is also running against the
-  same database — the worker's periodic tick and pytest's per-test
-  `TRUNCATE ... CASCADE` can deadlock on Postgres table locks, failing
-  unrelated tests non-deterministically. Stop the dev server first.
+- Tests run in **their own database**. `conftest.py` repoints
+  `settings.database_url` to `TEST_DATABASE_URL`, or else to the dev
+  database's name plus `_test` (`reservations_test` by default), and
+  creates that database on first run. The session-scoped `engine` fixture
+  then runs `drop_schema` + `create_schema` there, and it refuses to run
+  against a database whose name doesn't end in `_test`. As a result,
+  `uv run pytest` leaves the seeded dev database alone and can run while
+  `fastapi dev` is up. Keep both properties: never point the suite back at
+  `DATABASE_URL` itself.
 - When you add or change a model/schema, run the `schema-change-sweep`
   skill — nothing in this stack (no Alembic, no generated types) will catch
   a missed call site for you.

@@ -26,11 +26,11 @@ curl localhost:8000/health       # -> {"status":"ok"}
 uv run pytest -v   # runs against the real PostgreSQL started above
 ```
 
-The test suite drops and recreates the whole schema against `DATABASE_URL`
-once per run (see `tests/conftest.py`) — it uses the same database as local
-dev, not a separate test DB. Running the tests wipes any seeded courts;
-re-run `uv run python -m reservations.seed` afterwards if the frontend needs
-data again.
+The test suite uses its own database: `reservations_test`, or the name in
+`DATABASE_URL` plus `_test`, or `TEST_DATABASE_URL` if set. It creates that
+database on first run and drops and recreates its schema once per run (see
+`tests/conftest.py`). Your seeded dev data is not touched, and the tests can
+run while the dev server is up.
 
 ## Configuration (`.env`)
 
