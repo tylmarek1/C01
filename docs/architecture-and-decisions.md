@@ -859,6 +859,10 @@ above stay as they were written, because they record the state on
   - The time zone is still the single global `VENUE_TZ`. A per-venue zone would touch every time-of-day check (pitfall #1), and no venue outside Prague exists.
   - The frontend has no UI for venues yet.
 
+#### Amendment (2026-10-08): the UI exists
+
+The last consequence above ("no UI for venues yet") no longer holds. PR #88 added the venue desk's Venues tab: details, opening hours, and manager assignment. The Courts tab now shows a venue manager only their own venues' courts. The decision itself is unchanged.
+
 ### ADR-009: Opening hours and court rates are data in the database
 
 - **Status:** accepted (2026-10-08). Specification v0.3 (BR-04).
