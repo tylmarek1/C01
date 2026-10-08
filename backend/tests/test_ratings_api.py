@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id
 
 from reservations.main import app
 from reservations.models import (
@@ -35,7 +36,7 @@ def seed_completed_reservation(
     sport: SportType = SportType.TENNIS,
 ) -> str:
     with session_factory() as session:
-        court = Court(name=court_name, sport_type=sport, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name=court_name, sport_type=sport, indoor=False)
         session.add(court)
         session.flush()
         reservation = Reservation(
@@ -201,7 +202,7 @@ def test_cannot_report_before_the_reservation_is_completed(
     booker_headers = {"Authorization": f"Bearer {booker_token}"}
 
     with session_factory() as session:
-        court = Court(name="Not Yet Court", sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name="Not Yet Court", sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.flush()
         reservation = Reservation(

@@ -82,6 +82,6 @@ def session_factory(engine: Engine) -> Iterator[sessionmaker]:
             text(
                 "TRUNCATE reservation_events, notifications, waitlist_entries, facility_blocks, "
                 "reviews, review_votes, favorites, reservation_guests, join_requests, user_achievements, "
-                "reservations, reservation_series, courts, users CASCADE"
+                "reservations, reservation_series, courts, venues, users CASCADE"
             )
         )

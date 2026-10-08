@@ -1,9 +1,9 @@
-import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id
 
 from reservations import worker
 from reservations.models import (
@@ -35,7 +35,7 @@ def make_user(session, email: str) -> User:
 
 
 def make_court(session, name: str) -> Court:
-    court = Court(name=name, sport_type=SportType.TENNIS, indoor=False)
+    court = Court(venue_id=default_venue_id(session), name=name, sport_type=SportType.TENNIS, indoor=False)
     session.add(court)
     session.flush()
     return court

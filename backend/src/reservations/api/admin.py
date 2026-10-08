@@ -19,6 +19,7 @@ from reservations.models import (
     ReservationStatus,
     User,
     UserRole,
+    VenueManager,
 )
 from reservations.schemas.admin import (
     AdminStats,
@@ -31,6 +32,11 @@ from reservations.schemas.admin import (
 from reservations.schemas.court import CourtOut
 from reservations.schemas.reservation import CLOSING_HOUR, OPENING_HOUR, VENUE_TZ
 from reservations.schemas.stats import CourtUtilization, CourtUtilizationCell
+from reservations.venue_access import (
+    managed_courts_filter,
+    managed_venue_ids,
+    require_court_manager,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -46,12 +52,19 @@ _REAL_BOOKING_STATUSES = (
 def get_stats(
     days: int = Query(default=30, ge=1, le=180),
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> AdminStats:
-    total_reservations = db.scalar(select(func.count()).select_from(Reservation)) or 0
+    # Reservation figures cover only the venues this manager manages (all of
+    # them for an admin); the user count stays global (ADR-008).
+    in_scope = managed_courts_filter(db, manager, Reservation.court_id)
+    total_reservations = (
+        db.scalar(select(func.count()).select_from(Reservation).where(in_scope)) or 0
+    )
 
     status_rows = db.execute(
-        select(Reservation.status, func.count()).group_by(Reservation.status)
+        select(Reservation.status, func.count())
+        .where(in_scope)
+        .group_by(Reservation.status)
     ).all()
     status_breakdown = {row[0].value: row[1] for row in status_rows}
 
@@ -68,17 +81,26 @@ def get_stats(
         db.scalar(
             select(func.count())
             .select_from(Reservation)
+            .where(in_scope)
             .where(Reservation.created_at >= since)
         )
         or 0
     )
 
     total_users = db.scalar(select(func.count()).select_from(User)) or 0
-    total_courts = db.scalar(select(func.count()).select_from(Court)) or 0
+    total_courts = (
+        db.scalar(
+            select(func.count())
+            .select_from(Court)
+            .where(managed_courts_filter(db, manager, Court.id))
+        )
+        or 0
+    )
 
     top_rows = (
         db.execute(
             select(Reservation.court_id, func.count())
+            .where(in_scope)
             .where(Reservation.status.in_(_REAL_BOOKING_STATUSES))
             .group_by(Reservation.court_id)
             .order_by(func.count().desc())
@@ -100,6 +122,7 @@ def get_stats(
     )
     hour_rows = db.execute(
         select(hour_expr, func.count())
+        .where(in_scope)
         .where(Reservation.status.in_(_REAL_BOOKING_STATUSES))
         .group_by(hour_expr)
         .order_by(hour_expr)
@@ -184,7 +207,27 @@ def update_user_role(
     ):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required")
 
+    assignments = list(
+        db.scalars(select(VenueManager).where(VenueManager.user_id == user.id))
+    )
+    own_venues = managed_venue_ids(db, manager)
+    if (
+        payload.role != UserRole.VENUE_MANAGER
+        and own_venues is not None
+        and any(a.venue_id not in own_venues for a in assignments)
+    ):
+        # Demoting drops the assignments below; a manager may only do that
+        # to staff of their own venues, never to another venue's (ADR-008).
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "That manager also manages a venue you don't"
+        )
+
     user.role = payload.role
+    if payload.role != UserRole.VENUE_MANAGER:
+        # A demoted manager keeps no venue assignment to silently regain
+        # if promoted again later — an admin assigns venues afresh.
+        for assignment in assignments:
+            db.delete(assignment)
     db.commit()
     db.refresh(user)
 
@@ -223,12 +266,16 @@ def update_user_role(
 def export_reservations_csv(
     status: ReservationStatus | None = Query(default=None),
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> StreamingResponse:
     # Matches whatever the manager currently has filtered in the UI (see
     # ReservationsTab) rather than always exporting every status — an
     # export used to silently ignore the on-screen filter entirely.
-    stmt = select(Reservation).order_by(Reservation.start_time.desc())
+    stmt = (
+        select(Reservation)
+        .where(managed_courts_filter(db, manager, Reservation.court_id))
+        .order_by(Reservation.start_time.desc())
+    )
     if status is not None:
         stmt = stmt.where(Reservation.status == status)
     buffer = io.StringIO()
@@ -273,13 +320,14 @@ def get_court_utilization(
     court_id: uuid.UUID,
     days: int = Query(default=30, ge=1, le=180),
     db: Session = Depends(get_db),
-    _manager: User = Depends(get_current_manager),
+    manager: User = Depends(get_current_manager),
 ) -> CourtUtilization:
     """How full each weekday/hour slot has been over the trailing window —
     feeds an admin heatmap so managers can spot dead hours and busy hours."""
     court = db.get(Court, court_id)
     if court is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Court not found")
+    require_court_manager(db, manager, court)
 
     now = datetime.now(timezone.utc)
     since = now - timedelta(days=days)

@@ -1,11 +1,12 @@
 import enum
 import uuid
 
-from sqlalchemy import Enum, Numeric, String
+from sqlalchemy import Enum, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from reservations.db import Base
+from reservations.models.venue import Venue
 
 
 class SportType(enum.StrEnum):
@@ -30,6 +31,7 @@ class Court(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(100), unique=True)
+    venue_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("venues.id"), index=True)
     sport_type: Mapped[SportType] = mapped_column(Enum(SportType, name="sport_type"))
     indoor: Mapped[bool] = mapped_column(default=False)
     active: Mapped[bool] = mapped_column(default=True)
@@ -45,3 +47,5 @@ class Court(Base):
     # Informational only — there's no payment integration, this just powers
     # the guest cost-split calculator. Null means "price not published".
     price_per_hour: Mapped[float | None] = mapped_column(Numeric(8, 2), default=None)
+
+    venue: Mapped[Venue] = relationship()

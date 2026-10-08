@@ -25,7 +25,7 @@ itself — see "Pending / open gates"). **C03: engineering complete** — Part A
 |---|---|
 | C01 | **DONE** — all 15 `docs/course/C01.md` §10 items evidence-backed complete |
 | C02 | Baseline v0.1 and the "approval process" change (v0.2) are both engineering-complete and evidenced; **team approval of both specification baselines is the one item still open** |
-| Specification baseline | v0.2 — `docs/specification.md` (v0.1 frozen in `docs/specification-v0.1.md`) |
+| Specification baseline | v0.3 — `docs/specification.md` (2026-10-08: venue-scoped managers, ADR-008). The C02 baselines are frozen: v0.1 in `docs/specification-v0.1.md`, v0.2 in `docs/specification-v0.2.md` |
 | C03 | **Engineering complete** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Commit/tag: implementation merged to `main` in PR #71 (`da3158d`), tag `c03-architecture`. Follow-up 2026-10-08 (PR #76): waitlist accept, the one path that bypassed the Lifecycle, now goes through it (amendment at the end of `docs/architecture-and-decisions.md`). No C03 item open |
 
 ## Completed gates
@@ -70,9 +70,11 @@ to close a spec↔test gap);
   own DoD requires the team to explicitly approve baseline v0.1 (see its
   "Definice hotového" list), and `docs/specification.md` §11 states v0.1's
   approval is a prerequisite for v0.2's. The checkboxes in
-  `docs/specification-v0.1.md` §11 and `docs/specification.md` §11 are
-  unticked for all four team members, and the approval date is blank in
-  both. **This is the one gate a Claude session cannot close** — it
+  `docs/specification-v0.1.md` §11 and `docs/specification-v0.2.md` §11
+  (v0.2 frozen there on 2026-10-08 when v0.3 started) are unticked for all
+  four team members, and the approval date is blank in both. v0.3's own
+  approval (`docs/specification.md` §11, the venue-scope change) is open
+  too. **This is the one gate a Claude session cannot close** — it
   requires the actual team to review and tick it.
   `docs/evidence-and-evolution.md`'s own "remaining assumptions/unknowns"
   section already names this same gap.

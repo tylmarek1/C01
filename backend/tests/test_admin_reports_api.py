@@ -3,9 +3,10 @@ from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id, make_venue_manager
 
 from reservations.main import app
-from reservations.models import Court, SportType, User, UserRole
+from reservations.models import Court, SportType, User
 
 PRAGUE = ZoneInfo("Europe/Prague")
 
@@ -31,13 +32,13 @@ def register_and_login(client: TestClient, email: str) -> str:
 def promote_to_manager(session_factory: sessionmaker, email: str) -> None:
     with session_factory() as session:
         user = session.query(User).filter_by(email=email).one()
-        user.role = UserRole.VENUE_MANAGER
+        make_venue_manager(session, user)
         session.commit()
 
 
 def seed_court(session_factory: sessionmaker, name: str = "Report Court") -> str:
     with session_factory() as session:
-        court = Court(name=name, sport_type=SportType.TENNIS, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name=name, sport_type=SportType.TENNIS, indoor=False)
         session.add(court)
         session.commit()
         return str(court.id)

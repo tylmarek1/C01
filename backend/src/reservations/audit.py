@@ -25,12 +25,17 @@ from reservations.models import (
     FacilityBlock,
     Reservation,
     User,
+    Venue,
+    VenueManager,
 )
 from reservations.observability import current_context
 
 AUDITED_FIELDS: dict[type, tuple[str, ...]] = {
+    Venue: ("name", "address", "description", "active"),
+    VenueManager: ("venue_id", "user_id"),
     Court: (
         "name",
+        "venue_id",
         "sport_type",
         "indoor",
         "active",

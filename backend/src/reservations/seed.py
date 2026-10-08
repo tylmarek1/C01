@@ -26,10 +26,16 @@ from reservations.models import (
     SportType,
     User,
     UserRole,
+    Venue,
+    VenueManager,
 )
 from reservations.security import hash_password
 
 VENUE_TZ = ZoneInfo("Europe/Prague")
+
+# Same name the 0003 migration gives the venue it backfills, so seeding a
+# migrated database reuses that venue instead of adding a second one.
+DEMO_VENUE_NAME = "Courtly Sports Club"
 
 DEMO_COURTS = [
     Court(
@@ -125,11 +131,22 @@ def main() -> None:
     session_factory = make_session_factory(engine)
 
     with session_factory() as session:
+        venue = session.query(Venue).filter_by(name=DEMO_VENUE_NAME).first()
+        if venue is None:
+            venue = Venue(
+                name=DEMO_VENUE_NAME,
+                address="Sportovní 12, Praha",
+                description="Indoor and outdoor courts for tennis, volleyball and badminton.",
+            )
+            session.add(venue)
+            session.flush()
+
         courts_by_name: dict[str, Court] = {}
         created_courts = 0
         for court in DEMO_COURTS:
             existing = session.query(Court).filter_by(name=court.name).first()
             if existing is None:
+                court.venue_id = venue.id
                 session.add(court)
                 session.flush()
                 courts_by_name[court.name] = court
@@ -158,6 +175,16 @@ def main() -> None:
             else:
                 users_by_email[account["email"]] = existing_user
         session.commit()
+
+        venue_manager = users_by_email[DEMO_VENUE_MANAGER["email"]]
+        if (
+            session.query(VenueManager)
+            .filter_by(venue_id=venue.id, user_id=venue_manager.id)
+            .first()
+            is None
+        ):
+            session.add(VenueManager(venue_id=venue.id, user_id=venue_manager.id))
+            session.commit()
 
         player = users_by_email[DEMO_PLAYER["email"]]
         teammate = users_by_email[DEMO_TEAMMATE["email"]]

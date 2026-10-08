@@ -1,21 +1,15 @@
-# Specification Baseline v0.3 — Courtly (approval process, venue-scoped managers)
+# Specification Baseline v0.2 — Courtly (C02, approval process)
 
 | | |
 |---|---|
 | **Status** | Prepared for team approval — approval is recorded in §11 and is **not yet given** |
-| **Version** | v0.3 = v0.2 (`specification-v0.2.md`, frozen; = v0.1 + change C02 "approval process") + venue-scoped managers (2026-10-08) |
+| **Version** | v0.2 = baseline v0.1 (`specification-v0.1.md`, frozen) + change C02 "approval process" |
+| **Successor** | `specification.md` (v0.3, venue-scoped managers). This file is the frozen v0.2 baseline — the one C02's team approval refers to — and is not edited further. |
 | **Scope** | OP-01 Create, OP-02 Check Availability, OP-03 Confirm, OP-04 Cancel (v0.1) + OP-05 Approve, OP-06 Reject (new) |
 | **Reasoning behind the change** | `change-c02-impact.md` — written *before* this file; its §4 is the consolidated "Dopad změny C02" block |
 | **Ground truth for "what runs"** | `backend/src/reservations/` — this document is the *requirement* |
 
-Every part below is marked **Unchanged**, **Changed** or **New** relative to v0.1, so what did *not* move is as explicit as what did. Unchanged parts are repeated in full so this file can be read on its own. What v0.3 changed on top of v0.2 is marked **(v0.3)** and listed here:
-
-| v0.3 change | Where | Why |
-|---|---|---|
-| Courts belong to a **Venue**; a Venue Manager is assigned to venues by an admin and acts only on reservations and courts of those venues. An **Admin** acts on every venue. | §1 vocabulary, BR-10, OP-03…OP-06, D-21 | One operator ran several venues' bookings with no boundary between them (ADR-008) |
-| On submission, only the court's venue managers and the admins are notified | OP-03 postcondition | Follows from the above |
-| New verification examples VE-03.8c, VE-05.9, VE-05.10, VE-06.6 | OP-03, OP-05, OP-06 | Executable form of the change |
-| Existing courts and managers were all put into one venue by the migration | — | So no existing reservation's behaviour changed by the upgrade; VE-01…VE-08 are unchanged and still green |
+Every part below is marked **Unchanged**, **Changed** or **New** relative to v0.1, so what did *not* move is as explicit as what did. Unchanged parts are repeated in full so this file can be read on its own.
 
 ## 1. Scope, conventions, vocabulary — *Changed (two terms added)*
 
@@ -27,9 +21,7 @@ Every part below is marked **Unchanged**, **Changed** or **New** relative to v0.
 | **Approval-required Resource** *(new)* | A court with `requires_approval = true`. A Venue Manager sets the flag through the existing court administration (not one of the specified operations). |
 | **Reservation** | One court, one user, one interval `[start, end)`, and a state. |
 | **User / Player** | An authenticated account with role `PLAYER`. |
-| **Venue** *(v0.3)* | A facility that owns courts. Every court belongs to exactly one venue. |
-| **Venue Manager** | An authenticated account with role `VENUE_MANAGER`, **assigned by an admin to one or more venues (v0.3)**. May act on reservations of **its venues' courts** for OP-03/OP-04 and is, for those courts, the role that may perform OP-05/OP-06 (the *approver*). Outside its venues it is just a player. |
-| **Admin** *(v0.3)* | An account with role `ADMIN`: a Venue Manager of every venue. |
+| **Venue Manager** | An authenticated account with role `VENUE_MANAGER`. May act on any reservation for OP-03/OP-04 and is the **only** role that may perform OP-05/OP-06 (the *approver*). |
 | **now** | The application server's clock, as a UTC instant. Comparisons are between *instants*; wall-clock text is only used for BR-04. |
 | **Blocking state** | A state in which a reservation occupies its court: `PENDING`, **`PENDING_APPROVAL` (new)**, `CONFIRMED`, `CHECKED_IN` (BR-02). |
 | **Rejected** *(request outcome)* | The request has no effect: nothing is created, no state changes, no notification is sent. (Not to be confused with the *state* `REJECTED`.) |
@@ -39,7 +31,7 @@ Every part below is marked **Unchanged**, **Changed** or **New** relative to v0.
 | Category | HTTP | Used when |
 |---|---|---|
 | `UNAUTHENTICATED` | 401 | No valid bearer token |
-| `FORBIDDEN` | 403 | Caller lacks the required standing: not owner nor a manager of the court's venue (OP-03, OP-04), not a manager of the court's venue (OP-05, OP-06) |
+| `FORBIDDEN` | 403 | Caller lacks the required standing: not owner/manager (OP-03, OP-04), not a Venue Manager (OP-05, OP-06) |
 | `NOT_FOUND` | 404 | Reservation, or court, does not exist — an *inactive* court is reported exactly like an unknown one |
 | `INVALID_INPUT` | 422 | Malformed request, or the interval breaks BR-01 / BR-04 |
 | `CONFLICT` | 409 | Well-formed request, but a business rule or the reservation's current state forbids it |
@@ -111,8 +103,8 @@ The only legal transitions are those below and in the diagram of §5.2; any othe
 | `CONFIRMED` | `CHECKED_IN` / `NO_SHOW` | outside baseline (§9) | — |
 | `CHECKED_IN` | `COMPLETED` / `CANCELLED` | outside baseline (§9; `CANCELLED` only by a facility block) | — |
 
-### BR-10 — Authorization — *Changed (Approve/Reject added; venue scope, v0.3)*
-Create, Confirm, Cancel require authentication; Confirm and Cancel may be performed by the owner or a Venue Manager **of the court's venue (v0.3)**. **Approve and Reject require being a Venue Manager of the court's venue (or an Admin) — the owner as a player cannot decide on their own request, and neither can a manager of a different venue (v0.3).** Check Availability requires no authentication.
+### BR-10 — Authorization — *Changed (Approve/Reject added)*
+Create, Confirm, Cancel require authentication; Confirm and Cancel may be performed by the owner or any Venue Manager. **Approve and Reject require the Venue Manager role — the owner as a player cannot decide on their own request.** Check Availability requires no authentication.
 
 ### BR-11 — Approval invariant — *New*
 For an approval-required Resource, a reservation reaches `CONFIRMED` **only** through Approve (OP-05). No other path — Confirm, waitlist acceptance, rescheduling, a manager confirming on a player's behalf — may produce `CONFIRMED` on such a court.
@@ -166,17 +158,17 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 ### OP-03 — Confirm Reservation — *Changed*
 
 **Goal / user value:** The player's held slot becomes the accepted allocation of the court — **immediately on a normal court; as a request for a manager's decision on an approval-required court.**
-**Trigger:** The owner (or a Venue Manager of the court's venue, v0.3) requests confirmation of reservation X. Interface: `POST /reservations/{id}/confirm` (unchanged).
+**Trigger:** The owner (or a Venue Manager) requests confirmation of reservation X. Interface: `POST /reservations/{id}/confirm` (unchanged).
 
 **Observable requirements**
-- **REQ-04** *(changed)* — The system shall accept a Confirm only for a `PENDING` reservation whose hold is not expired and whose court is active, from its owner or a Venue Manager of the court's venue (v0.3). The outcome depends on the court: on a court that does **not** require approval the reservation becomes `CONFIRMED`; on an **approval-required** court it becomes `PENDING_APPROVAL` and receives an approval deadline (BR-12) — it does not become `CONFIRMED`. In both cases the reservation keeps blocking its court, so BR-02 remains true.
+- **REQ-04** *(changed)* — The system shall accept a Confirm only for a `PENDING` reservation whose hold is not expired and whose court is active, from its owner or a Venue Manager. The outcome depends on the court: on a court that does **not** require approval the reservation becomes `CONFIRMED`; on an **approval-required** court it becomes `PENDING_APPROVAL` and receives an approval deadline (BR-12) — it does not become `CONFIRMED`. In both cases the reservation keeps blocking its court, so BR-02 remains true.
 - **REQ-05** — *Unchanged.* An unconfirmed `PENDING` hold whose deadline passed shall become `EXPIRED` and stop blocking within one background cycle; until then it cannot be confirmed.
 - **REQ-07** *(changed: list extended)* — Concurrent state-changing requests on the *same* reservation (Confirm, Cancel, **Approve, Reject**, hold expiry, **approval expiry**) shall take effect one after the other in some order; the later one is evaluated against the earlier one's result; a terminal state is never overwritten.
 
 **Preconditions:** reservation exists; `state = PENDING`; `hold_deadline ≥ now`; court active; caller owner or manager.
 **Success postcondition:**
 - *normal court:* `CONFIRMED`; hold cleared; audit event `CONFIRMED`; owner notified "Reservation confirmed" — exactly as v0.1;
-- ***approval-required court (new):*** `PENDING_APPROVAL`; hold cleared; `approval_deadline` set (BR-12); audit event `SUBMITTED`; owner notified "Approval requested"; **every Venue Manager of the court's venue and every Admin notified (v0.3)** "Approval needed". Still blocking.
+- ***approval-required court (new):*** `PENDING_APPROVAL`; hold cleared; `approval_deadline` set (BR-12); audit event `SUBMITTED`; owner notified "Approval requested"; **every Venue Manager notified** "Approval needed". Still blocking.
 **State change:** `PENDING → CONFIRMED` *or* `PENDING → PENDING_APPROVAL`.
 **Referenced rules:** BR-02, 06, 09, 10, **11, 12**.
 
@@ -189,7 +181,6 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 |---|---|---|
 | VE-03.8 | approval-required court; `PENDING` hold; owner confirms | `PENDING_APPROVAL` (**not** `CONFIRMED`); hold cleared; deadline ≈ now + 24 h; slot still unavailable; every manager has a notification; owner has one |
 | VE-03.8b | the same on a court that does **not** require approval | `CONFIRMED` immediately, exactly as in v0.1 |
-| VE-03.8c *(v0.3)* | as VE-03.8, with a manager of the court's venue, a manager of another venue, and an admin | the venue's manager and the admin are notified; the other venue's manager is not |
 | VE-03.9 | same as VE-03.8, but the manager confirms on the player's behalf | still `PENDING_APPROVAL` (manager Confirm is not an approval) |
 | VE-03.10 | the owner confirms their own `PENDING_APPROVAL` (or `REJECTED`) reservation again | `CONFLICT`, state unchanged — Confirm is not an approval |
 
@@ -198,7 +189,7 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 ### OP-04 — Cancel Reservation — *Changed (`PENDING_APPROVAL` cancellable)*
 
 **Goal / user value:** An eligible reservation can be withdrawn and stops blocking the court.
-**Trigger:** The owner (or a Venue Manager of the court's venue, v0.3) requests cancellation of X. Interface: `POST /reservations/{id}/cancel`.
+**Trigger:** The owner (or a Venue Manager) requests cancellation of X. Interface: `POST /reservations/{id}/cancel`.
 
 **Observable requirement**
 - **REQ-06** *(changed)* — The system shall cancel a reservation iff BR-03 holds (state `PENDING`, **`PENDING_APPROVAL`** or `CONFIRMED`; `now < start`; caller owner or manager); the cancelled reservation no longer blocks and is retained as `CANCELLED`.
@@ -219,7 +210,7 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 **Trigger:** A Venue Manager requests approval of reservation X. Interface: `POST /reservations/{id}/approve`.
 
 **Observable requirements**
-- **REQ-08** — The system shall let a Venue Manager **of the court's venue (v0.3)** approve a reservation only if it is `PENDING_APPROVAL`, its approval deadline has not passed (BR-12) and its court is active; the reservation then becomes `CONFIRMED`. It keeps blocking its court, so BR-02 remains true. Any other caller is `FORBIDDEN`.
+- **REQ-08** — The system shall let a Venue Manager approve a reservation only if it is `PENDING_APPROVAL`, its approval deadline has not passed (BR-12) and its court is active; the reservation then becomes `CONFIRMED`. It keeps blocking its court, so BR-02 remains true. Any other caller is `FORBIDDEN`.
 - **REQ-10** — An undecided `PENDING_APPROVAL` request whose deadline passed shall become `EXPIRED` and stop blocking within one background cycle; until then it can be neither approved nor rejected. The player is notified.
 - **REQ-11** — For an approval-required Resource no reservation shall reach `CONFIRMED` except through this operation (BR-11): Confirm, waitlist acceptance and manager-on-behalf Confirm yield `PENDING_APPROVAL`; a `CONFIRMED` reservation on such a court cannot be rescheduled.
 
@@ -229,7 +220,7 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 
 **Main success scenario:** 1. Manager opens the pending requests and asks to approve X. 2. System checks the Venue Manager role. 3. System loads X and serialises against other changes to X. 4. System checks state, deadline, court active. 5. System sets `CONFIRMED`, clears the deadline, records event and notification. 6. System returns `CONFIRMED`.
 
-**Alternative / failure outcomes** (state unchanged): no token `UNAUTHENTICATED`; caller not a Venue Manager of the court's venue — including the reservation's owner, and a manager of another venue (v0.3) — `FORBIDDEN`; unknown `NOT_FOUND`; not `PENDING_APPROVAL` (already decided, cancelled, a mere `PENDING` hold, …) `CONFLICT`; approval deadline passed `CONFLICT` (the reservation stays `PENDING_APPROVAL` until the system expires it, then `EXPIRED`); court deactivated `CONFLICT`. **Approve races Cancel/Reject/expiry:** one order wins, the other is `CONFLICT` (Approve‖Reject: exactly one succeeds; Approve‖Cancel: final state `CANCELLED`, as for Confirm‖Cancel).
+**Alternative / failure outcomes** (state unchanged): no token `UNAUTHENTICATED`; caller not a Venue Manager — including the reservation's owner — `FORBIDDEN`; unknown `NOT_FOUND`; not `PENDING_APPROVAL` (already decided, cancelled, a mere `PENDING` hold, …) `CONFLICT`; approval deadline passed `CONFLICT` (the reservation stays `PENDING_APPROVAL` until the system expires it, then `EXPIRED`); court deactivated `CONFLICT`. **Approve races Cancel/Reject/expiry:** one order wins, the other is `CONFLICT` (Approve‖Reject: exactly one succeeds; Approve‖Cancel: final state `CANCELLED`, as for Confirm‖Cancel).
 
 **Verification examples**
 | ID | Setup → action | Expected |
@@ -244,8 +235,6 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 | VE-05.7 | approval-required court's `CONFIRMED` reservation cannot be rescheduled; a normal court's can; a `PENDING` hold on it can | `CONFLICT` / success / success (REQ-11) |
 | VE-05.7b | a reschedule sent while a Confirm/Approve of the same reservation is in flight | it waits for that decision and is evaluated against its result (a request submitted meanwhile can no longer be moved) |
 | VE-05.8 | approve and the owner's cancel concurrently, repeated 20× | the cancel always succeeds and the final state is always `CANCELLED` (same rule as Confirm‖Cancel) |
-| VE-05.9 *(v0.3)* | a manager of another venue approves | `FORBIDDEN`; still `PENDING_APPROVAL` |
-| VE-05.10 *(v0.3)* | a manager of another venue approves **their own** request at this venue | `FORBIDDEN` — owning the request doesn't make them an approver here |
 
 **Rationale:** The approver's explicit decision is the whole point of the change; requiring the Venue Manager role and a deadline keeps a request from blocking a slot indefinitely.
 **Assumption / TBD:** A-05 (24 h), A-06 (no separation of duties).
@@ -256,7 +245,7 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 **Trigger:** A Venue Manager requests rejection of X. Interface: `POST /reservations/{id}/reject`.
 
 **Observable requirement**
-- **REQ-09** — The system shall let a Venue Manager **of the court's venue (v0.3)** reject a reservation only if it is `PENDING_APPROVAL` and its approval deadline has not passed; the reservation then becomes `REJECTED` (terminal), no longer blocks its court, and its owner is notified. Any other caller is `FORBIDDEN`.
+- **REQ-09** — The system shall let a Venue Manager reject a reservation only if it is `PENDING_APPROVAL` and its approval deadline has not passed; the reservation then becomes `REJECTED` (terminal), no longer blocks its court, and its owner is notified. Any other caller is `FORBIDDEN`.
 
 **Preconditions:** X exists; `state = PENDING_APPROVAL`; `approval_deadline ≥ now`; caller has the Venue Manager role.
 **Success postcondition:** `state = REJECTED`; the interval is available again (OP-02); audit event `REJECTED` (manager as actor); owner notified "Request rejected"; a waitlisted player for exactly that slot is offered it (§9).
@@ -274,7 +263,6 @@ When a reservation enters `PENDING_APPROVAL` it gets `approval_deadline = min(su
 | VE-06.3 | reject a `PENDING` / `CONFIRMED` / already `REJECTED` reservation | `CONFLICT`, unchanged |
 | VE-06.4 | deadline in the past → reject | `CONFLICT`, still `PENDING_APPROVAL` |
 | VE-06.5 | after `REJECTED`, the same player creates the same slot again | succeeds (released) |
-| VE-06.6 *(v0.3)* | a manager of another venue rejects | `FORBIDDEN`; unchanged |
 
 **Rationale:** Reject is a goal of its own, not a side effect: the player must be told, and the slot must reach the waitlist. **Assumption / TBD:** a free-text reason for the player is *not* specified (future).
 
@@ -534,7 +522,6 @@ Each accepted requirement went through the nine questions. Feasibility and consi
 | D-18 | Notifications are in-app: managers on submission; the player on approve/reject/expiry | E-mail | U-01 |
 | D-19 | Switching the flag is grandfathered (BR-11) | Re-approve everything | Existing confirmed bookings were valid when made |
 | D-20 | Approve does not re-check overlap | Re-check | It cannot fail: the request already blocks (D-13) |
-| D-21 *(v0.3)* | The approver (and Confirm/Cancel on someone else's behalf) is scoped to the court's **venue**; an Admin covers every venue. D-14 still holds *within* a venue | Keep any manager approving anywhere | D-14's premise "single small venue" no longer holds once courts belong to several venues (ADR-008) |
 
 ### Assumptions (A-01…A-04 as in v0.1)
 | ID | Assumption | Note |
@@ -554,10 +541,10 @@ Each accepted requirement went through the nine questions. Feasibility and consi
 As in v0.1: check-in/completion/no-show; facility blocks (they also cancel `PENDING_APPROVAL` requests they overlap); waitlist (offered after a Cancel, Reject or either expiry; **on an approval-required court an accepted offer becomes `PENDING_APPROVAL`, REQ-11**); rescheduling (**refused for a `CONFIRMED` reservation on an approval-required court, REQ-11**); recurring series (each occurrence is confirmed individually, so each is approved individually); guests, join requests, cost split; reviews, favourites, achievements; calendar export; admin reports; the day-view availability read model (G-01); the UI and i18n. The UI change for C02 (badges, the manager's approval queue, the court flag) is implemented but not specified here.
 
 ## 10. Verification traceability
-Every `VE-*` is executable: VE-01…VE-04 in `backend/tests/test_spec_baseline.py` (v0.1, still green under v0.2), VE-01.10, VE-02.7, VE-03.8/03.9, VE-04.8 and VE-05…VE-08 in `backend/tests/test_approval_api.py`, including the v0.3 examples VE-03.8c, VE-05.9, VE-05.10 and VE-06.6. Tests carry the VE id as the start of their name. Two further tests in `test_approval_api.py` are guards rather than examples: the exclusion constraint must block exactly the states in `ACTIVE_RESERVATION_STATUSES` (mechanising known pitfall #4 / driver AD-2), and a `PENDING_APPROVAL` reservation must be `TENTATIVE` in the calendar export. The live run of the operations is recorded in `evidence-and-evolution.md`.
+Every `VE-*` is executable: VE-01…VE-04 in `backend/tests/test_spec_baseline.py` (v0.1, still green under v0.2), VE-01.10, VE-02.7, VE-03.8/03.9, VE-04.8 and VE-05…VE-08 in `backend/tests/test_approval_api.py`. Tests carry the VE id as the start of their name. Two further tests in `test_approval_api.py` are guards rather than examples: the exclusion constraint must block exactly the states in `ACTIVE_RESERVATION_STATUSES` (mechanising known pitfall #4 / driver AD-2), and a `PENDING_APPROVAL` reservation must be `TENTATIVE` in the calendar export. The live run of the operations is recorded in `evidence-and-evolution.md`.
 
 ## 11. Approval
-v0.2's approval is recorded in `specification-v0.2.md` §11 (still open there). v0.3 becomes **approved by the team** when every member below has reviewed the parts marked **(v0.3)** (the table at the top lists them) and ticks their line; approving the pull request that introduces them counts.
+v0.2 becomes **approved by the team** when every member below has reviewed the changed and new parts (§3 BR-02/03/07/09/10/11/12, §4 OP-03…OP-06, §8 D-10…D-20, A-05, A-06) and ticks their line; approving the pull request that introduces this file counts. v0.1's own approval (`specification-v0.1.md` §11) is a prerequisite.
 
 - [ ] Adam Vrána
 - [ ] Marek Tyl

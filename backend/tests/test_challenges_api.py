@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id, make_venue_manager
 
 from reservations.main import app
 from reservations.models import (
@@ -11,7 +12,6 @@ from reservations.models import (
     Review,
     SportType,
     User,
-    UserRole,
 )
 
 
@@ -31,7 +31,7 @@ def register_and_login(
 def promote_to_manager(session_factory: sessionmaker, email: str) -> None:
     with session_factory() as session:
         user = session.query(User).filter_by(email=email).one()
-        user.role = UserRole.VENUE_MANAGER
+        make_venue_manager(session, user)
         session.commit()
 
 
@@ -39,7 +39,7 @@ def seed_court(
     session_factory: sessionmaker, name: str, sport: SportType = SportType.TENNIS
 ) -> str:
     with session_factory() as session:
-        court = Court(name=name, sport_type=sport, indoor=False)
+        court = Court(venue_id=default_venue_id(session), name=name, sport_type=sport, indoor=False)
         session.add(court)
         session.commit()
         return str(court.id)

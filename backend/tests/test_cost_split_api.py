@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+from support import default_venue_id
 
 from reservations.main import app
 from reservations.models import Court, SportType
@@ -23,7 +24,7 @@ def register_and_login(client: TestClient, email: str) -> str:
 
 def seed_priced_court(session_factory: sessionmaker, price: float = 300) -> str:
     with session_factory() as session:
-        court = Court(name="Priced Court", sport_type=SportType.TENNIS, indoor=False, price_per_hour=price)
+        court = Court(venue_id=default_venue_id(session), name="Priced Court", sport_type=SportType.TENNIS, indoor=False, price_per_hour=price)
         session.add(court)
         session.commit()
         return str(court.id)
@@ -56,7 +57,7 @@ def test_split_divides_evenly_between_booker_and_guests(session_factory: session
 def test_split_without_a_price_returns_none(session_factory: sessionmaker) -> None:
     client = TestClient(app)
     with session_factory() as session:
-        court = Court(name="Unpriced Court", sport_type=SportType.BADMINTON, indoor=True)
+        court = Court(venue_id=default_venue_id(session), name="Unpriced Court", sport_type=SportType.BADMINTON, indoor=True)
         session.add(court)
         session.commit()
         court_id = str(court.id)
