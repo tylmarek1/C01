@@ -26,7 +26,7 @@ itself — see "Pending / open gates"). **C03: engineering complete** — Part A
 | C01 | **DONE** — all 15 `docs/course/C01.md` §10 items evidence-backed complete |
 | C02 | Baseline v0.1 and the "approval process" change (v0.2) are both engineering-complete and evidenced; **team approval of both specification baselines is the one item still open** |
 | Specification baseline | v0.2 — `docs/specification.md` (v0.1 frozen in `docs/specification-v0.1.md`) |
-| C03 | **Engineering complete** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Open: waitlist accept bypasses the Lifecycle (outside the OP-03 slice); tag `c03-architecture` to be placed on the commit that lands in `main` |
+| C03 | **Engineering complete** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Waitlist accept, the one path that bypassed the Lifecycle, was routed through it on 2026-10-08 (Amendment below ADR-005's C03 section). Open: tag `c03-architecture` to be placed on the commit that lands in `main` |
 
 ## Completed gates
 

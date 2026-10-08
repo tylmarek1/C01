@@ -261,3 +261,32 @@ Remaining uncertainty / risk:
 - C02 team sign-off of v0.2 is still open.
 
 Commit/tag: implementation `65aad78` on branch `feat/c03-notification-outbox`; the docs commit follows it on the same branch. Tag `c03-architecture` to be placed on the commit that lands in `main`.
+
+### Follow-up 2026-10-08 — waitlist accept through the Lifecycle
+
+This follow-up closes the first "Remaining uncertainty / risk" item above
+("Waitlist accept bypasses the Lifecycle"). The rationale is in
+`docs/architecture-and-decisions.md`, "Amendment (2026-10-08)".
+
+- **Change:** `accept_waitlist_offer` creates a `PENDING` hold. It then
+  calls `transition(…, CONFIRMED)` or `submit_for_approval`.
+- **Behaviour verification:**
+  - `test_accepted_offer_is_confirmed_through_the_lifecycle`: events are
+    `CREATED` then `CONFIRMED`, and no hold deadline is left behind.
+  - `test_offer_on_a_court_deactivated_meanwhile_cannot_be_accepted`:
+    returns 409 and the offer stays `OFFERED`.
+  - VE-08.1 (`PENDING_APPROVAL`, events `CREATED` then `SUBMITTED`) still
+    passes.
+  - Full suite: `uv run pytest` → **309 passed** (PostgreSQL 16).
+- **Mutation check:** I put the old `api/waitlist.py` back temporarily.
+  - The deactivated-court test failed, because the old code returned 200
+    `CONFIRMED`.
+  - The new architecture rule failed with
+    `['api/waitlist.py:116 Reservation(status=...) not PENDING']`.
+  - I then restored the fixed file.
+- **Architecture conformance rule + result:** "only `lifecycle.transition()`
+  changes a reservation's status".
+  - Check: `backend/tests/test_architecture.py`
+    `test_only_the_lifecycle_changes_reservation_status`, an AST scan,
+    plus a self-test that the scan really detects a bypass.
+  - Result: 4 passed.

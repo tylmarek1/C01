@@ -43,3 +43,69 @@ def test_only_the_push_integration_imports_the_push_vendor_sdk() -> None:
 def test_the_rule_actually_sees_the_allowed_module() -> None:
     # Guards against the check silently passing because of a wrong path.
     assert VENDOR_MODULE in _imported_modules(SRC / "push_delivery.py")
+
+
+# --------------------------------------------------------------------------- Lifecycle ownership
+#
+# Rule (C03 G3, backend/CLAUDE.md): only `lifecycle.transition()` changes a
+# reservation's status. A new reservation is born as a PENDING hold and
+# reaches every later state through the Lifecycle, whose guards (BR-06,
+# BR-11, BR-12) no route can then skip. The waitlist-accept path once built
+# rows directly in CONFIRMED / PENDING_APPROVAL; this keeps that closed.
+
+LIFECYCLE = SRC / "lifecycle.py"
+# Demo data, not a request path: it writes finished history (COMPLETED visits).
+SEED = SRC / "seed.py"
+
+
+def _is_reservation_status(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "ReservationStatus"
+    )
+
+
+def _lifecycle_violations(path: Path, root: Path = SRC) -> list[str]:
+    tree = ast.parse(path.read_text(), filename=str(path))
+    found = []
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "Reservation"
+        ):
+            for kw in node.keywords:
+                if kw.arg == "status" and not (
+                    _is_reservation_status(kw.value) and kw.value.attr == "PENDING"
+                ):
+                    found.append(f"{path.relative_to(root)}:{node.lineno} Reservation(status=...) not PENDING")
+        elif isinstance(node, ast.Assign) and _is_reservation_status(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Attribute) and target.attr == "status":
+                    found.append(f"{path.relative_to(root)}:{node.lineno} .status = ReservationStatus.*")
+    return found
+
+
+def test_only_the_lifecycle_changes_reservation_status() -> None:
+    offenders = [
+        violation
+        for path in sorted(SRC.rglob("*.py"))
+        if path not in (LIFECYCLE, SEED)
+        for violation in _lifecycle_violations(path)
+    ]
+    assert offenders == [], (
+        f"reservation status set outside lifecycle.transition(): {offenders} — "
+        "create the row as PENDING and call transition() instead"
+    )
+
+
+def test_the_lifecycle_rule_actually_detects_a_bypass(tmp_path: Path) -> None:
+    # Guards against the check silently passing because the pattern drifted.
+    bad = tmp_path / "bad.py"
+    bad.write_text(
+        "r = Reservation(status=ReservationStatus.CONFIRMED)\n"
+        "r.status = ReservationStatus.CANCELLED\n"
+        "ok = Reservation(status=ReservationStatus.PENDING)\n"
+    )
+    assert len(_lifecycle_violations(bad, root=tmp_path)) == 2

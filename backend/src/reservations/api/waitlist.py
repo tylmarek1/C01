@@ -19,7 +19,8 @@ from reservations.models import (
     WaitlistEntry,
     WaitlistStatus,
 )
-from reservations import approval_service
+from reservations import approval_service, rules
+from reservations.lifecycle import transition
 from reservations.notifications import notify
 from reservations.schemas.reservation import ReservationOut
 from reservations.schemas.waitlist import WaitlistEntryOut, WaitlistJoin
@@ -111,15 +112,17 @@ def accept_waitlist_offer(
     if entry.offer_expires_at is not None and entry.offer_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status.HTTP_409_CONFLICT, "This offer has expired")
 
-    # BR-11: on an approval-required court an accepted offer is a request, not a booking.
-    needs_approval = entry.court.requires_approval
+    # The new row starts as a hold (PENDING) like any booking, so its way to
+    # CONFIRMED / PENDING_APPROVAL goes through the Lifecycle and its guards
+    # (BR-06 court active, BR-11 approval) exactly as Confirm's does. The row
+    # is uncommitted, so no other transaction can see it, let alone lock it.
     reservation = Reservation(
         court_id=entry.court_id,
         user_id=current_user.id,
         start_time=entry.start_time,
         end_time=entry.end_time,
-        status=ReservationStatus.PENDING_APPROVAL if needs_approval else ReservationStatus.CONFIRMED,
-        approval_expires_at=approval_service.approval_deadline(entry.start_time) if needs_approval else None,
+        status=ReservationStatus.PENDING,
+        hold_expires_at=datetime.now(timezone.utc) + rules.HOLD_DURATION,
     )
     db.add(reservation)
     try:
@@ -137,19 +140,11 @@ def accept_waitlist_offer(
             note="Booked from a waitlist offer",
         )
     )
-    if needs_approval:
-        db.add(
-            ReservationEvent(
-                reservation_id=reservation.id, event_type=ReservationEventType.SUBMITTED, actor_id=current_user.id
-            )
-        )
-        approval_service.notify_approval_requested(db, reservation)
+    if entry.court.requires_approval:
+        # BR-11: on an approval-required court an accepted offer is a request, not a booking.
+        approval_service.submit_for_approval(db, reservation, actor_id=current_user.id)
     else:
-        db.add(
-            ReservationEvent(
-                reservation_id=reservation.id, event_type=ReservationEventType.CONFIRMED, actor_id=current_user.id
-            )
-        )
+        transition(db, reservation, ReservationStatus.CONFIRMED, actor_id=current_user.id)
         notify(
             db,
             current_user.id,
