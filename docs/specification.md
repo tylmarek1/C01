@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Prepared for team approval — approval is recorded in §11 and is **not yet given** |
+| **Status** | **Approved by the team** on 2026-10-12 — recorded in §11 |
 | **Version** | v0.3 = v0.2 (`specification-v0.2.md`, frozen; = v0.1 + change C02 "approval process") + venue-scoped managers (2026-10-08) |
 | **Scope** | OP-01 Create, OP-02 Check Availability, OP-03 Confirm, OP-04 Cancel (v0.1) + OP-05 Approve, OP-06 Reject (new) |
 | **Reasoning behind the change** | `change-c02-impact.md` — written *before* this file; its §4 is the consolidated "Dopad změny C02" block |
@@ -558,11 +558,13 @@ As in v0.1: check-in/completion/no-show; facility blocks (they also cancel `PEND
 Every `VE-*` is executable: VE-01…VE-04 in `backend/tests/test_spec_baseline.py` (v0.1, still green under v0.2), VE-01.10, VE-02.7, VE-03.8/03.9, VE-04.8 and VE-05…VE-08 in `backend/tests/test_approval_api.py`, including the v0.3 examples VE-03.8c, VE-05.9, VE-05.10 and VE-06.6; the v0.3 opening-hours examples VE-01.11, VE-01.12 and VE-02.8 are in `backend/tests/test_opening_hours_api.py`. Tests carry the VE id as the start of their name. Two further tests in `test_approval_api.py` are guards rather than examples: the exclusion constraint must block exactly the states in `ACTIVE_RESERVATION_STATUSES` (mechanising known pitfall #4 / driver AD-2), and a `PENDING_APPROVAL` reservation must be `TENTATIVE` in the calendar export. The live run of the operations is recorded in `evidence-and-evolution.md`.
 
 ## 11. Approval
-v0.2's approval is recorded in `specification-v0.2.md` §11 (still open there). v0.3 becomes **approved by the team** when every member below has reviewed the parts marked **(v0.3)** (the table at the top lists them) and ticks their line; approving the pull request that introduces them counts.
+v0.2's approval is recorded in `specification-v0.2.md` §11 (approved 2026-10-12). v0.3 becomes **approved by the team** when every member below has reviewed the parts marked **(v0.3)** (the table at the top lists them) and ticks their line; approving the pull request that introduces them counts.
 
-- [ ] Adam Vrána
-- [ ] Marek Tyl
-- [ ] Josef Glogar
-- [ ] Adam Mikoláš
+- [x] Adam Vrána
+- [x] Marek Tyl
+- [x] Josef Glogar
+- [x] Adam Mikoláš
 
-Date of approval: _______________
+Date of approval: 2026-10-12
+
+Recorded on 2026-10-12: team member Vrána (the repository's git user) stated in a Claude Code session that the whole team had approved every specification baseline; the ticks and the date above were entered on that statement.

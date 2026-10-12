@@ -169,6 +169,7 @@ The change touched: BR-02/03/07/09/10 (extended), new BR-11/BR-12; REQ-04/06/07 
 
 ### Zbývající předpoklad / neznámá (remaining assumptions / unknowns)
 - **Team approval of both baselines is still to be given** (tick-boxes in §11 of each specification).
+  - *Update 2026-10-12:* given. The team approved v0.1, v0.2 and v0.3; see §11 of each specification.
 - A-01 hold 5 min, A-05 approval window 24 h — product values without an external source, to be confirmed with the venue. A-06 no separation of duties.
 - U-01 e-mail / external notification (Project Frame boundary) is not implemented; U-03 rejection reason text; U-04 re-approval instead of refusing to move an approved booking.
 - G-01: the day-view availability ignores facility blocks (outside the baseline).
@@ -259,6 +260,7 @@ Remaining uncertainty / risk:
 - Single-process assumption for both loops (AD-1, ADR-004).
 - The Part A spec gaps (mute, `ADMIN` as manager) are still open for the spec owners.
 - C02 team sign-off of v0.2 is still open.
+  - *Update 2026-10-12:* closed. The team approved v0.1, v0.2 and v0.3 (§11 of each specification).
 
 Commit/tag: implementation `65aad78` and docs `38ef1a7` (branch `feat/c03-notification-outbox`), merged to `main` in PR #71 as merge commit `da3158d`. Tag **`c03-architecture`** points to `da3158d`.
 
