@@ -40,6 +40,11 @@ run while the dev server is up.
 | `SECRET_KEY` | insecure dev fallback | Signs JWT access tokens — set a real value outside local dev |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | JWT access token lifetime |
 | `FRONTEND_ORIGIN` | `http://localhost:5173` | Allowed CORS origin (the Vite dev server) |
+| `UPLOAD_DIR` | `backend/uploads` | Where uploaded images are stored (avatars, court and review photos, chat attachments) |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | dev-only keypair | Identify this server to browser push services; set your own outside local dev |
+| `VAPID_CONTACT_EMAIL` | `admin@courtly.example` | Contact sent to push services |
+| `LOG_FORMAT` | `text` | `text` (key=value) or `json` (one object per line), ADR-007 |
+| `LOG_LEVEL` | `INFO` | Application log level |
 
 ## API overview
 
@@ -54,18 +59,21 @@ run while the dev server is up.
 | `POST /reservations` | Bearer | Create a `PENDING` reservation — a 5-minute hold that already blocks the court (validates the 60/90/120 min slot rule, `:00`/`:30` alignment, the venue's opening hours, booking window, limits; 409 if the slot is held/booked) |
 | `GET /reservations` | Bearer | List the current user's reservations |
 | `POST /reservations/{id}/confirm` | Bearer | `PENDING` → `CONFIRMED`; on a court with `requires_approval` → `PENDING_APPROVAL` instead (409 if the hold expired or the court was deactivated) |
-| `POST /reservations/{id}/approve` | Venue manager or admin | `PENDING_APPROVAL` → `CONFIRMED` |
-| `POST /reservations/{id}/reject` | Venue manager or admin | `PENDING_APPROVAL` → `REJECTED`, releases the slot |
+| `POST /reservations/{id}/approve` | Manager of the court's venue, or admin | `PENDING_APPROVAL` → `CONFIRMED` |
+| `POST /reservations/{id}/reject` | Manager of the court's venue, or admin | `PENDING_APPROVAL` → `REJECTED`, releases the slot |
 | `POST /reservations/{id}/cancel` | Bearer | `PENDING`/`PENDING_APPROVAL`/`CONFIRMED` → `CANCELLED`, only before the start time (409 otherwise) |
 
 That's the core reservation lifecycle. The API has grown well past it:
-check-in/check-out, reschedule, guests/cost-split, join requests and
+check-in, reschedule, guests/cost-split, join requests and
 calendar export are more endpoints on this same `reservations` router;
 achievements/leaderboard live in `stats.py`; and `favorites`,
-`facility_blocks`, `notifications`, `reviews`, `waitlist`, and the
+`facility_blocks`, `notifications`, `reviews`, `waitlist`, `venues`
+(venue details, managers, opening hours), `payments`, and the
 venue-manager `admin` endpoints (stats, user roles, reservation export,
-court utilization) each have their own router under `src/reservations/api/`
-(see Layout below). `UserRole` has a third value, `ADMIN`, above
+court utilization, and the admin-only audit log) each have their own
+router under `src/reservations/api/` (see Layout below). Court rates and
+the price quote are on the `courts` router. A venue manager reaches only
+the venues they're assigned to (ADR-008). `UserRole` has a third value, `ADMIN`, above
 `VENUE_MANAGER` — it inherits every venue-manager endpoint plus two
 admin-only ones: changing anyone's role (including granting/revoking
 `ADMIN` itself) and `DELETE /courts/{id}` (only for a court with no
@@ -87,16 +95,21 @@ application code — see [`docs/architecture-and-decisions.md`](../docs/architec
 src/reservations/
   main.py         FastAPI app, CORS, router registration
   config.py       env-based settings
-  db.py           engine/session factory, schema create/drop
+  db.py           engine/session factory, Alembic upgrade (ADR-006)
+  migrations/     Alembic environment and versions/ — the schema's source of truth
   security.py     password hashing + JWT
   deps.py         DB session & current-user dependencies
   seed.py         demo data seeding script
-  lifecycle.py    the reservation state machine
+  lifecycle.py    the reservation state machine (C05 detailed design)
   rules.py, booking_validation.py            booking business rules
   achievements.py, approval_service.py, calendar_export.py,
   waitlist_service.py, notifications.py, images.py   feature-specific
                   service modules — the real logic; routers stay thin
   push_delivery.py  Web Push outbox dispatcher — the only pywebpush user (ADR-005)
+  venue_access.py   who may manage which venue (ADR-008)
+  opening_hours.py, pricing.py   opening hours and court rates as data (ADR-009)
+  payments.py, payment_gateway.py   payments and refunds; the gateway boundary (ADR-010)
+  audit.py, observability.py   audit log and structured logs (ADR-007)
   worker.py       in-process background tasks (hold-expiry, reminders, ...,
                   push dispatch loop)
   models/         one SQLAlchemy model per file
