@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Prepared for team approval — approval is recorded in §11 and is **not yet given** |
+| **Status** | **Approved by the team** on 2026-10-12 — recorded in §11 |
 | **Scope** | The four minimal operations: Create, Check Availability, Confirm, Cancel Reservation |
 | **Domain** | Sports courts of one venue (tennis, volleyball, badminton) — see `intent-and-change.md` |
 | **Successor** | `specification.md` (v0.2, approval process). This file is the frozen v0.1 baseline and is not edited after approval. |
@@ -468,9 +468,11 @@ Every `VE-*` above is executable in `backend/tests/test_spec_baseline.py` agains
 
 Specification Baseline v0.1 becomes **approved by the team** when every member below has reviewed §3–§8, in particular the decision register D-01…D-09, and ticks their line (a review approval of the pull request that introduces this file counts). Until then the status in the header stays "Prepared for team approval".
 
-- [ ] Adam Vrána
-- [ ] Marek Tyl
-- [ ] Josef Glogar
-- [ ] Adam Mikoláš
+- [x] Adam Vrána
+- [x] Marek Tyl
+- [x] Josef Glogar
+- [x] Adam Mikoláš
 
-Date of approval: _______________
+Date of approval: 2026-10-12
+
+Recorded on 2026-10-12: team member Vrána (the repository's git user) stated in a Claude Code session that the whole team had approved every specification baseline; the ticks and the date above were entered on that statement.

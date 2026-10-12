@@ -15,21 +15,23 @@ update this file, the next session will start from a wrong premise.
 
 ## Current phase
 
-**C01: DONE.** **C02: engineering complete, formal team sign-off
-outstanding** (the one gate this repository's tooling cannot close
-itself — see "Pending / open gates"). **C03: engineering complete** — Part A
+**C01–C05: all DONE, no gate open.** **C01: DONE.** **C02: DONE**: the team
+approved specification baselines v0.1, v0.2 and v0.3 on 2026-10-12, which
+was the last open gate. **C03: DONE**: Part A
 (AS-IS trace) and B–M (drivers → ADR-005 → TO-BE views → outbox implementation
 → verification) for Confirm Reservation, evidence in `docs/evidence-and-evolution.md`.
-**C05: engineering complete** — detailed design of the Reservation Lifecycle.
-(`docs/course/` has no C04 assignment, so this file tracks no C04 phase.)
+**C04: does not exist.** C03 took its place in the course, so there is no
+C04 assignment and nothing to track. **C05: DONE**: detailed design of the
+Reservation Lifecycle.
 
 | | |
 |---|---|
 | C01 | **DONE** — all 15 `docs/course/C01.md` §10 items evidence-backed complete |
-| C02 | Baseline v0.1 and the "approval process" change (v0.2) are both engineering-complete and evidenced; **team approval of both specification baselines is the one item still open** |
-| Specification baseline | v0.3 — `docs/specification.md` (2026-10-08: venue-scoped managers, ADR-008). The C02 baselines are frozen: v0.1 in `docs/specification-v0.1.md`, v0.2 in `docs/specification-v0.2.md` |
-| C03 | **Engineering complete** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Commit/tag: implementation merged to `main` in PR #71 (`da3158d`), tag `c03-architecture`. Follow-up 2026-10-08 (PR #76): waitlist accept, the one path that bypassed the Lifecycle, now goes through it (amendment at the end of `docs/architecture-and-decisions.md`). No C03 item open |
-| C05 | **Engineering complete** (assignment: `docs/course/C05.md`). Detailed design of the Reservation Lifecycle (C03 R2) in `docs/architecture-and-decisions.md` § "C05 Detailed Design"; tests DD-T1…DD-T9 in `backend/tests/test_lifecycle.py`; evidence (tests, design ↔ code comparison, remaining risk) in `docs/evidence-and-evolution.md` § "C05 DD Verification Evidence". Tag `c05-detailed-design`. No C05 item open |
+| C02 | **DONE**. Baseline v0.1 and the "approval process" change (v0.2) are engineering-complete and evidenced, and both were approved by the team on 2026-10-12 (§11 of `docs/specification-v0.1.md` and `docs/specification-v0.2.md`) |
+| Specification baseline | v0.3 — `docs/specification.md` (2026-10-08: venue-scoped managers, ADR-008), approved by the team on 2026-10-12. The C02 baselines are frozen: v0.1 in `docs/specification-v0.1.md`, v0.2 in `docs/specification-v0.2.md` |
+| C03 | **DONE** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Commit/tag: implementation merged to `main` in PR #71 (`da3158d`), tag `c03-architecture`. Follow-up 2026-10-08 (PR #76): waitlist accept, the one path that bypassed the Lifecycle, now goes through it (amendment at the end of `docs/architecture-and-decisions.md`). No C03 item open |
+| C04 | **Does not exist**: C03 took its place in the course (stated by the team, 2026-10-12) |
+| C05 | **DONE** (assignment: `docs/course/C05.md`). Detailed design of the Reservation Lifecycle (C03 R2) in `docs/architecture-and-decisions.md` § "C05 Detailed Design"; tests DD-T1…DD-T9 in `backend/tests/test_lifecycle.py`; evidence (tests, design ↔ code comparison, remaining risk) in `docs/evidence-and-evolution.md` § "C05 DD Verification Evidence". Tag `c05-detailed-design`. No C05 item open |
 
 ## Completed gates
 
@@ -67,24 +69,28 @@ to close a spec↔test gap);
 `docs/evidence-and-evolution.md`'s "Evidence C02" section (live run,
 `change-c02-impact.md` §3 architectural drivers AD-1…AD-6 — item 16).
 
+**Team approval of the specification baselines** (`docs/course/C02.md`
+"Definice hotového"; v0.3 as well): complete on 2026-10-12. Evidence: all
+four members are ticked, with the date, in §11 of
+`docs/specification-v0.1.md`, `docs/specification-v0.2.md` and
+`docs/specification.md`. This was recorded on team member Vrána's
+statement that the whole team approved. As a result, item 14 of
+`docs/course/C02.md`'s DoD ("running app matches the *approved* baseline
+v0.2") now holds formally, not just behaviourally.
+
+**C03** (`docs/course/C03.md`): complete. Evidence:
+`docs/evidence-and-evolution.md` § "C03 — Architecture Evidence", tag
+`c03-architecture`.
+
+**C05** (`docs/course/C05.md`, all 12 DoD items): complete. Evidence:
+`docs/architecture-and-decisions.md` § "C05 Detailed Design",
+`docs/evidence-and-evolution.md` § "C05 DD Verification Evidence"
+(9 DD tests, 487 passed), PR #91, tag `c05-detailed-design`.
+
 ## Pending / open gates — needs human action, not more code
 
-- **Team approval of both baselines is not yet given.** `docs/course/C02.md`'s
-  own DoD requires the team to explicitly approve baseline v0.1 (see its
-  "Definice hotového" list), and `docs/specification.md` §11 states v0.1's
-  approval is a prerequisite for v0.2's. The checkboxes in
-  `docs/specification-v0.1.md` §11 and `docs/specification-v0.2.md` §11
-  (v0.2 frozen there on 2026-10-08 when v0.3 started) are unticked for all
-  four team members, and the approval date is blank in both. v0.3's own
-  approval (`docs/specification.md` §11, the venue-scope change) is open
-  too. **This is the one gate a Claude session cannot close** — it
-  requires the actual team to review and tick it.
-  `docs/evidence-and-evolution.md`'s own "remaining assumptions/unknowns"
-  section already names this same gap.
-- Because of the above, item 14 of `docs/course/C02.md`'s DoD ("running
-  app matches the *approved* baseline v0.2") is evidenced *behaviorally*
-  (the app matches what v0.2 says) but not formally, since v0.2 isn't yet
-  approved.
+None. The last one, team approval of the specification baselines, was
+closed on 2026-10-12 (see "Completed gates").
 
 ## Architectural drivers carried into C03
 
@@ -111,7 +117,7 @@ where, so a session doesn't have to search for them.
 
 - `cd backend && uv run pytest -v` — **487 passed** against real
   PostgreSQL 16 (its own `reservations_test` database since PR #77). Last
-  run: 2026-10-12 (C05; 106 of these are `tests/test_lifecycle.py`).
+  run: 2026-10-12 (C05; 106 of these are `backend/tests/test_lifecycle.py`).
   - The C02-baseline evidence figure stays **177 passed** (2026-09-21).
   - The suite later grew through product features (PRs #38–#44), the C03
     outbox (PR #71, 305) and the waitlist-lifecycle follow-up (PR #76, 309) and waitlist booking limits (311).
@@ -137,23 +143,14 @@ Release v4.0.2 (2026-10-08): frontend 4.0.0, backend 0.3.2 — see
 
 ---
 
-## How to add C03
+## How to add the next course phase
 
-The full C03 assignment is in `docs/course/C03.md`. For any further part:
-paste it verbatim into `docs/course/C03.md`, the same way
-`docs/course/C01.md`/`C02.md` were added (root `CLAUDE.md` §0's rule
-against copying course text applies to every other file, not this one).
-Root `CLAUDE.md`'s routing table's "připrav mě na C03" row already checks
-for this file's existence, so that row needs no edit. This file's
-"Architectural drivers carried into C03" section is exactly the input C03
-is meant to start from (it's the record of what C02 already flagged as an
-open architectural question — read it before designing anything, don't
-re-derive it). A `.claude/workflows/c03.md` can be added then, following
-the same shape as `c01.md`/`c02-baseline.md`; if you add it, also add it
-to the routing table's "dokonči C02" row's workflow list (currently
-`c01.md` / `c02-baseline.md` / `c02-change.md`) so picking up course work
-still resolves to the right file once C03 is the active phase. Don't add
-content for a part the course hasn't handed out yet.
+Paste the assignment verbatim into a new `C0N.md` file under `docs/course/`, with the source
+header used by `C03.md`/`C05.md`. Root `CLAUDE.md` §0's rule against
+copying course text applies to every other file, not this one. Then add a
+row to "Current phase" and, once its DoD items have evidence, an entry
+under "Completed gates". The numbering skips C04: C03 took its place in
+the course. Don't add content for a part the course hasn't handed out yet.
 
 ---
 

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Prepared for team approval — approval is recorded in §11 and is **not yet given** |
+| **Status** | **Approved by the team** on 2026-10-12 — recorded in §11 |
 | **Version** | v0.2 = baseline v0.1 (`specification-v0.1.md`, frozen) + change C02 "approval process" |
 | **Successor** | `specification.md` (v0.3, venue-scoped managers). This file is the frozen v0.2 baseline — the one C02's team approval refers to — and is not edited further. |
 | **Scope** | OP-01 Create, OP-02 Check Availability, OP-03 Confirm, OP-04 Cancel (v0.1) + OP-05 Approve, OP-06 Reject (new) |
@@ -546,9 +546,11 @@ Every `VE-*` is executable: VE-01…VE-04 in `backend/tests/test_spec_baseline.p
 ## 11. Approval
 v0.2 becomes **approved by the team** when every member below has reviewed the changed and new parts (§3 BR-02/03/07/09/10/11/12, §4 OP-03…OP-06, §8 D-10…D-20, A-05, A-06) and ticks their line; approving the pull request that introduces this file counts. v0.1's own approval (`specification-v0.1.md` §11) is a prerequisite.
 
-- [ ] Adam Vrána
-- [ ] Marek Tyl
-- [ ] Josef Glogar
-- [ ] Adam Mikoláš
+- [x] Adam Vrána
+- [x] Marek Tyl
+- [x] Josef Glogar
+- [x] Adam Mikoláš
 
-Date of approval: _______________
+Date of approval: 2026-10-12
+
+Recorded on 2026-10-12: team member Vrána (the repository's git user) stated in a Claude Code session that the whole team had approved every specification baseline; the ticks and the date above were entered on that statement.

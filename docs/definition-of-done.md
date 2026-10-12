@@ -37,10 +37,11 @@ When a workflow or a task finishes, state completion the same way:
 `<item> — DONE — <evidence pointer>`, or `<item> — NOT DONE — <what's
 missing and why>`. Don't round a partial result up to "done" because the
 remaining piece is small — the C02 baseline is a live example: every
-engineering gate is evidence-backed and closed, but the *team-approval*
-gate (`docs/specification.md` §11, `docs/specification-v0.1.md` §11) is
-open, and `docs/project-state.md` says so plainly rather than treating
+engineering gate was evidence-backed and closed long before the
+*team-approval* gate (`docs/specification.md` §11, `docs/specification-v0.1.md`
+§11), and `docs/project-state.md` said so plainly, rather than treating
 "the spec is thorough" as a substitute for the team actually ticking it.
+The team gave that approval on 2026-10-12, and only then was the gate closed.
 
 ## A gate only a human can close
 
