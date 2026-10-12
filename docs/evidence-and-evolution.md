@@ -375,4 +375,4 @@ Planned DD vs. the code at the start (`main` at `49a7143`):
 
 ### Commit/tag
 
-COMMIT_TAG_PLACEHOLDER
+Implementation, tests and design: commit `5b2411e` (branch `feat/c05-detailed-design`). Merged to `main` in [PR #91](https://github.com/tylmarek1/C01/pull/91). Tag **`c05-detailed-design`** points to that merge commit.
