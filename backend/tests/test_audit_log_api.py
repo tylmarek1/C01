@@ -153,6 +153,8 @@ def test_a_status_change_outside_a_request_is_audited_without_an_actor(
             user_id=user.id,
             start_time=start,
             end_time=start + timedelta(hours=1),
+            # A lapsed hold: the Lifecycle only expires what is due (BR-06).
+            hold_expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
         )
         session.add(reservation)
         session.commit()

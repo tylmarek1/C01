@@ -290,3 +290,89 @@ This follow-up closes the first "Remaining uncertainty / risk" item above
     `test_only_the_lifecycle_changes_reservation_status`, an AST scan,
     plus a self-test that the scan really detects a bypass.
   - Result: 4 passed.
+
+## C05 DD Verification Evidence
+
+**Date:** 2026-10-12 · **Assignment:** `docs/course/C05.md` · **Design:** `docs/architecture-and-decisions.md` § "C05 Detailed Design"
+
+Unit: the Reservation Lifecycle (C03 G2, R2), `backend/src/reservations/lifecycle.py`.
+Tests: `backend/tests/test_lifecycle.py`. Each test name starts with its DD id.
+
+### Tests derived from DD
+
+| DD element / decision | What must hold? | Test level | Test case |
+|---|---|---|---|
+| **DD-T1** interface contract: edge check before guards; `ALLOWED_TRANSITIONS` = BR-09 | For all 9 × 9 `(from, to)` pairs, an edge outside BR-09 is `ILLEGAL_TRANSITION` whatever the guards say, and an edge inside it never is. Absorbing states have no edges. Every `GUARDS` row is an allowed edge. | unit | `test_dd_t1_the_edge_table_is_checked_before_any_guard` (81 cases), `test_dd_t1_absorbing_states_and_the_guard_table_agree_with_br_09` |
+| **DD-T2** algorithm branch: decision table for leaving a `PENDING` hold | All 8 combinations of hold lapsed × court active × requires approval give the tabled reason, with guard order hold → court → flag. From a live hold on an active court exactly one target is reachable. | unit | `test_dd_t2_confirm_decision_table` (8 cases) |
+| **DD-T3** algorithm branch: `lapsed(d, now) = d < now` (BR-06, BR-12) | At `now = deadline` the hold/request is alive (act: yes, expire: `*_NOT_EXPIRED`). One microsecond later it is dead (act: `*_EXPIRED`, expire: yes). | unit | `test_dd_t3_a_deadline_is_alive_at_its_own_instant_and_dead_one_tick_later` (hold, approval) |
+| **DD-T4** state transition guards out of `PENDING_APPROVAL` (BR-11, BR-12) | No decision → `DECISION_REQUIRED`, checked first. An expired request cannot be approved. An inactive court cannot be approved onto, but a request on it can still be rejected. | unit | `test_dd_t4_only_a_live_manager_decision_ends_an_approval_request` |
+| **DD-T5** failure behaviour: `check_cancellable` (BR-03) | For every state: `PENDING`/`PENDING_APPROVAL`/`CONFIRMED` pass 1 µs before start and fail `ALREADY_STARTED` at start. Every other state fails `NOT_CANCELLABLE`. | unit | `test_dd_t5_cancel_policy_by_state_and_time` (9 cases) |
+| **DD-T6** failure contract: `TransitionRejected` | It is an `HTTPException` with 409, it carries `reason`, and its `detail` is the wording the API already returned. | unit | `test_dd_t6_a_rejection_is_a_409_with_a_reason_and_the_api_wording` |
+| **DD-T7** command postconditions, all-or-nothing | A refused `transition()` changes nothing and adds no event. A successful one sets the status, clears the right deadline and adds exactly one event of the mapped type with actor and note. | component (real session, PostgreSQL) | `test_dd_t7_transition_postconditions_and_all_or_nothing` |
+| **DD-T8** collaboration Approval Workflow → Lifecycle | `submit_for_approval` on a court that doesn't require approval is refused by the Lifecycle's guard (`APPROVAL_NOT_REQUIRED`), with no deadline and no notifications. | component | `test_dd_t8_approval_workflow_cannot_submit_on_a_court_without_approval` |
+| **DD-T9** concurrency precondition: the caller holds the row lock | Check-in racing Cancel on one `CONFIRMED` reservation, 20 rounds: exactly one gets 200 and the other 409, and the final state and the single event match the winner. | integration (HTTP, threads, PostgreSQL row locks) | `test_dd_t9_check_in_racing_cancel_has_exactly_one_winner` |
+
+**DD-T2**
+- **Selected level:** unit.
+- **Why this level:** the decision is a pure function of three reservation and court attributes plus the clock (DD: `check_transition` has no side effects). A database would add nothing but setup time, and the whole table runs in milliseconds. The tests run on unsaved `Reservation`/`Court` objects with a fixed `now`. They pass with the test database URL pointed at a closed port, which shows they need no database.
+- **What design decision does it verify?** The guard table `GUARDS` for the two `PENDING` exits and its order (hold → court → approval flag). Also that the new `PENDING → PENDING_APPROVAL` guard makes the two targets mutually exclusive (DR-3).
+
+**DD-T7**
+- **Selected level:** component.
+- **Why this level:** the command's postconditions are about what it puts in the session (the event row, the deadline columns) and what a failing call leaves *out* of it. That needs a real `Session` and the real models. It still calls `transition()` directly instead of going through HTTP, so the API's own checks do not mask the unit.
+- **What design decision does it verify?** "Check first, then mutate": a `TransitionRejected` is raised before any write. Also the effect rules: entering `PENDING_APPROVAL` clears the hold, and entering `CONFIRMED` clears the approval deadline, with one mapped event.
+
+**DD-T9**
+- **Selected level:** integration.
+- **Why this level:** the property depends on PostgreSQL row locks and two real transactions interleaving. A unit test cannot show a missing lock.
+- **What design decision does it verify?** That locking is the *caller's* precondition (the Lifecycle does not lock), and that every requester meets it.
+
+### Unit/component tests executed
+
+PostgreSQL 16, `cd backend`:
+
+- `uv run pytest tests/test_lifecycle.py -k "t1 or t2 or t3 or t4 or t5 or t6"` → **103 passed in 0.69 s**.
+- The same command with `TEST_DATABASE_URL=postgresql+psycopg://nobody:x@127.0.0.1:1/nowhere_test` (no database reachable) → **103 passed**.
+- `uv run pytest tests/test_lifecycle.py tests/test_audit_log_api.py tests/test_payments_api.py tests/test_architecture.py` → **136 passed**. This includes DD-T7…T9 and the C03 architecture rules.
+- **Mutation check for DD-T9:** I removed `lock=True` from `check_in_reservation` again and ran the test three times. It failed all three times in round 0, with `{'cancel': 200, 'check_in': 200}`. I then restored the lock.
+- Full suite: `uv run pytest` → **487 passed** in 8 min 10 s.
+
+### Design ↔ implementation mismatch
+
+Planned DD vs. the code at the start (`main` at `49a7143`):
+
+| DD decision | Implemented? (before) | Evidence | Action |
+|---|---|---|---|
+| Edge table = BR-09; edge check before guards | YES | `ALLOWED_TRANSITIONS`, unchanged; DD-T1 | keep |
+| Guards as one ordered table, row for row BR-09's guard column | PARTLY: an `if` chain (`_check_guards`) covering 4 of the 6 guarded edges | old `lifecycle.py:87-142` | update code (`GUARDS`) |
+| The Lifecycle guards the expiry edges (`deadline < now`) | **NO**: only the Scheduler's `WHERE … < now` query ensured it. `transition(…, EXPIRED)` on a live hold passed; two existing tests did exactly that | first full run after the change: those 2 failed, 485 passed | update code; both tests now ask for what is due (`test_audit_log_api.py` with a lapsed hold, `test_payments_api.py` at the worker's instant after the hold) |
+| `PENDING → PENDING_APPROVAL` requires an approval court (BR-09 table) | **NO**: only the requesters' `if court.requires_approval` ensured it | DD-T8 | update code (`_approval_needed`) |
+| A refusal carries a reason code | NO: `HTTPException(409, text)` | DD-T6 | update code (`Rejection`, `TransitionRejected`) |
+| Decision instant injectable | PARTLY: `check_cancellable` had `now`, `_check_guards` read the wall clock | DD-T3 | update code; the worker passes its sweep instant |
+| Refusal before any mutation; one event per change | YES | DD-T7 | keep (now tested directly) |
+| Every requester holds the row lock (`transition()` precondition) | **PARTLY: check-in did not lock** | DD-T9 mutation run above | update code (`lock=True`, one line) |
+| Approval deadline value owned by the Approval Workflow (C03 R5) | YES | `approval_service.submit_for_approval` | keep |
+| Failure type independent of FastAPI | not adopted: the draft DD considered a framework-free exception plus a mapping in `main.py` | — | **update DD**: `TransitionRejected` subclasses `HTTPException`, the convention of `rules.py`/`booking_validation.py`; a second error mechanism for one module was not worth it |
+| A hold ends when the reservation leaves `PENDING` (BR-06) | PARTLY: the column is cleared on entering `CONFIRMED`/`PENDING_APPROVAL` but kept on `CANCELLED`/`EXPIRED` | — | keep code, documented under "left to code": outside `PENDING` the value is history, not a hold in effect |
+
+### Resolution
+
+- **Code was wrong, fixed (4):**
+  - Two BR-09 guards were enforced only by the requesters (expiry edges, submit on a normal court). The DD's decision that the Lifecycle owns *every* BR-09 guard (C03 DR-3) needed them inside the unit.
+  - The check-in route broke `transition()`'s lock precondition, which allowed a real double outcome (the mutation run above).
+  - There were no reason codes and no injectable clock.
+- **DD was changed, not the code (1):** the error type. Matching the codebase convention outweighed framework independence for a module that only runs inside this one FastAPI process.
+- **Docs were wrong (1):** `docs/capability-map.md` (2026-09-22) said every call site followed the lock convention. Check-in did not, and the row has been corrected.
+- **No behaviour change for users:** same status codes and `detail` texts; every existing requester already met the two new guards.
+
+### Remaining design risk
+
+- **The lock precondition is still a convention.** A new requester without `lock=True` passes every unit test. Only a race test like DD-T9 catches it. Nothing in `transition()` can cheaply tell whether its own transaction holds the row lock.
+- **Entering `PENDING_APPROVAL` and setting its deadline are two steps.** They happen in one transaction (Lifecycle, then Approval Workflow). A future requester that called `transition(…, PENDING_APPROVAL)` directly would leave a request with no deadline. The expiry sweep skips such a request, so it would block the court until a manager decides. Today the only path is `submit_for_approval`.
+- **The reason code reaches the API caller only as `detail` text.** `backend/CLAUDE.md` keeps the plain-string error shape until the frontend can parse codes.
+- **Check-in has no time window.** It is outside the baseline (§9); adding one is a product decision, not a DD one.
+- **The blocking-state set is still defined in several places (AD-2).** Not reopened here.
+
+### Commit/tag
+
+Implementation, tests and design: commit `5b2411e` (branch `feat/c05-detailed-design`). Merged to `main` in [PR #91](https://github.com/tylmarek1/C01/pull/91). Tag **`c05-detailed-design`** points to that merge commit.

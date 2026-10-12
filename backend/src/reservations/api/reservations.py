@@ -583,7 +583,9 @@ def check_in_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Reservation:
-    reservation = _get_owned_reservation(db, current_user, reservation_id)
+    # Locked like every other transition: a Cancel racing this check-in must
+    # see its result, not overwrite it (REQ-07, lifecycle.transition's contract).
+    reservation = _get_owned_reservation(db, current_user, reservation_id, lock=True)
     transition(db, reservation, ReservationStatus.CHECKED_IN, actor_id=current_user.id)
     db.commit()
     db.refresh(reservation)

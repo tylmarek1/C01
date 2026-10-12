@@ -43,7 +43,9 @@ change behavior if missed, so they stay here rather than in the map:
   waitlist-accept path once did, and that bypassed the approval and
   court-active guards. `tests/test_architecture.py` fails on a
   non-`PENDING` `Reservation(status=…)` or a `.status = ReservationStatus.…`
-  assignment outside `lifecycle.py` (`seed.py` is exempt).
+  assignment outside `lifecycle.py` (`seed.py` is exempt). A new
+  condition on a transition is a guard in that edge's `GUARDS` row
+  (C05 DD), not an `if` in the route that requests it.
 - `worker.py` is the *only* place a time-based side effect belongs
   (hold-expiry, reminders, auto-complete, waitlist cascade, push dispatch),
   following its existing tick pattern — not an ad hoc call from a route handler.

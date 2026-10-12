@@ -923,3 +923,306 @@ Three of ADR-010's accepted gaps are closed. The rest of the decision stands.
 - **Cash refunds:** a released reservation's **cash** payment now also goes to `REFUND_PENDING`. The worker skips it, because only `ONLINE` payments are refunded through the gateway. A manager of the venue confirms the hand-back at the desk (`POST /payments/{id}/cash-refund` → `REFUNDED`).
 - **Notifications:** three new `NotificationType`s, added by migration `0006` (`ALTER TYPE … ADD VALUE`, written by hand). `PAYMENT_RECEIVED` and `PAYMENT_REFUNDED` go to the payer. `REFUND_FAILED` goes to the venue's managers and every admin (`venue_access.venue_staff`, now also used by the approval request). The frontend's hand-maintained `NotificationType` and its categories were updated in the same change.
 - **Payments list:** `GET /payments` (venue-scoped, `?status=`) is where managers find cash to hand back and failed refunds. `POST /payments/{id}/retry-refund` puts a `REFUND_FAILED` payment back in the worker's queue with the attempt count reset. Reservation lists carry `payment_status` (the latest payment's status).
+
+## C05 Detailed Design
+
+Assignment: `docs/course/C05.md`. This section designs the inside of one
+C03 element, the **Reservation Lifecycle** (G2), which owns responsibility
+R2 (C2). Code paths are relative to `backend/src/reservations/`. The design
+below was written before the code change in this section's commit. The C03
+sections above describe the module as it was on 2026-10-05
+(`_check_guards`, line numbers) and stay as they were written. Planned
+design vs. the actual implementation is compared in
+`docs/evidence-and-evolution.md` § "C05 DD Verification Evidence".
+
+### Selected architecture unit
+
+| | |
+|---|---|
+| **Selected architecture unit / responsibility** | Reservation Lifecycle (C03 G2) — R2: "decide whether a transition is allowed and perform it, including Confirm's target per court". Module `lifecycle.py`. |
+| **Related requirements** | REQ-04 (Confirm), REQ-05 (hold expiry), REQ-06 (Cancel), REQ-07 (concurrent changes of one reservation), REQ-08/REQ-09 (Approve/Reject), REQ-10 (approval expiry), REQ-11 (no path to `CONFIRMED` around Approve) |
+| **Related scenarios** | OP-03 Confirm (the C03 scenario, here on an approval-required court), OP-04 Cancel, OP-05 Approve, OP-06 Reject, and the system's expiry of holds and requests |
+| **Relevant business rules** | BR-09 (allowed transitions, guards, absorbing states) — the rule this unit *is*; BR-06 (hold), BR-11 (approval invariant), BR-12 (approval deadline), BR-03 (cancel policy). BR-02 is relied on, not owned (PostgreSQL, R3). |
+
+**Boundary.** Inside: the edge table, the guards, the state change, the
+audit event, and asking for a refund when a reservation is released. Outside, and
+only consumed through contracts: who the caller is (BR-10, Identity and the
+API), the row lock and commit (Reservation API, R4), the value of the
+approval deadline (Approval Workflow, R5), *when* expiry runs (Scheduler,
+R6), and overlap (PostgreSQL, R3).
+
+### Detailed responsibilities
+
+| # | Detailed responsibility | Why is it needed? |
+|---|---|---|
+| D1 | Check that `(from, to)` is a BR-09 edge at all; absorbing states have none | BR-09: "any other transition is `CONFLICT`". The edge check is the same for every caller, so no entry point can jump, e.g., `COMPLETED → CONFIRMED`. |
+| D2 | Evaluate that edge's guards at one decision instant, in a fixed order | BR-09's guard column (hold alive, court active, approval flag, manager decision, deadlines). DR-3: requesters choose a target, but only this unit decides. A fixed order makes the reported reason deterministic. |
+| D3 | Report a refusal as a typed reason with the user-facing wording | Callers and tests have to tell "hold expired" from "court closed" without parsing text. The API needs a 409 with a readable `detail` (OP-03…06 failure outcomes are `CONFLICT`). |
+| D4 | Apply the state change and its effect on the two deadlines | BR-06: "a hold ends when the reservation leaves `PENDING`". BR-12: a deadline exists only while `PENDING_APPROVAL`. A countdown must not outlive its state. |
+| D5 | Record exactly one audit event per change, with actor and note | "Every transition appends an audit event" (spec §2). `GET /reservations/{id}/history` reads it. |
+| D6 | Ask for release side effects (refund queue) on every releasing transition | ADR-010: every path that releases a reservation must queue the refund, so it belongs on the one path all of them share. Queue only, no I/O (DR-1). |
+| D7 | Decide the cancel policy (state + time part of BR-03) | Cancel is the one user operation whose rule is not purely an edge guard. A facility block cancels on the same edge *without* BR-03, so this check is separate and is called by the operation. |
+
+### Design elements and ownership
+
+| Responsibility | Owner (design element) | State / data | Why here? |
+|---|---|---|---|
+| D1 | `ALLOWED_TRANSITIONS` — data table `from → {to}` | Immutable module data, a 1:1 copy of the BR-09 table / §5.2 statechart | A table and not `if` branches: the spec states the rule as a table, and the check is a lookup. |
+| D2 | `GUARDS` — data table `(from, to) → (Guard, …)`, ordered; each `Guard` a pure function | Immutable module data. Reads `reservation.hold_expires_at`, `.approval_expires_at`, `court.active`, `court.requires_approval`, plus `now` and `approval_decision` | One row per guarded BR-09 edge, so a guard change touches one row (see "Variation points"). A guard can be tested on its own. |
+| D1+D2 | `check_transition()` — the **policy** operation | None of its own; it only reads | Pure: no session, no writes. Callers can ask before acting, and unit tests need no database. |
+| D3 | `Rejection` (enumeration) + `TransitionRejected` (exception, 409) | `reason`, `detail` | One failure type for the whole unit. A subclass of `HTTPException` because every rule check in this backend fails that way (`rules.py`, `booking_validation.py`). A second error mechanism for one module would be a third convention. |
+| D4–D6 | `transition()` — the **command** | Writes `reservation.status`, `.hold_expires_at`, `.approval_expires_at`; adds a `ReservationEvent`; calls `payments.release_for` | All effects of one decision in one function, so they happen together or not at all. This is the only writer of `status` (`tests/test_architecture.py`). |
+| D7 | `check_cancellable()` | Reads `status`, `start_time`, `now` | Called by the Cancel operation; not a guard on the `→ CANCELLED` edges (see D7). |
+| clock | `now` parameter (default: the system clock) | One instant per decision | The deadline rules are about an instant. The worker passes the instant its sweep selected with. Tests pass a fixed one. |
+| lock, commit | **not** in the unit: the caller (Reservation API `_get_owned_reservation(lock=True)`, Scheduler `FOR UPDATE SKIP LOCKED`, facility blocks `FOR UPDATE`) | Row lock, transaction | R4 is the API's (C03 G2). The unit cannot see the transaction, so it states the lock as a **precondition**. |
+| approval deadline value | **not** in the unit: `approval_service.approval_deadline()` (BR-12) | `approval_expires_at`, set right after `transition(…, PENDING_APPROVAL)` in the same transaction | R5 belongs to the Approval Workflow (C03 G2). The Lifecycle only clears the deadline when it stops applying. |
+
+### Key interface(s) / contract(s)
+
+**`<<interface>> TransitionPolicy`**
+
+```
+check_transition(reservation, new_status, *, approval_decision = false, now = system clock) : void
+    raises TransitionRejected(reason : Rejection)
+```
+
+- **Preconditions**
+  - `reservation` is loaded and its `court` is reachable.
+  - `now` is timezone-aware.
+  - `approval_decision = true` only if the caller has verified that the user may decide for this court's venue (BR-10).
+- **Postconditions**
+  - If it returns: `new_status ∈ ALLOWED_TRANSITIONS[status]` and every guard in `GUARDS[(status, new_status)]` holds at `now`.
+  - Either way, nothing is modified.
+- **Failures** (all `TransitionRejected`, HTTP 409):
+
+| Reason | When | `detail` |
+|---|---|---|
+| `ILLEGAL_TRANSITION` | edge not in BR-09 | `Cannot move a {from} reservation to {to}` |
+| `HOLD_EXPIRED` | acting on a `PENDING` whose `hold_deadline < now` | `This hold has expired — book the slot again` |
+| `HOLD_NOT_EXPIRED` | expiring a `PENDING` whose hold has not lapsed | `This hold has not expired yet` |
+| `COURT_INACTIVE` | confirming, submitting or approving onto an inactive court | `This court is no longer available` |
+| `APPROVAL_REQUIRED` | `PENDING → CONFIRMED` on an approval-required court (BR-11) | `This court requires a venue manager's approval` |
+| `APPROVAL_NOT_REQUIRED` | `PENDING → PENDING_APPROVAL` on a court that does not require approval | `This court does not require approval` |
+| `DECISION_REQUIRED` | leaving `PENDING_APPROVAL` for `CONFIRMED`/`REJECTED` without `approval_decision` | `Only a venue manager's decision can do that` |
+| `APPROVAL_EXPIRED` | deciding a request whose `approval_deadline < now` | `This approval request has expired` |
+| `APPROVAL_NOT_EXPIRED` | expiring a request whose deadline has not lapsed | `This approval request has not expired yet` |
+
+**`<<interface>> Guard`** — `(reservation, now, approval_decision) → Rejection | None`. It has no side effects and returns `None` to let the transition pass.
+
+**`transition()` — the command contract.**
+- **Preconditions:** the caller holds a `FOR UPDATE` lock on the reservation's row inside an open transaction (REQ-07), plus the policy's preconditions.
+- **Postconditions:** see "Important methods" below.
+- **Failure:** `TransitionRejected`, raised *before* any mutation.
+
+### Focused structural view
+
+```mermaid
+classDiagram
+    direction LR
+    class Requester {
+        <<role>>
+        Reservation API · Approval Workflow
+        Scheduler · Waitlist · Facility blocks
+        holds the row lock, commits
+    }
+    class ReservationLifecycle {
+        <<command · lifecycle.py>>
+        +transition(db, reservation, new_status, actor_id, note, approval_decision, now)
+        +check_cancellable(reservation, now)
+    }
+    class TransitionPolicy {
+        <<interface>>
+        +check_transition(reservation, new_status, approval_decision, now)
+        ALLOWED_TRANSITIONS : from → set~to~
+        GUARDS : (from, to) → ordered Guard[]
+    }
+    class Guard {
+        <<interface>>
+        +guard(reservation, now, approval_decision) Rejection or None
+    }
+    class TransitionRejected {
+        <<exception · 409>>
+        reason : Rejection
+        detail : str
+    }
+    class Reservation {
+        <<entity>>
+        status
+        hold_expires_at
+        approval_expires_at
+        start_time
+    }
+    class Court {
+        <<entity>>
+        active
+        requires_approval
+    }
+    class ReservationEvent {
+        <<entity>>
+        event_type
+        actor_id
+        note
+    }
+    class PaymentRelease {
+        <<service · payments.release_for>>
+        queues refund, no I/O
+    }
+
+    Requester ..> ReservationLifecycle : requests a transition
+    ReservationLifecycle ..> TransitionPolicy : check first
+    TransitionPolicy o-- "0..*" Guard : per edge, in order
+    TransitionPolicy ..> TransitionRejected : raises
+    Guard ..> Reservation : reads
+    Guard ..> Court : reads
+    ReservationLifecycle ..> Reservation : writes status, deadlines
+    ReservationLifecycle ..> ReservationEvent : creates 1
+    ReservationLifecycle ..> PaymentRelease : on release
+    Reservation "0..*" --> "1" Court
+```
+
+The dependencies point one way. Requesters depend on the Lifecycle. The
+Lifecycle depends on the entities and on one queue-only service. Nothing in
+the Lifecycle knows who called it, and it does not import the API or the
+worker. `TransitionPolicy` is an interface in the design sense. In code it
+is the module-level function `check_transition` and its two tables, not a
+class: one implementation, no variation that would need a hierarchy
+(ADR-000's plain-module style).
+
+### Detailed sequence
+
+C03 level (H1): `Reservation API → Approval Workflow → Reservation Lifecycle → PostgreSQL`.
+C05 level: Confirm on an **approval-required** court (OP-03 step 5b),
+inside the Lifecycle.
+
+```mermaid
+sequenceDiagram
+    participant API as Reservation API<br/>confirm_reservation
+    participant AW as Approval Workflow<br/>submit_for_approval
+    participant LC as Lifecycle<br/>transition
+    participant PO as TransitionPolicy<br/>check_transition
+    participant G as Guards of PENDING → PENDING_APPROVAL
+    participant R as Reservation (row locked)
+    participant PAY as payments.release_for
+
+    API->>R: SELECT … FOR UPDATE (precondition)
+    API->>AW: submit_for_approval(db, r, actor)
+    AW->>LC: transition(db, r, PENDING_APPROVAL, actor)
+    LC->>PO: check_transition(r, PENDING_APPROVAL, decision=false, now)
+    PO->>PO: PENDING_APPROVAL ∈ ALLOWED_TRANSITIONS[PENDING]?
+    loop _hold_alive, _court_active, _approval_needed
+        PO->>G: guard(r, now, false)
+        G-->>PO: None | reason
+    end
+    alt a guard returned a reason
+        PO-->>API: raise TransitionRejected(reason) → 409, r unchanged, no event
+    else all passed
+        PO-->>LC: ok
+        LC->>R: status = PENDING_APPROVAL, hold_expires_at = None
+        LC->>LC: db.add(ReservationEvent(SUBMITTED, actor))
+        LC->>PAY: release_for(db, r) — not a releasing state, no-op
+        LC-->>AW: return
+        AW->>R: approval_expires_at = approval_deadline(start, now)  (BR-12, R5)
+        AW->>AW: notify owner + venue staff (outbox, ADR-005)
+        AW-->>API: return
+        API->>API: COMMIT (lock released)
+    end
+```
+
+### Important methods / operations
+
+**`check_transition`**
+- **Responsibility:** D1 + D2, the decision.
+- **Input:** `reservation`, `new_status`, `approval_decision: bool`, `now: datetime | None`.
+- **Output:** nothing, or an exception.
+- **Preconditions / postconditions:** see the `TransitionPolicy` contract.
+- **Side effects:** none.
+- **Failure behaviour:** the first failing check raises `TransitionRejected`. The edge check comes before any guard, so an illegal edge is always `ILLEGAL_TRANSITION`, whatever the guards would say.
+
+**`transition`**
+- **Responsibility:** D4–D6, the command.
+- **Input:** `db: Session`, `reservation`, `new_status`, `actor_id` (`None` = the system), `note`, `approval_decision`, `now`.
+- **Output:** none.
+- **Preconditions:** the row lock is held; the policy preconditions hold.
+- **Postconditions:**
+  - `status = new_status`.
+  - Entering `CONFIRMED` or `PENDING_APPROVAL` → `hold_expires_at = None`.
+  - Entering anything other than `PENDING_APPROVAL` → `approval_expires_at = None`.
+  - Exactly one `ReservationEvent` with `event_type = _EVENT_FOR_STATUS[new_status]`, `actor_id` and `note` is added.
+  - `payments.release_for` has been called.
+- **Side effects:**
+  - Only on the session: nothing is flushed or committed here.
+  - A paid payment of a reservation entering `CANCELLED`/`REJECTED`/`EXPIRED` becomes `REFUND_PENDING`.
+- **Failure behaviour:** it calls `check_transition` first, so a refusal leaves the reservation and the session untouched (all-or-nothing within the call). The caller's transaction is then discarded, by the request ending or by the worker sub-task's session.
+
+**`check_cancellable`**
+- **Responsibility:** D7.
+- **Input:** `reservation`, `now`.
+- **Precondition:** ownership/manager is already checked by the caller (BR-03 part 3, BR-10).
+- **Postcondition:** returns iff the state is `PENDING`, `PENDING_APPROVAL` or `CONFIRMED` and `now < start_time`.
+- **Failure behaviour:** `NOT_CANCELLABLE` or `ALREADY_STARTED`, both 409.
+
+### Algorithm / decision logic
+
+```
+lapsed(deadline, now) = deadline ≠ null ∧ deadline < now        # BR-06, BR-12: alive at the deadline instant
+
+check_transition(r, to, decision, now):
+    if to ∉ ALLOWED_TRANSITIONS[r.status]: reject ILLEGAL_TRANSITION
+    for guard in GUARDS[(r.status, to)] (empty if no row):
+        reason = guard(r, now, decision)
+        if reason: reject reason                                   # first failing guard wins
+```
+
+`GUARDS` is BR-09's guard column, row for row. The order inside a row is a
+design decision. For a hold, the deadline comes first because "book again"
+is the most useful message. For a request, the manager's authority comes
+first, so a non-manager learns nothing about the request's deadline.
+
+| Edge | Guards, in order | Spec |
+|---|---|---|
+| `PENDING → CONFIRMED` | hold alive → court active → court does **not** require approval | BR-06, BR-09, BR-11 |
+| `PENDING → PENDING_APPROVAL` | hold alive → court active → court requires approval | BR-09, BR-11 |
+| `PENDING → EXPIRED` | hold lapsed | BR-06 |
+| `PENDING_APPROVAL → CONFIRMED` | manager decision → request alive → court active | BR-11, BR-12, REQ-08 |
+| `PENDING_APPROVAL → REJECTED` | manager decision → request alive | BR-12, REQ-09 |
+| `PENDING_APPROVAL → EXPIRED` | request lapsed | BR-12, REQ-10 |
+| `* → CANCELLED` | none in the Lifecycle: Cancel calls `check_cancellable` (BR-03), a facility block is exempt (§9) | BR-03 |
+| `CONFIRMED → CHECKED_IN / NO_SHOW / COMPLETED`, `CHECKED_IN → COMPLETED` | none: fulfilment is outside the baseline (§9) | — |
+
+Decision table for leaving a live `PENDING` hold. These are the 8 combinations
+of the three conditions; `—` means the transition is allowed:
+
+| hold lapsed | court active | requires approval | → `CONFIRMED` | → `PENDING_APPROVAL` |
+|---|---|---|---|---|
+| no | yes | no | — | `APPROVAL_NOT_REQUIRED` |
+| no | yes | yes | `APPROVAL_REQUIRED` | — |
+| no | no | any | `COURT_INACTIVE` | `COURT_INACTIVE` |
+| yes | any | any | `HOLD_EXPIRED` | `HOLD_EXPIRED` |
+
+Consequences:
+- From a live hold on an active court exactly one target is reachable, so the API's choice and the Lifecycle's decision cannot disagree silently (DR-3).
+- For each deadline, "act on it" and "expire it" are exact complements at every instant. A reservation is never both actionable and expirable.
+
+**Concurrency behaviour.** The unit takes no locks. Serialisation is the
+caller's precondition (R4). Under it, two requests on one reservation run
+one after the other, and the second is decided on the first one's result.
+`SKIP LOCKED` in the Scheduler means a locked row is decided on the next
+tick, never twice.
+
+**Persistence behaviour.** The command only changes ORM state and adds rows
+to the session. The caller commits. A `TransitionRejected` arrives before
+any change.
+
+**Variation points (where a change goes):**
+- **A new guard on an existing edge:** one function plus one entry in that edge's `GUARDS` row.
+- **A new edge:** `ALLOWED_TRANSITIONS`. DD-T1 checks that every `GUARDS` row is an allowed edge.
+- **A new state:** `ALLOWED_TRANSITIONS`, `_EVENT_FOR_STATUS`, a Postgres enum migration, and, if it blocks the court, the exclusion constraint (root `CLAUDE.md` pitfall #4).
+- **A new requester:** none of the above. It requests a transition and holds the lock.
+
+### DD decisions intentionally left to code
+
+- The wording of each `detail`. It is kept identical to the previous text, because the frontend shows it.
+- The names of the guard functions, and that they are module functions rather than classes.
+- `_EVENT_FOR_STATUS`, which maps each state to the event of the same name.
+- The hold value on a reservation that ends `CANCELLED`/`EXPIRED`. It is kept, as before; only entering `CONFIRMED`/`PENDING_APPROVAL` clears it, because only there would a countdown be wrong.
+- How `reservation.court` is loaded (lazy load, inside the caller's transaction).

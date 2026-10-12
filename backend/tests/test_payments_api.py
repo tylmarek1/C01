@@ -22,7 +22,7 @@ from test_spec_baseline import (
     make_user,
 )
 
-from reservations import payment_gateway, payments
+from reservations import payment_gateway, payments, rules
 from reservations.lifecycle import transition
 from reservations.main import app
 from reservations.models import (
@@ -208,6 +208,9 @@ def test_an_expired_paid_hold_is_refunded_and_a_no_show_is_not(
     pay(client, token, hold["id"])
     pay(client, token, played["id"])
 
+    after_the_hold = datetime.now(timezone.utc) + rules.HOLD_DURATION + timedelta(
+        seconds=1
+    )
     with session_factory() as session:
         for reservation_id, status in (
             (hold["id"], ReservationStatus.EXPIRED),
@@ -216,7 +219,8 @@ def test_an_expired_paid_hold_is_refunded_and_a_no_show_is_not(
             reservation = session.get(
                 Reservation, uuid.UUID(reservation_id), with_for_update=True
             )
-            transition(session, reservation, status)
+            # As the worker would, after the hold's deadline (BR-06).
+            transition(session, reservation, status, now=after_the_hold)
         session.commit()
 
     assert payment_statuses(session_factory, hold["id"]) == [
