@@ -20,6 +20,8 @@ outstanding** (the one gate this repository's tooling cannot close
 itself — see "Pending / open gates"). **C03: engineering complete** — Part A
 (AS-IS trace) and B–M (drivers → ADR-005 → TO-BE views → outbox implementation
 → verification) for Confirm Reservation, evidence in `docs/evidence-and-evolution.md`.
+**C05: engineering complete** — detailed design of the Reservation Lifecycle.
+(`docs/course/` has no C04 assignment, so this file tracks no C04 phase.)
 
 | | |
 |---|---|
@@ -27,6 +29,7 @@ itself — see "Pending / open gates"). **C03: engineering complete** — Part A
 | C02 | Baseline v0.1 and the "approval process" change (v0.2) are both engineering-complete and evidenced; **team approval of both specification baselines is the one item still open** |
 | Specification baseline | v0.3 — `docs/specification.md` (2026-10-08: venue-scoped managers, ADR-008). The C02 baselines are frozen: v0.1 in `docs/specification-v0.1.md`, v0.2 in `docs/specification-v0.2.md` |
 | C03 | **Engineering complete** (assignment: `docs/course/C03.md`). Part A + B–L in `docs/architecture-and-decisions.md` (§ "C03 Part A", § "C03 — Architecture", ADR-005); evidence (M) in `docs/evidence-and-evolution.md` § "C03 — Architecture Evidence". Commit/tag: implementation merged to `main` in PR #71 (`da3158d`), tag `c03-architecture`. Follow-up 2026-10-08 (PR #76): waitlist accept, the one path that bypassed the Lifecycle, now goes through it (amendment at the end of `docs/architecture-and-decisions.md`). No C03 item open |
+| C05 | **Engineering complete** (assignment: `docs/course/C05.md`). Detailed design of the Reservation Lifecycle (C03 R2) in `docs/architecture-and-decisions.md` § "C05 Detailed Design"; tests DD-T1…DD-T9 in `backend/tests/test_lifecycle.py`; evidence (tests, design ↔ code comparison, remaining risk) in `docs/evidence-and-evolution.md` § "C05 DD Verification Evidence". Tag `c05-detailed-design`. No C05 item open |
 
 ## Completed gates
 
@@ -106,9 +109,9 @@ where, so a session doesn't have to search for them.
 
 ## Latest verification
 
-- `cd backend && uv run pytest -v` — **311 passed** against real
+- `cd backend && uv run pytest -v` — **487 passed** against real
   PostgreSQL 16 (its own `reservations_test` database since PR #77). Last
-  run: 2026-10-08.
+  run: 2026-10-12 (C05; 106 of these are `tests/test_lifecycle.py`).
   - The C02-baseline evidence figure stays **177 passed** (2026-09-21).
   - The suite later grew through product features (PRs #38–#44), the C03
     outbox (PR #71, 305) and the waitlist-lifecycle follow-up (PR #76, 309) and waitlist booking limits (311).
@@ -120,8 +123,8 @@ where, so a session doesn't have to search for them.
 ## Latest evidence
 
 `docs/evidence-and-evolution.md` — the C01 spike section, the
-"Evidence C02" section and "C03 — Architecture Evidence" (with its
-2026-10-08 follow-up). That file is the durable evidence record; this
+"Evidence C02" section, "C03 — Architecture Evidence" (with its
+2026-10-08 follow-up) and "C05 DD Verification Evidence". That file is the durable evidence record; this
 section just points to it.
 
 ## Latest relevant commit

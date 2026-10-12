@@ -85,9 +85,19 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   with login; now "potvrdit příchod" / "Na místě"), one term each for the
   waitlist ("pořadník"), no-shows ("neúčast") and skill rating.
 - The public navbar's language and theme switches now sit at the far right.
+- **Reservation lifecycle (C05 detailed design):** every BR-09 guard is now
+  checked by the Lifecycle itself, as an ordered guard table with a reason
+  code per refusal (`TransitionRejected`, still a 409 with the same message).
+  Two guards that only the callers used to ensure are new: a hold or
+  approval request can be expired only after its deadline, and only a court
+  that requires approval accepts a submission. The decision instant can be
+  injected, so the policy is unit-tested without a database.
 
 ### Fixed
 
+- **Check-in racing a cancel:** both could succeed, leaving a `CHECKED_IN`
+  reservation with a `CANCELLED` event in its history. Check-in now takes the
+  reservation's row lock like every other state change, so exactly one wins.
 - The help FAQ named a "Private profile" switch that doesn't exist; it now
   points at the real "Show my profile to other players" setting.
 

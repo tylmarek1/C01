@@ -50,7 +50,11 @@ def _expire_stale_holds(db) -> None:
     )
     for reservation in db.scalars(stmt):
         transition(
-            db, reservation, ReservationStatus.EXPIRED, note="Hold expired unconfirmed"
+            db,
+            reservation,
+            ReservationStatus.EXPIRED,
+            note="Hold expired unconfirmed",
+            now=now,
         )
         notify(
             db,
@@ -80,6 +84,7 @@ def _expire_stale_approvals(db) -> None:
             reservation,
             ReservationStatus.EXPIRED,
             note="Approval request expired undecided",
+            now=now,
         )
         notify(
             db,
