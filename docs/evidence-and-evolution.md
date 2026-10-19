@@ -378,3 +378,21 @@ Planned DD vs. the code at the start (`main` at `49a7143`):
 ### Commit/tag
 
 Implementation, tests and design: commit `5b2411e` (branch `feat/c05-detailed-design`). Merged to `main` in [PR #91](https://github.com/tylmarek1/C01/pull/91). Tag **`c05-detailed-design`** points to that merge commit.
+
+### Follow-up 2026-10-19 — DD-T1 checks the code against BR-09, not against itself
+
+- **Found:** DD-T1 claimed "`ALLOWED_TRANSITIONS` = BR-09", but its
+  expected values were read from `ALLOWED_TRANSITIONS` itself, so it could
+  not catch a difference. There was one: the code allowed
+  `CONFIRMED → COMPLETED`, which BR-09 and the §5.2 statechart don't have
+  (a slot without a check-in ends `NO_SHOW`; only `CHECKED_IN` completes).
+  No code path used the edge; the DD's fulfilment row had copied it.
+- **Which source was wrong:** the code (and the DD row copied from it). The
+  specification was right and stays unchanged.
+- **Change:** the edge is removed from `lifecycle.py`. `backend/tests/test_lifecycle.py`
+  now has `BR_09_EDGES` and `BR_09_GUARDED_EDGES`, written down from the
+  specification's BR-09 table. DD-T1 uses them as the oracle for all
+  9 × 9 pairs and checks `ALLOWED_TRANSITIONS` and `GUARDS` against them.
+- **Mutation check:** with the old `lifecycle.py` restored, the new DD-T1
+  fails (2 failed: the `CONFIRMED → COMPLETED` pair and the table equality); the
+  old DD-T1 had passed on that code. With the fix: 82 passed (`-k t1`).

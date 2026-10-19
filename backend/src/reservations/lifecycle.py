@@ -37,10 +37,11 @@ ALLOWED_TRANSITIONS: dict[ReservationStatus, set[ReservationStatus]] = {
         ReservationStatus.CANCELLED,
         ReservationStatus.EXPIRED,
     },
+    # No CONFIRMED -> COMPLETED: a slot that ended without a check-in is a
+    # NO_SHOW (BR-09, spec §5.2); only CHECKED_IN completes.
     ReservationStatus.CONFIRMED: {
         ReservationStatus.CHECKED_IN,
         ReservationStatus.CANCELLED,
-        ReservationStatus.COMPLETED,
         ReservationStatus.NO_SHOW,
     },
     ReservationStatus.CHECKED_IN: {

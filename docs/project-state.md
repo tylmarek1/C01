@@ -97,15 +97,19 @@ closed on 2026-10-12 (see "Completed gates").
 From `docs/change-c02-impact.md` §3 (full detail and code evidence there —
 don't restate it here, it will drift). C03 refined them into DR-1…DR-4
 (`docs/architecture-and-decisions.md` § "C03 — Architecture" B); ADR-005
-addresses AD-5 for Web Push and narrows AD-3's lock scope; AD-4 stays open
-for the waitlist-accept path.
+addresses AD-5 for Web Push and narrows AD-3's lock scope.
 
 AD-1 (long-lived persisted time-bounded process), AD-2 (blocking-state set
-defined in four places), AD-3 (row-level serialisation is load-bearing),
-AD-4 (several doors to `CONFIRMED`), AD-5 (notification delivery has no
-guarantees), AD-6 (approval authority is still coarse — "any manager,"
-not per-resource; the role list grew from two to three post-C02 with an
-ADMIN tier, which doesn't resolve this).
+defined in four places — still open, see C05 "Remaining design risk"),
+AD-3 (row-level serialisation is load-bearing), AD-4 (several doors to
+`CONFIRMED`), AD-5 (notification delivery has no guarantees), AD-6
+(approval authority was coarse — "any manager," not per-resource).
+
+Status as of 2026-10-08: **AD-4 closed** — waitlist accept, the last path
+around the Lifecycle, now goes through it (`docs/evidence-and-evolution.md`
+§ "Follow-up 2026-10-08"; guarded by `test_only_the_lifecycle_changes_reservation_status`).
+**AD-6 closed** — managers are scoped to their venues (ADR-008, spec v0.3
+BR-10).
 
 ## Current assumptions and unknowns
 

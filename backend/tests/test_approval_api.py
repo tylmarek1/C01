@@ -951,6 +951,15 @@ def test_the_exclusion_constraint_blocks_exactly_the_active_statuses(
         status for status in ReservationStatus if f"'{status.value}'" in definition
     }
     assert in_constraint == set(ACTIVE_RESERVATION_STATUSES)
+    # ...and both say what docs/specification.md BR-02 says, written down
+    # here rather than read from the code.
+    br_02_blocking_states = {
+        ReservationStatus.PENDING,
+        ReservationStatus.PENDING_APPROVAL,
+        ReservationStatus.CONFIRMED,
+        ReservationStatus.CHECKED_IN,
+    }
+    assert in_constraint == br_02_blocking_states
 
 
 def test_a_pending_approval_reservation_is_tentative_in_the_calendar(

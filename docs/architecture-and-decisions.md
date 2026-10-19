@@ -1187,7 +1187,7 @@ first, so a non-manager learns nothing about the request's deadline.
 | `PENDING_APPROVAL → REJECTED` | manager decision → request alive | BR-12, REQ-09 |
 | `PENDING_APPROVAL → EXPIRED` | request lapsed | BR-12, REQ-10 |
 | `* → CANCELLED` | none in the Lifecycle: Cancel calls `check_cancellable` (BR-03), a facility block is exempt (§9) | BR-03 |
-| `CONFIRMED → CHECKED_IN / NO_SHOW / COMPLETED`, `CHECKED_IN → COMPLETED` | none: fulfilment is outside the baseline (§9) | — |
+| `CONFIRMED → CHECKED_IN / NO_SHOW`, `CHECKED_IN → COMPLETED` | none: fulfilment is outside the baseline (§9) | — |
 
 Decision table for leaving a live `PENDING` hold. These are the 8 combinations
 of the three conditions; `—` means the transition is allowed:
@@ -1226,3 +1226,12 @@ any change.
 - `_EVENT_FOR_STATUS`, which maps each state to the event of the same name.
 - The hold value on a reservation that ends `CANCELLED`/`EXPIRED`. It is kept, as before; only entering `CONFIRMED`/`PENDING_APPROVAL` clears it, because only there would a countdown be wrong.
 - How `reservation.court` is loaded (lazy load, inside the caller's transaction).
+
+#### Amendment (2026-10-19): `CONFIRMED → COMPLETED` was not a BR-09 edge
+
+The fulfilment row above first listed `CONFIRMED → COMPLETED`, copied from
+`ALLOWED_TRANSITIONS`. BR-09 and the §5.2 statechart have no such edge: a
+slot that ended without a check-in becomes `NO_SHOW`, and only `CHECKED_IN`
+completes. No code path used the edge. The row and the code were corrected,
+and DD-T1 now takes its expected edges from the specification instead of
+from the code (`docs/evidence-and-evolution.md`, C05 follow-up 2026-10-19).

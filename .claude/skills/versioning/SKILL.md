@@ -10,10 +10,10 @@ description: How to think about change classification (breaking/feature/fix), CH
 between them (see below for what that implies). There *is* now a
 `CHANGELOG.md` at the repo root and version fields in `backend/pyproject.toml`
 (`project.version`) and `frontend/package.json` (`version`) — keep these in
-step, but don't build more release machinery than that (no tags, no
-release branches, no automated bump tooling) unless the project's scale
-actually grows into needing it; that would be the overengineering root
-`CLAUDE.md` warns against.
+step. Releases are git-tagged (`vX.Y.Z`, matching the `CHANGELOG.md`
+heading; procedure in `.claude/workflows/release.md`), but don't build more
+release machinery than that (no release branches, no automated bump
+tooling) — that would be the overengineering root `CLAUDE.md` warns against.
 
 ## CHANGELOG.md
 
@@ -28,16 +28,15 @@ actually grows into needing it; that would be the overengineering root
 - **Exempt**: pure refactors with zero behavioral change, formatting,
   typo/comment fixes, and this-infra-only changes (skills, CLAUDE.md,
   hooks) — those belong in the commit message, not the changelog.
-- There is no release process yet (no tags, no `git-cliff`/similar), so
-  `[Unreleased]` just accumulates. If the team ever cuts an actual release,
-  that's the point to rename `[Unreleased]` to a dated version heading and
-  start a fresh `[Unreleased]` — don't invent that ceremony preemptively.
+- `[Unreleased]` accumulates until the team cuts a release; then it is
+  renamed to a dated version heading and a fresh `[Unreleased]` starts
+  (`.claude/workflows/release.md`).
 
 ## Version numbers
 
 `backend/pyproject.toml`'s `project.version` and `frontend/package.json`'s
 `version` are independent (backend and frontend are different deployables,
-per ADR-002's repo split) and currently both pre-1.0 (`0.1.0` / `0.0.0`).
+per ADR-002's repo split) (backend pre-1.0, frontend 4.x — read the files, don't trust a number here).
 Bump only on a genuine breaking change to that side (see below) — most
 day-to-day feature/fix work doesn't need a bump, and bumping isn't a
 substitute for a CHANGELOG entry.
