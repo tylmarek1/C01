@@ -181,6 +181,19 @@ and executed evidence — lives in [`docs/`](docs/) rather than here:
 - [`docs/course/`](docs/course/) — the original course assignments,
   verbatim.
 
+### Course work at a glance
+
+| Exercise | Artifacts | Tests / evidence | Tag / commit |
+|---|---|---|---|
+| C01 | `docs/intent-and-change.md` (Project Frame) | `docs/evidence-and-evolution.md` § "C01 Engineering Spike" | PR #5 |
+| C02 | `docs/specification-v0.1.md` (baseline), `docs/specification-v0.2.md` (approval change), `docs/change-c02-impact.md`; current `docs/specification.md` (v0.3) | `backend/tests/test_spec_baseline.py` (VE-01…04), `backend/tests/test_approval_api.py` (VE-05…08) — each test name starts with its VE id; § "Evidence C02" | commit `ede421d` (PR #9) |
+| C03 | `docs/architecture-and-decisions.md` § "C03 Part A" and § "C03 — Architecture" (ADR-005) | `backend/tests/test_architecture.py`; § "C03 — Architecture Evidence" | `c03-architecture` |
+| C04 | none — the course had no C04 assignment (C03 took its place; the slot was the CP1 checkpoint, `docs/course/C02.md` "Vztah k CP1") | — | — |
+| C05 | `docs/architecture-and-decisions.md` § "C05 Detailed Design" (unit: `backend/src/reservations/lifecycle.py`) | `backend/tests/test_lifecycle.py` (DD-T1…T9); § "C05 DD Verification Evidence" | `c05-detailed-design` |
+
+The latest release tag (see `CHANGELOG.md`) marks one baseline of docs,
+code and tests together. Status of each exercise: `docs/project-state.md`.
+
 ## Team
 
 Courtly started as the **SWI** course's engineering-spike deliverable and

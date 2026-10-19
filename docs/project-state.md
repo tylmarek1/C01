@@ -97,15 +97,19 @@ closed on 2026-10-12 (see "Completed gates").
 From `docs/change-c02-impact.md` §3 (full detail and code evidence there —
 don't restate it here, it will drift). C03 refined them into DR-1…DR-4
 (`docs/architecture-and-decisions.md` § "C03 — Architecture" B); ADR-005
-addresses AD-5 for Web Push and narrows AD-3's lock scope; AD-4 stays open
-for the waitlist-accept path.
+addresses AD-5 for Web Push and narrows AD-3's lock scope.
 
 AD-1 (long-lived persisted time-bounded process), AD-2 (blocking-state set
-defined in four places), AD-3 (row-level serialisation is load-bearing),
-AD-4 (several doors to `CONFIRMED`), AD-5 (notification delivery has no
-guarantees), AD-6 (approval authority is still coarse — "any manager,"
-not per-resource; the role list grew from two to three post-C02 with an
-ADMIN tier, which doesn't resolve this).
+defined in four places — still open, see C05 "Remaining design risk"),
+AD-3 (row-level serialisation is load-bearing), AD-4 (several doors to
+`CONFIRMED`), AD-5 (notification delivery has no guarantees), AD-6
+(approval authority was coarse — "any manager," not per-resource).
+
+Status as of 2026-10-08: **AD-4 closed** — waitlist accept, the last path
+around the Lifecycle, now goes through it (`docs/evidence-and-evolution.md`
+§ "Follow-up 2026-10-08"; guarded by `test_only_the_lifecycle_changes_reservation_status`).
+**AD-6 closed** — managers are scoped to their venues (ADR-008, spec v0.3
+BR-10).
 
 ## Current assumptions and unknowns
 
@@ -117,14 +121,15 @@ where, so a session doesn't have to search for them.
 
 - `cd backend && uv run pytest -v` — **487 passed** against real
   PostgreSQL 16 (its own `reservations_test` database since PR #77). Last
-  run: 2026-10-12 (C05; 106 of these are `backend/tests/test_lifecycle.py`).
+  run: 2026-10-19, on a fresh clone of release 4.1.0's code, following only
+  the root `README.md` (106 of these are `backend/tests/test_lifecycle.py`).
   - The C02-baseline evidence figure stays **177 passed** (2026-09-21).
   - The suite later grew through product features (PRs #38–#44), the C03
     outbox (PR #71, 305) and the waitlist-lifecycle follow-up (PR #76, 309) and waitlist booking limits (311).
     None of these are C02 VE-xx tests or change C02's phase status.
 - `cd frontend && npm run build && npm run lint` — build passes; lint shows
-  only the 6 known `only-export-components` warnings. Last run: 2026-10-08
-  (v4.0.0 redesign, PR #74).
+  only the 6 known `only-export-components` warnings. Last run: 2026-10-19
+  (release 4.1.0; the fresh clone's `npm ci && npm run build` passed too).
 
 ## Latest evidence
 
@@ -135,11 +140,14 @@ section just points to it.
 
 ## Latest relevant commit
 
-Release v4.0.2 (2026-10-08): frontend 4.0.0, backend 0.3.2 — see
-`CHANGELOG.md`. Course milestones:
+Release **v4.1.0** (2026-10-19): frontend 4.1.0, backend 0.4.0, tag
+`v4.1.0` — one baseline of docs, code and tests (see `CHANGELOG.md`).
+Course milestones:
 - C02 engineering: PR [#9](https://github.com/tylmarek1/C01/pull/9) (`ede421d`).
 - C03 architecture: PR [#71](https://github.com/tylmarek1/C01/pull/71)
   (`da3158d`), tag `c03-architecture`.
+- C05 detailed design: PR [#91](https://github.com/tylmarek1/C01/pull/91)
+  (`93af6a7`), tag `c05-detailed-design`.
 
 ---
 

@@ -3,10 +3,18 @@
 All notable user- or developer-visible changes to Courtly (C01) are
 documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-There is no tagged release process yet — see `versioning` skill — so
-entries accumulate under `Unreleased` until the team decides to cut one.
+Changes accumulate under `Unreleased` and move under a dated version heading
+when the team cuts a release; each release has a git tag of the same name
+(`v4.1.0`, …).
 
 ## [Unreleased]
+
+## [4.1.0] - 2026-10-19
+
+Backend 0.3.2 -> 0.4.0, frontend 4.0.0 -> 4.1.0. Everything merged since
+4.0.2: venues and venue-scoped managers (specification v0.3), opening hours
+and court rates in the database, payments, the audit log, Alembic
+migrations, and the C05 detailed design of the reservation lifecycle.
 
 ### Added
 
@@ -64,12 +72,6 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   waitlist, and the chosen range stays drawn on the strip with its times.
   The booking step header shows the picked time too.
 
-### Changed
-
-- **Rescheduling uses the same day strip and free-time grid as booking**
-  instead of bare date/time inputs, so only actually free times can be picked.
-
-### Added
 
 - **Demo-account picker on the login page (dev builds only):** clicking a
   seeded account (player, teammate, venue manager, admin) fills in the form.
@@ -79,6 +81,10 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   `Intl.PluralRules`, so Czech counts decline correctly ("2 místa", "5 míst").
 
 ### Changed
+
+- **Rescheduling uses the same day strip and free-time grid as booking**
+  instead of bare date/time inputs, so only actually free times can be picked.
+
 
 - **Czech copy reviewed page by page:** literal translations reworded into
   natural Czech, check-in no longer translated as "přihlásit se" (it clashed
@@ -100,6 +106,12 @@ entries accumulate under `Unreleased` until the team decides to cut one.
   reservation's row lock like every other state change, so exactly one wins.
 - The help FAQ named a "Private profile" switch that doesn't exist; it now
   points at the real "Show my profile to other players" setting.
+
+- **Reservation lifecycle matches the specification's transition table:**
+  it no longer accepts `CONFIRMED → COMPLETED` (BR-09 has no such edge; a
+  slot that ended without a check-in is a no-show). No code path used it.
+  The lifecycle unit tests now take the expected transitions from the
+  specification instead of from the code.
 
 ## [4.0.2] - 2026-10-08
 

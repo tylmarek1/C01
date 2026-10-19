@@ -54,6 +54,36 @@ NOW = datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc)
 TICK = timedelta(microseconds=1)
 ABSORBING = (S.COMPLETED, S.CANCELLED, S.EXPIRED, S.REJECTED, S.NO_SHOW)
 
+# The oracle for DD-T1, written down from docs/specification.md BR-09 (the
+# transition table) and §5.2 (the statechart), row by row — deliberately
+# not derived from lifecycle.py, so the tests compare the code with the
+# specification instead of with itself.
+BR_09_EDGES: set[tuple[ReservationStatus, ReservationStatus]] = {
+    (S.PENDING, S.CONFIRMED),
+    (S.PENDING, S.PENDING_APPROVAL),
+    (S.PENDING, S.CANCELLED),
+    (S.PENDING, S.EXPIRED),
+    (S.PENDING_APPROVAL, S.CONFIRMED),
+    (S.PENDING_APPROVAL, S.REJECTED),
+    (S.PENDING_APPROVAL, S.CANCELLED),
+    (S.PENDING_APPROVAL, S.EXPIRED),
+    (S.CONFIRMED, S.CANCELLED),
+    (S.CONFIRMED, S.CHECKED_IN),
+    (S.CONFIRMED, S.NO_SHOW),
+    (S.CHECKED_IN, S.COMPLETED),
+    (S.CHECKED_IN, S.CANCELLED),
+}
+# BR-09's guard column: the edges that have a guard in the specification
+# (the fulfilment edges and the → CANCELLED edges have none in the Lifecycle).
+BR_09_GUARDED_EDGES = {
+    (S.PENDING, S.CONFIRMED),
+    (S.PENDING, S.PENDING_APPROVAL),
+    (S.PENDING, S.EXPIRED),
+    (S.PENDING_APPROVAL, S.CONFIRMED),
+    (S.PENDING_APPROVAL, S.REJECTED),
+    (S.PENDING_APPROVAL, S.EXPIRED),
+}
+
 
 def unsaved(
     status: ReservationStatus,
@@ -103,17 +133,21 @@ def test_dd_t1_the_edge_table_is_checked_before_any_guard(
     never reported as illegal (a guard may still refuse it)."""
     reason = rejection(unsaved(old), new, decision=True)
 
-    if new in ALLOWED_TRANSITIONS[old]:
+    if (old, new) in BR_09_EDGES:
         assert reason != Rejection.ILLEGAL_TRANSITION
     else:
         assert reason == Rejection.ILLEGAL_TRANSITION
 
 
 def test_dd_t1_absorbing_states_and_the_guard_table_agree_with_br_09() -> None:
+    code_edges = {
+        (old, new) for old, targets in ALLOWED_TRANSITIONS.items() for new in targets
+    }
+    assert code_edges == BR_09_EDGES
     assert all(ALLOWED_TRANSITIONS[state] == set() for state in ABSORBING)
-    # A guard row for an edge the table doesn't allow would be dead code
-    # pretending to be a rule.
-    assert all(new in ALLOWED_TRANSITIONS[old] for old, new in GUARDS)
+    # One guard row per guarded BR-09 edge, and no other: a row for an edge
+    # the table doesn't allow would be dead code pretending to be a rule.
+    assert set(GUARDS) == BR_09_GUARDED_EDGES
 
 
 @pytest.mark.parametrize(

@@ -118,8 +118,8 @@ docs/course/                        the course assignments, verbatim (C01.md, C0
 docs/project-state.md               current phase, gates, drivers — layer 3
 docs/definition-of-done.md          the evidence-backed-completion rule (not a checklist)
 docs/intent-and-change.md           Project Frame (domain, states, rules) — graded, still accurate as decisions
-docs/architecture-and-decisions.md  ADR-000..005 — stack choice, exclusion-constraint design, repo split, JWT auth, WebSocket chat delivery, Web Push outbox; C03 Part A AS-IS trace + C03 architecture (Confirm Reservation)
-docs/evidence-and-evolution.md      the executed C01 spike write-up + the C02 evidence (spec -> running app)
+docs/architecture-and-decisions.md  ADR-000..010 (stack, exclusion constraint, repo split, JWT, WebSocket chat, Web Push outbox, Alembic, logging/audit, venues, opening hours/rates, payments); C03 Part A AS-IS trace + C03 architecture (Confirm Reservation); C05 detailed design (Reservation Lifecycle)
+docs/evidence-and-evolution.md      the executed C01 spike write-up + the C02, C03 and C05 evidence
 docs/specification.md               current specification v0.3 (approval process + venue-scoped managers); v0.1 and v0.2 (the C02 baselines) frozen in specification-v0.1.md / -v0.2.md
 docs/change-c02-impact.md           impact analysis of the C02 change + architectural drivers handed to C03
 .claude/workflows/                  the process files "How work gets routed" (above) points into

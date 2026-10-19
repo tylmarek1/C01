@@ -3,11 +3,10 @@
 **Triggers:** "cut a release," "tag a version," "prepare C0N for
 submission/grading."
 
-This repository has **no tagged release process today** — that's a
-deliberate, documented state (`versioning` skill: no tags, no release
-branches, no automated bump tooling), not a gap this workflow exists to
-close preemptively. This file exists for the moment the team actually
-needs one, so that moment has a procedure instead of an improvised one.
+Releases are tagged: each dated `CHANGELOG.md` heading has a git tag of
+the same name (`v4.0.0`…`v4.1.0`), and course milestones have their own
+tags (`c03-architecture`, `c05-detailed-design`). There are no release
+branches and no automated bump tooling — don't add them preemptively.
 
 ## What "release" means for a course phase (the common case today)
 
@@ -32,12 +31,15 @@ phase for hand-in (C01, C02, and whatever C0N comes next):
    true summary of what changed since the last phase; that's the closest
    thing this project has to release notes today.
 
-## If the team ever does cut a real tagged release
+## Cutting a tagged release
 
-Follow `versioning`'s existing rule: bump `backend/pyproject.toml`'s
-`project.version` and `frontend/package.json`'s `version` independently,
-only on a genuine breaking change to that side; rename `[Unreleased]` to a
-dated version heading in `CHANGELOG.md` and start a fresh `[Unreleased]`.
-Don't invent tagging, a release branch, or automated version bumping
-before that's actually needed — that's exactly the overengineering root
-`CLAUDE.md` and this workflow system both warn against.
+1. Verify on the branch: backend `uv run pytest`, frontend `npm run build`
+   and `npm run lint`, `.claude/scripts/check-project-state.sh`.
+2. Rename `[Unreleased]` in `CHANGELOG.md` to `[X.Y.Z] - date` (one
+   `Added`/`Changed`/`Fixed` section each) and start a fresh `[Unreleased]`.
+3. Bump `backend/pyproject.toml` (then `uv lock`) and `frontend/package.json`
+   (and `package-lock.json`) independently, per `versioning`.
+4. Point `docs/project-state.md` § "Latest relevant commit" and
+   § "Latest verification" at the release.
+5. After the PR is merged: `git tag -a vX.Y.Z -m … <merge commit>` and
+   `git push origin vX.Y.Z`.

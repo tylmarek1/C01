@@ -501,6 +501,10 @@ def confirm_reservation(
     try:
         db.commit()
     except IntegrityError as exc:
+        # Not reachable by design (spec D-08: Confirm cannot fail on overlap,
+        # because the PENDING hold already blocks the slot and the target
+        # states block it too). Kept as a safety net so a future change to
+        # the blocking set fails as a 409 instead of a 500.
         db.rollback()
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Slot was just taken by another reservation"
