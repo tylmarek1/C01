@@ -536,6 +536,14 @@ approval court, the Lifecycle guard rejects it with 409 (VE-03.9/03.10,
 `lifecycle.py:112-120`). The Lifecycle is therefore the single decision
 owner for DR-3.
 
+*Amendment (2026-10-19), code names after C05:* the ownership above is
+unchanged, but the C05 detailed design replaced `_check_guards` (named here and in H2) with the
+ordered `GUARDS` table read by `check_transition()` (the court-approval
+guards are `_no_approval_needed` / `_approval_needed`), and the line numbers
+cited here and in Part A no longer apply. A refusal is now a
+`TransitionRejected` (still 409) with a reason code. Current design:
+§ "C05 Detailed Design"; tests `backend/tests/test_lifecycle.py`.
+
 ### G4. Runtime / deployment mapping
 
 ```mermaid

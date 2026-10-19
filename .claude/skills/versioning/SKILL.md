@@ -36,7 +36,7 @@ tooling) — that would be the overengineering root `CLAUDE.md` warns against.
 
 `backend/pyproject.toml`'s `project.version` and `frontend/package.json`'s
 `version` are independent (backend and frontend are different deployables,
-per ADR-002's repo split) (backend pre-1.0, frontend 4.x — read the files, don't trust a number here).
+per ADR-002's repo split); read the files for the current numbers.
 Bump only on a genuine breaking change to that side (see below) — most
 day-to-day feature/fix work doesn't need a bump, and bumping isn't a
 substitute for a CHANGELOG entry.

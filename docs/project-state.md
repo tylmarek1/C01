@@ -121,14 +121,15 @@ where, so a session doesn't have to search for them.
 
 - `cd backend && uv run pytest -v` — **487 passed** against real
   PostgreSQL 16 (its own `reservations_test` database since PR #77). Last
-  run: 2026-10-12 (C05; 106 of these are `backend/tests/test_lifecycle.py`).
+  run: 2026-10-19, on a fresh clone of release 4.1.0's code, following only
+  the root `README.md` (106 of these are `backend/tests/test_lifecycle.py`).
   - The C02-baseline evidence figure stays **177 passed** (2026-09-21).
   - The suite later grew through product features (PRs #38–#44), the C03
     outbox (PR #71, 305) and the waitlist-lifecycle follow-up (PR #76, 309) and waitlist booking limits (311).
     None of these are C02 VE-xx tests or change C02's phase status.
 - `cd frontend && npm run build && npm run lint` — build passes; lint shows
-  only the 6 known `only-export-components` warnings. Last run: 2026-10-08
-  (v4.0.0 redesign, PR #74).
+  only the 6 known `only-export-components` warnings. Last run: 2026-10-19
+  (release 4.1.0; the fresh clone's `npm ci && npm run build` passed too).
 
 ## Latest evidence
 
@@ -139,11 +140,14 @@ section just points to it.
 
 ## Latest relevant commit
 
-Release v4.0.2 (2026-10-08): frontend 4.0.0, backend 0.3.2 — see
-`CHANGELOG.md`. Course milestones:
+Release **v4.1.0** (2026-10-19): frontend 4.1.0, backend 0.4.0, tag
+`v4.1.0` — one baseline of docs, code and tests (see `CHANGELOG.md`).
+Course milestones:
 - C02 engineering: PR [#9](https://github.com/tylmarek1/C01/pull/9) (`ede421d`).
 - C03 architecture: PR [#71](https://github.com/tylmarek1/C01/pull/71)
   (`da3158d`), tag `c03-architecture`.
+- C05 detailed design: PR [#91](https://github.com/tylmarek1/C01/pull/91)
+  (`93af6a7`), tag `c05-detailed-design`.
 
 ---
 
